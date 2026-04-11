@@ -1648,50 +1648,6 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
 
 
 
-// ── TMDB HOME (text update only — posters embedded) ──────────────────────────
-// Runs on HTTPS (Netlify) to keep text data fresh; posters are always available
-(function() {
-  if (location.protocol === 'file:') return;
-  var TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxMzcyNWY2YTUzYzRkNmRlOWIwNmIwZTFjYjllN2Q2NyIsIm5iZiI6MTc3NTc3NDQ0Ny4yMDk5OTk4LCJzdWIiOiI2OWQ4MmFlZjFjNTc0MjQxNWY0NGEyNGUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I';
-  var BASE  = 'https://api.themoviedb.org/3';
-  var IMG   = 'https://image.tmdb.org/t/p/w300';
-  var FILMS = [
-    {key:'dm2',id:1022789},{key:'duna',id:693134},{key:'furiosa',id:786892},
-    {key:'compadecida',id:1099413},{key:'aindaestouaqui',id:1000837},
-    {key:'deadpool',id:533535},{key:'scarlet',id:1233069},{key:'mortalkombat',id:1173861}
-  ];
-  function cert(d) {
-    var c='L';
-    ((d.release_dates||{}).results||[]).forEach(function(r){
-      if(r.iso_3166_1==='BR') r.release_dates.forEach(function(x){if(x.certification)c=x.certification;});
-    });
-    return(!c||c==='L'||c==='0')?'Livre':c+' anos';
-  }
-  FILMS.forEach(function(f) {
-    fetch(BASE+'/movie/'+f.id+'?language=pt-BR&append_to_response=release_dates',
-      {headers:{'Authorization':'Bearer '+TOKEN,'accept':'application/json'}})
-    .then(function(r){return r.json();})
-    .then(function(d) {
-      // Update poster with fresh TMDb image
-      var posterEl = document.querySelector('[data-film="'+f.key+'"] .poster');
-      if(posterEl && d.poster_path) {
-        posterEl.style.backgroundImage = 'url('+IMG+d.poster_path+')';
-        posterEl.style.backgroundSize  = 'cover';
-        posterEl.style.backgroundPosition = 'center top';
-      }
-      var card = document.querySelector('[data-film="'+f.key+'"]');
-      if(!card) return;
-      var title = d.title||d.original_title||'';
-      var genre = (d.genres||[])[0];
-      var rt = d.runtime?d.runtime+'min':'';
-      var cl = cert(d);
-      var nm = card.querySelector('.film-name');
-      var mt = card.querySelector('.film-meta');
-      if(nm) nm.textContent = title;
-      if(mt) mt.textContent = [genre?genre.name:null,cl,rt].filter(Boolean).join(' · ');
-    }).catch(function(){});
-  });
-})();
 
 // ═══════════════════════════════════════════════════════════════════
 // INGRESSO.COM INTEGRATION
@@ -1900,6 +1856,141 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
   // Expose for manual trigger
   window.loadIngressoFilms = loadFilmsHome;
 
+})();
+
+// ── CATALOG — carrega filmes do admin via Netlify Blobs ──────────────────────
+(function() {
+  var TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxMzcyNWY2YTUzYzRkNmRlOWIwNmIwZTFjYjllN2Q2NyIsIm5iZiI6MTc3NTc3NDQ0Ny4yMDk5OTk4LCJzdWIiOiI2OWQ4MmFlZjFjNTc0MjQxNWY0NGEyNGUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I';
+  var TMDB_BASE  = 'https://api.themoviedb.org/3';
+  var TMDB_IMG   = 'https://image.tmdb.org/t/p/w300';
+
+  var A11Y_CLS = { ad: 'pb-ad', lse: 'pb-lse', libras: 'pb-lib' };
+  var A11Y_LBL = { ad: 'AD', lse: 'LSE', libras: 'LIBRAS' };
+
+  function esc(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function buildCard(filme, tmdbData) {
+    var title  = (tmdbData && tmdbData.title) || filme.titulo || '';
+    var poster = tmdbData && tmdbData.poster_path ? TMDB_IMG + tmdbData.poster_path : '';
+    var meta   = '';
+    if (tmdbData) {
+      var genre = (tmdbData.genres || [])[0];
+      var cert  = 'Livre';
+      ((tmdbData.release_dates || {}).results || []).forEach(function(r) {
+        if (r.iso_3166_1 === 'BR') r.release_dates.forEach(function(x) { if (x.certification) cert = x.certification + ' anos'; });
+      });
+      var rt = tmdbData.runtime ? tmdbData.runtime + 'min' : '';
+      meta = [genre ? genre.name : null, cert, rt].filter(Boolean).join(' · ');
+    }
+
+    var urlKey = filme.urlKey || '';
+    var href   = urlKey
+      ? 'acesso-na-tela-filme.html?urlKey=' + encodeURIComponent(urlKey)
+      : 'acesso-na-tela-filme.html?film=' + encodeURIComponent(filme.titulo || '');
+
+    // Badges — always AD + LSE + LIBRAS (required by law)
+    var badges = '<span class="pbadge pb-ad">AD</span><span class="pbadge pb-lse">LSE</span><span class="pbadge pb-lib">LIBRAS</span>';
+
+    var a = document.createElement('a');
+    a.href = href;
+    a.className = 'film-card-link';
+    a.setAttribute('aria-label', 'Saiba mais sobre ' + esc(title));
+    a.innerHTML =
+      '<article class="film-card" role="listitem" aria-label="' + esc(title) + '">' +
+        '<div class="poster" style="' +
+          (poster ? 'background-image:url(' + poster + ');background-size:cover;background-position:center top;' : 'background:#1A2E4A;') +
+          '" aria-hidden="true">' +
+          '<div class="poster-badges">' + badges + '</div>' +
+          '<div class="poster-title">' + esc(title) + '</div>' +
+        '</div>' +
+        '<div class="film-body">' +
+          '<div class="film-name">' + esc(title) + '</div>' +
+          '<div class="film-meta">' + esc(meta) + '</div>' +
+          '<div class="film-app"><span class="app-dot" aria-hidden="true"></span>' + esc(filme.app || '') + '</div>' +
+          '<button class="btn-card">Saiba mais</button>' +
+        '</div>' +
+      '</article>';
+    return a;
+  }
+
+  function loadCatalog() {
+    var grid = document.querySelector('.films-grid[role="list"]');
+    if (!grid) return;
+
+    fetch('/api/catalog')
+      .then(function(r) { return r.json(); })
+      .then(function(filmes) {
+        if (!Array.isArray(filmes) || !filmes.length) {
+          // No catalog data yet — keep static cards
+          loadStaticTMDb();
+          return;
+        }
+
+        // Filter: only Em cartaz
+        var emCartaz = filmes.filter(function(f) { return f.status === 'cartaz'; });
+        if (!emCartaz.length) { loadStaticTMDb(); return; }
+
+        grid.innerHTML = '';
+
+        // For each film: fetch TMDb data then build card
+        var promises = emCartaz.slice(0, 8).map(function(filme) {
+          if (filme.tmdbId) {
+            return fetch(TMDB_BASE + '/movie/' + filme.tmdbId + '?language=pt-BR&append_to_response=release_dates', {
+              headers: { 'Authorization': 'Bearer ' + TMDB_TOKEN, 'accept': 'application/json' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { return { filme: filme, tmdb: d }; })
+            .catch(function() { return { filme: filme, tmdb: null }; });
+          } else if (filme.titulo) {
+            return fetch(TMDB_BASE + '/search/movie?query=' + encodeURIComponent(filme.titulo) + '&language=pt-BR&region=BR', {
+              headers: { 'Authorization': 'Bearer ' + TMDB_TOKEN, 'accept': 'application/json' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { return { filme: filme, tmdb: (d.results || [])[0] || null }; })
+            .catch(function() { return { filme: filme, tmdb: null }; });
+          }
+          return Promise.resolve({ filme: filme, tmdb: null });
+        });
+
+        Promise.all(promises).then(function(results) {
+          results.forEach(function(item) {
+            grid.appendChild(buildCard(item.filme, item.tmdb));
+          });
+        });
+      })
+      .catch(function() {
+        // API not available — use static TMDb
+        loadStaticTMDb();
+      });
+  }
+
+  // Fallback: original static TMDb update
+  function loadStaticTMDb() {
+    var FILMS = [
+      {key:'dm2',id:1022789},{key:'duna',id:693134},{key:'furiosa',id:786892},
+      {key:'compadecida',id:1099413},{key:'aindaestouaqui',id:1000837},
+      {key:'deadpool',id:533535},{key:'scarlet',id:1233069},{key:'mortalkombat',id:1173861}
+    ];
+    FILMS.forEach(function(f) {
+      fetch(TMDB_BASE+'/movie/'+f.id+'?language=pt-BR&append_to_response=release_dates', {
+        headers:{'Authorization':'Bearer '+TMDB_TOKEN,'accept':'application/json'}
+      }).then(function(r){return r.json();}).then(function(d){
+        var p=document.getElementById('poster-'+f.key);
+        if(p&&d.poster_path){p.style.backgroundImage='url('+TMDB_IMG+d.poster_path+')';p.style.backgroundSize='cover';p.style.backgroundPosition='center top';}
+        var c=document.querySelector('[data-film="'+f.key+'"]');if(!c)return;
+        var t=d.title||d.original_title||'',g=(d.genres||[])[0],rt=d.runtime?d.runtime+'min':'';
+        var cert='Livre';((d.release_dates||{}).results||[]).forEach(function(r){if(r.iso_3166_1==='BR')r.release_dates.forEach(function(x){if(x.certification)cert=x.certification+' anos';});});
+        var nm=c.querySelector('.film-name'),mt=c.querySelector('.film-meta');
+        if(nm)nm.textContent=t;if(mt)mt.textContent=[g?g.name:null,cert,rt].filter(Boolean).join(' · ');
+      }).catch(function(){});
+    });
+  }
+
+  window.addEventListener('load', loadCatalog);
+  var _nav = window.nav;
+  window.nav = function(p) { if (_nav) _nav(p); if (p === 'home') setTimeout(loadCatalog, 100); };
 })();
 
 </script>
