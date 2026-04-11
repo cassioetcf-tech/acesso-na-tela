@@ -1932,7 +1932,7 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
     var grid = document.querySelector('.films-grid[role="list"]');
     if (!grid) return;
 
-    fetch(SUPA_URL+'/rest/v1/filmes?status=eq.cartaz&order=created_at.desc&limit=8', {
+    fetch(SUPA_URL+'/rest/v1/filmes?status=in.(cartaz,breve)&order=created_at.desc&limit=12', {
       headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
     })
     .then(function(r){return r.json();})
@@ -1944,9 +1944,20 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
         return loadTmdb(filme).then(function(tmdb) { return {filme:filme,tmdb:tmdb}; });
       });
       Promise.all(promises).then(function(results) {
-        results.forEach(function(item) {
-          grid.appendChild(buildCard(item.filme, item.tmdb));
-        });
+        // Split into Em cartaz and Em breve
+        var cartaz = results.filter(function(i){ return i.filme.status === 'cartaz'; });
+        var breve  = results.filter(function(i){ return i.filme.status === 'breve'; });
+
+        // Render Em cartaz
+        grid.innerHTML = '';
+        cartaz.forEach(function(item) { grid.appendChild(buildCard(item.filme, item.tmdb)); });
+
+        // Render Em breve section if exists
+        var breveSection = document.querySelector('.coming-grid[role="list"]');
+        if (breveSection && breve.length) {
+          breveSection.innerHTML = '';
+          breve.forEach(function(item) { breveSection.appendChild(buildBreveCard(item.filme, item.tmdb)); });
+        }
       });
     })
     .catch(function() { loadStaticTMDb(); });
