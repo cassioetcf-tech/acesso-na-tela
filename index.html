@@ -689,7 +689,7 @@ a.film-card-link:hover .film-card { border-color:var(--laranja); transform:trans
 
       <div class="films-grid" role="list" aria-labelledby="h-cartaz">
 
-        <a href="acesso-na-tela-filme.html?film=dm2" class="film-card-link" aria-label="Saiba mais sobre Divertida Mente 2"><article class="film-card" role="listitem" data-film="dm2" aria-label="Divertida Mente 2">
+        <a href="acesso-na-tela-filme.html?urlKey=divertida-mente-2" class="film-card-link" aria-label="Saiba mais sobre Divertida Mente 2"><article class="film-card" role="listitem" data-film="dm2" aria-label="Divertida Mente 2">
           <div class="poster p1" id="poster-dm2" aria-hidden="true">
             <div class="poster-badges"><span class="pbadge pb-ad">AD</span><span class="pbadge pb-lib">LIBRAS</span></div>
             <div class="poster-title">Divertida Mente 2</div>
@@ -702,7 +702,7 @@ a.film-card-link:hover .film-card { border-color:var(--laranja); transform:trans
           </div>
         </article></a>
 
-        <a href="acesso-na-tela-filme.html?film=duna" class="film-card-link" aria-label="Saiba mais sobre Duna: Parte Dois"><article class="film-card" role="listitem" data-film="duna" aria-label="Duna: Parte Dois">
+        <a href="acesso-na-tela-filme.html?urlKey=duna-parte-2" class="film-card-link" aria-label="Saiba mais sobre Duna: Parte Dois"><article class="film-card" role="listitem" data-film="duna" aria-label="Duna: Parte Dois">
           <div class="poster p2" id="poster-duna" aria-hidden="true">
             <div class="poster-badges"><span class="pbadge pb-lse">LSE</span></div>
             <div class="poster-title">Duna: Parte Dois</div>
@@ -715,7 +715,7 @@ a.film-card-link:hover .film-card { border-color:var(--laranja); transform:trans
           </div>
         </article></a>
 
-        <a href="acesso-na-tela-filme.html?film=furiosa" class="film-card-link" aria-label="Saiba mais sobre Furiosa"><article class="film-card" role="listitem" data-film="furiosa" aria-label="Furiosa">
+        <a href="acesso-na-tela-filme.html?urlKey=furiosa-uma-saga-mad-max" class="film-card-link" aria-label="Saiba mais sobre Furiosa"><article class="film-card" role="listitem" data-film="furiosa" aria-label="Furiosa">
           <div class="poster p3" id="poster-furiosa" aria-hidden="true">
             <div class="poster-badges"><span class="pbadge pb-ad">AD</span><span class="pbadge pb-lse">LSE</span></div>
             <div class="poster-title">Furiosa</div>
@@ -728,7 +728,7 @@ a.film-card-link:hover .film-card { border-color:var(--laranja); transform:trans
           </div>
         </article></a>
 
-        <a href="acesso-na-tela-filme.html?film=compadecida" class="film-card-link" aria-label="Saiba mais sobre O Auto da Compadecida 2"><article class="film-card" role="listitem" data-film="compadecida" aria-label="O Auto da Compadecida 2">
+        <a href="acesso-na-tela-filme.html?urlKey=o-auto-da-compadecida-2" class="film-card-link" aria-label="Saiba mais sobre O Auto da Compadecida 2"><article class="film-card" role="listitem" data-film="compadecida" aria-label="O Auto da Compadecida 2">
           <div class="poster p4" id="poster-compadecida" aria-hidden="true">
             <div class="poster-badges"><span class="pbadge pb-ad">AD</span><span class="pbadge pb-lib">LIBRAS</span></div>
             <div class="poster-title">O Auto da Compadecida 2</div>
@@ -741,7 +741,7 @@ a.film-card-link:hover .film-card { border-color:var(--laranja); transform:trans
           </div>
         </article></a>
 
-        <a href="acesso-na-tela-filme.html?film=aindaestouaqui" class="film-card-link" aria-label="Saiba mais sobre Ainda Estou Aqui"><article class="film-card" role="listitem" data-film="aindaestouaqui" aria-label="Ainda Estou Aqui">
+        <a href="acesso-na-tela-filme.html?urlKey=ainda-estou-aqui" class="film-card-link" aria-label="Saiba mais sobre Ainda Estou Aqui"><article class="film-card" role="listitem" data-film="aindaestouaqui" aria-label="Ainda Estou Aqui">
           <div class="poster p5" id="poster-aindaestouaqui" aria-hidden="true">
             <div class="poster-badges"><span class="pbadge pb-ad">AD</span></div>
             <div class="poster-title">Ainda Estou Aqui</div>
@@ -754,7 +754,7 @@ a.film-card-link:hover .film-card { border-color:var(--laranja); transform:trans
           </div>
         </article></a>
 
-        <a href="acesso-na-tela-filme.html?film=deadpool" class="film-card-link" aria-label="Saiba mais sobre Deadpool e Wolverine"><article class="film-card" role="listitem" data-film="deadpool" aria-label="Deadpool e Wolverine">
+        <a href="acesso-na-tela-filme.html?urlKey=deadpool-e-wolverine" class="film-card-link" aria-label="Saiba mais sobre Deadpool e Wolverine"><article class="film-card" role="listitem" data-film="deadpool" aria-label="Deadpool e Wolverine">
           <div class="poster p6" id="poster-deadpool" aria-hidden="true">
             <div class="poster-badges"><span class="pbadge pb-lse">LSE</span><span class="pbadge pb-lib">LIBRAS</span></div>
             <div class="poster-title">Deadpool &amp; Wolverine</div>
@@ -1648,82 +1648,258 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
 
 
 
-
-
-// ── TMDB HOME ─────────────────────────────────────────────────────
-(function(){
-  var TOKEN='eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxMzcyNWY2YTUzYzRkNmRlOWIwNmIwZTFjYjllN2Q2NyIsIm5iZiI6MTc3NTc3NDQ0Ny4yMDk5OTk4LCJzdWIiOiI2OWQ4MmFlZjFjNTc0MjQxNWY0NGEyNGUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I',BASE='https://api.themoviedb.org/3',IMG='https://image.tmdb.org/t/p/w300';
-  var FILMS=[{key:'dm2',id:1022789},{key:'duna',id:693134},{key:'furiosa',id:786892},
+// ── TMDB HOME (text update only — posters embedded) ──────────────────────────
+// Runs on HTTPS (Netlify) to keep text data fresh; posters are always available
+(function() {
+  if (location.protocol === 'file:') return;
+  var TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxMzcyNWY2YTUzYzRkNmRlOWIwNmIwZTFjYjllN2Q2NyIsIm5iZiI6MTc3NTc3NDQ0Ny4yMDk5OTk4LCJzdWIiOiI2OWQ4MmFlZjFjNTc0MjQxNWY0NGEyNGUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I';
+  var BASE  = 'https://api.themoviedb.org/3';
+  var IMG   = 'https://image.tmdb.org/t/p/w300';
+  var FILMS = [
+    {key:'dm2',id:1022789},{key:'duna',id:693134},{key:'furiosa',id:786892},
     {key:'compadecida',id:1138194},{key:'aindaestouaqui',id:1064213},
-    {key:'deadpool',id:533535},{key:'scarlet',id:1233069},{key:'mortalkombat',id:1173861}];
-  function cert(d){var c='L';((d.release_dates||{}).results||[]).forEach(function(r){if(r.iso_3166_1==='BR')r.release_dates.forEach(function(x){if(x.certification)c=x.certification;});});return(!c||c==='L'||c==='0')?'Livre':c+' anos';}
-  function upd(key,d){
-    var p=document.getElementById('poster-'+key);
-    if(p&&d.poster_path){p.style.backgroundImage='url('+IMG+d.poster_path+')';p.style.backgroundSize='cover';p.style.backgroundPosition='center top';}
-    var c=document.querySelector('[data-film="'+key+'"]');if(!c)return;
-    var t=d.title||d.original_title||'',g=(d.genres||[])[0],rt=d.runtime?d.runtime+'min':'',cl=cert(d);
-    var nm=c.querySelector('.film-name'),mt=c.querySelector('.film-meta');
-    if(nm)nm.textContent=t;if(mt)mt.textContent=[g?g.name:null,cl,rt].filter(Boolean).join(' · ');
-    c.setAttribute('aria-label',t);var lk=c.closest('a.film-card-link');if(lk)lk.setAttribute('aria-label','Saiba mais sobre '+t);
+    {key:'deadpool',id:533535},{key:'scarlet',id:1233069},{key:'mortalkombat',id:1173861}
+  ];
+  function cert(d) {
+    var c='L';
+    ((d.release_dates||{}).results||[]).forEach(function(r){
+      if(r.iso_3166_1==='BR') r.release_dates.forEach(function(x){if(x.certification)c=x.certification;});
+    });
+    return(!c||c==='L'||c==='0')?'Livre':c+' anos';
   }
-  function load(){FILMS.forEach(function(f){fetch(BASE+'/movie/'+f.id+'?language=pt-BR&append_to_response=release_dates',{headers:{'Authorization':'Bearer '+TOKEN,'accept':'application/json'}}).then(function(r){return r.json();}).then(function(d){upd(f.key,d);}).catch(function(){});});}
-  window.addEventListener('load',load);
-  var _n=window.nav;window.nav=function(p){if(_n)_n(p);if(p==='home')setTimeout(load,100);};
+  FILMS.forEach(function(f) {
+    fetch(BASE+'/movie/'+f.id+'?language=pt-BR&append_to_response=release_dates',
+      {headers:{'Authorization':'Bearer '+TOKEN,'accept':'application/json'}})
+    .then(function(r){return r.json();})
+    .then(function(d) {
+      // Update poster with fresh TMDb image
+      var posterEl = document.querySelector('[data-film="'+f.key+'"] .poster');
+      if(posterEl && d.poster_path) {
+        posterEl.style.backgroundImage = 'url('+IMG+d.poster_path+')';
+        posterEl.style.backgroundSize  = 'cover';
+        posterEl.style.backgroundPosition = 'center top';
+      }
+      var card = document.querySelector('[data-film="'+f.key+'"]');
+      if(!card) return;
+      var title = d.title||d.original_title||'';
+      var genre = (d.genres||[])[0];
+      var rt = d.runtime?d.runtime+'min':'';
+      var cl = cert(d);
+      var nm = card.querySelector('.film-name');
+      var mt = card.querySelector('.film-meta');
+      if(nm) nm.textContent = title;
+      if(mt) mt.textContent = [genre?genre.name:null,cl,rt].filter(Boolean).join(' · ');
+    }).catch(function(){});
+  });
 })();
 
-// ── INGRESSO.COM (via /api/ingresso Edge Function) ────────────────
-(function(){
-  var CITY='1011';
-  var A11Y={hasAudioDescription:{l:'AD',c:'pb-ad'},hasClosedCaption:{l:'LSE',c:'pb-lse'},hasLibras:{l:'LIBRAS',c:'pb-lib'}};
-  function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function today(){return new Date().toISOString().slice(0,10);}
-  function app(b){if(b.some(function(x){return x.l==='AD';}))return'MovieReading';if(b.some(function(x){return x.l==='LSE';}))return'GRETA';return'PingPlay';}
-  function meta(f){var p=[];if(f.genres&&f.genres[0])p.push(f.genres[0].name||f.genres[0]);if(f.contentRating)p.push(f.contentRating==='L'?'Livre':f.contentRating+' anos');if(f.duration)p.push(f.duration+'min');return p.join(' · ');}
-  function mkcard(film,b){
-    var a=document.createElement('a');a.href='acesso-na-tela-filme.html?ingresso='+film.id;a.className='film-card-link';a.setAttribute('aria-label','Saiba mais sobre '+esc(film.title));
-    var poster=film.posterImage||'';var bdg=b.map(function(x){return'<span class="pbadge '+x.c+'">'+x.l+'</span>';}).join('');
-    a.innerHTML='<article class="film-card" role="listitem" data-ingresso="'+film.id+'" aria-label="'+esc(film.title)+'">'
-      +'<div class="poster" style="'+(poster?'background-image:url('+poster+');background-size:cover;background-position:center top;':'background:#1A2E4A;')+'" aria-hidden="true">'
-      +'<div class="poster-badges">'+bdg+'</div><div class="poster-title">'+esc(film.title)+'</div></div>'
-      +'<div class="film-body"><div class="film-name">'+esc(film.title)+'</div>'
-      +'<div class="film-meta">'+esc(meta(film))+'</div>'
-      +'<div class="film-app"><span class="app-dot" aria-hidden="true"></span>'+app(b)+'</div>'
-      +'<button class="btn-card">Saiba mais</button></div></article>';
+// ═══════════════════════════════════════════════════════════════════
+// INGRESSO.COM INTEGRATION
+// Filmes em cartaz + sessões com recursos de acessibilidade
+// ═══════════════════════════════════════════════════════════════════
+(function() {
+
+  var API   = 'https://api-content.ingresso.com/v0';
+  var PART  = 'locomotivadigital';
+  var CITY  = '1011'; // São Paulo
+
+  // Accessibility badge map
+  var A11Y_FIELDS = {
+    hasAudioDescription: { label: 'AD',     cls: 'pb-ad',  chip: 'ac-ad'  },
+    hasClosedCaption:    { label: 'LSE',    cls: 'pb-lse', chip: 'ac-lse' },
+    hasLibras:           { label: 'LIBRAS', cls: 'pb-lib', chip: 'ac-lib' },
+  };
+
+  // ── Utility ────────────────────────────────────────────────────────
+  function get(url, cb) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url);
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        try { cb(null, JSON.parse(xhr.responseText)); }
+        catch(e) { cb('parse error'); }
+      } else { cb('status ' + xhr.status); }
+    };
+    xhr.onerror = function() { cb('network error'); };
+    xhr.send();
+  }
+
+  function today() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  // ── 1. UPDATE HOME GRID with real Ingresso films ───────────────────
+  function loadFilmsHome() {
+    var grid = document.querySelector('.films-grid[role="list"]');
+    if (!grid) return;
+
+    get(API + '/films?partnership=' + PART + '&city=' + CITY + '&types=nowplaying', function(err, data) {
+      if (err || !data) return console.warn('Ingresso films error:', err);
+
+      // data is an array of film objects
+      var films = Array.isArray(data) ? data : (data.results || data.films || []);
+      if (!films.length) return;
+
+      grid.innerHTML = ''; // clear existing cards
+
+      films.slice(0, 8).forEach(function(film) {
+        // Check accessibility
+        var badges = [];
+        Object.keys(A11Y_FIELDS).forEach(function(field) {
+          if (film[field]) badges.push(A11Y_FIELDS[field]);
+        });
+        if (!badges.length) return; // skip films with no accessibility
+
+        var card = buildCard(film, badges);
+        grid.appendChild(card);
+      });
+    });
+  }
+
+  function buildCard(film, badges) {
+    var a = document.createElement('a');
+    a.href = 'acesso-na-tela-filme.html?ingresso=' + film.id;
+    a.className = 'film-card-link';
+    a.setAttribute('aria-label', 'Saiba mais sobre ' + film.title);
+
+    var posterUrl = film.posterImage || '';
+    var badgesHtml = badges.map(function(b) {
+      return '<span class="pbadge ' + b.cls + '">' + b.label + '</span>';
+    }).join('');
+
+    a.innerHTML =
+      '<article class="film-card" role="listitem" data-ingresso="' + film.id + '" aria-label="' + escHtml(film.title) + '">' +
+        '<div class="poster" style="' + (posterUrl ? 'background-image:url(' + posterUrl + ');background-size:cover;background-position:center top;' : 'background:#1A2E4A;') + '" aria-hidden="true">' +
+          '<div class="poster-badges">' + badgesHtml + '</div>' +
+          '<div class="poster-title">' + escHtml(film.title) + '</div>' +
+        '</div>' +
+        '<div class="film-body">' +
+          '<div class="film-name">' + escHtml(film.title) + '</div>' +
+          '<div class="film-meta">' + buildMeta(film) + '</div>' +
+          '<div class="film-app"><span class="app-dot" aria-hidden="true"></span>' + pickApp(badges) + '</div>' +
+          '<button class="btn-card">Saiba mais</button>' +
+        '</div>' +
+      '</article>';
+
     return a;
   }
-  function loadFilms(){
-    var grid=document.querySelector('.films-grid[role="list"]');if(!grid)return;
-    fetch('/api/ingresso?path=/films&city='+CITY+'&types=nowplaying')
-      .then(function(r){return r.json();})
-      .then(function(data){
-        var films=Array.isArray(data)?data:(data.results||data.films||[]);
-        var acc=films.filter(function(f){return f.hasAudioDescription||f.hasClosedCaption||f.hasLibras;});
-        if(!acc.length){console.warn('Ingresso: sem filmes acessíveis');return;}
-        grid.innerHTML='';
-        acc.slice(0,8).forEach(function(film){
-          var b=Object.keys(A11Y).filter(function(k){return film[k];}).map(function(k){return A11Y[k];});
-          grid.appendChild(mkcard(film,b));
-        });
-      }).catch(function(e){console.warn('Ingresso films error:',e);});
+
+  function buildMeta(film) {
+    var parts = [];
+    if (film.genres && film.genres[0]) parts.push(film.genres[0].name || film.genres[0]);
+    if (film.contentRating) parts.push(film.contentRating === 'L' ? 'Livre' : film.contentRating + ' anos');
+    if (film.duration) parts.push(film.duration + 'min');
+    return parts.join(' · ');
   }
-  window.loadIngressoSessions=function(filmId,city,date,cid){
-    city=city||CITY;date=date||today();
-    var ct=document.getElementById(cid);if(!ct)return;
-    ct.innerHTML='<p style="font-size:13px;color:var(--ink3)">Carregando sessões...</p>';
-    fetch('/api/ingresso?path=/sessions/film/'+filmId+'&city='+city+'&date='+date)
-      .then(function(r){return r.json();})
-      .then(function(data){
-        var ss=Array.isArray(data)?data:(data.results||data.sessions||[]);
-        if(!ss.length){ct.innerHTML='<p style="font-size:13px;color:var(--ink3)">Nenhuma sessão encontrada.</p>';return;}
-        var bT={};ss.forEach(function(s){var tid=s.theater&&(s.theater.id||s.theater.name);if(!tid)return;if(!bT[tid])bT[tid]={n:s.theater.name||'—',a:s.theater.address||'',t:[]};bT[tid].t.push(s);});
-        var h='';Object.keys(bT).forEach(function(tid){var t=bT[tid];h+='<div class="cinema-block"><div class="cinema-name">'+esc(t.n)+'</div><div class="cinema-end">'+esc(t.a)+'</div><div class="horarios" role="list">';
-          t.t.forEach(function(s){var tm=(s.startTime||s.time||'').substring(0,5),tp=[];if(s.hasAudioDescription)tp.push('AD');if(s.hasClosedCaption)tp.push('LSE');if(s.hasLibras)tp.push('LIBRAS');var sd=s.status==='soldout'||s.availableSeats===0;h+='<div role="listitem"><button class="hora-btn'+(sd?' esgotado':'')+'"'+(sd?' aria-disabled="true"':'')+'>'+tm+'<span class="hora-tipo">'+tp.join(' ')+'</span></button></div>';});h+='</div></div>';});
-        ct.innerHTML=h;
-      }).catch(function(){ct.innerHTML='<p style="font-size:13px;color:var(--ink3)">Sessões não disponíveis.</p>';});
+
+  function pickApp(badges) {
+    if (badges.some(function(b){ return b.label === 'AD'; }))    return 'MovieReading';
+    if (badges.some(function(b){ return b.label === 'LSE'; }))   return 'GRETA';
+    if (badges.some(function(b){ return b.label === 'LIBRAS'; })) return 'PingPlay';
+    return 'A confirmar';
+  }
+
+  function escHtml(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── 2. SESSIONS — called from film page ───────────────────────────
+  // Exposed globally so film page can call it
+  window.loadIngressoSessions = function(filmId, cityId, date, containerId) {
+    cityId = cityId || CITY;
+    date   = date   || today();
+    var url = API + '/sessions/film/' + filmId + '?partnership=' + PART + '&city=' + cityId + '&date=' + date;
+
+    get(url, function(err, data) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+
+      if (err || !data) {
+        container.innerHTML = '<p class="sessoes-empty">Sessões não disponíveis no momento.</p>';
+        return;
+      }
+
+      var sessions = Array.isArray(data) ? data : (data.results || data.sessions || []);
+      if (!sessions.length) {
+        container.innerHTML = '<p class="sessoes-empty">Nenhuma sessão acessível encontrada para esta data.</p>';
+        return;
+      }
+
+      // Group by theater
+      var byTheater = {};
+      sessions.forEach(function(s) {
+        var tid = s.theater && s.theater.id;
+        if (!tid) return;
+        if (!byTheater[tid]) byTheater[tid] = { name: s.theater.name, address: s.theater.address, times: [] };
+        byTheater[tid].times.push(s);
+      });
+
+      var html = '';
+      Object.keys(byTheater).forEach(function(tid) {
+        var t = byTheater[tid];
+        html += '<div class="cinema-block" role="region" aria-label="' + escHtml(t.name) + '">' +
+          '<div class="cinema-name">' + escHtml(t.name) + '</div>' +
+          '<div class="cinema-end">' + escHtml(t.address || '') + '</div>' +
+          '<div class="horarios" role="list">';
+
+        t.times.forEach(function(s) {
+          var time = s.startTime || s.time || '';
+          var tipos = [];
+          if (s.hasAudioDescription) tipos.push('AD');
+          if (s.hasClosedCaption)    tipos.push('LSE');
+          if (s.hasLibras)           tipos.push('LIBRAS');
+          var sold = s.status === 'soldout' || s.availableSeats === 0;
+
+          html += '<div role="listitem"><button class="hora-btn' + (sold ? ' esgotado' : '') + '"' +
+            (sold ? ' aria-disabled="true"' : '') + ' aria-label="' + time + ' ' + tipos.join(' ') + (sold ? ' esgotado' : '') + '">' +
+            time + '<span class="hora-tipo">' + tipos.join(' ') + '</span></button></div>';
+        });
+
+        html += '</div></div>';
+      });
+
+      container.innerHTML = html;
+    });
   };
-  window.addEventListener('load',loadFilms);
-  var _n=window.nav;window.nav=function(p){if(_n)_n(p);if(p==='home')setTimeout(loadFilms,100);};
-  window.loadIngressoFilms=loadFilms;
+
+  // ── 3. CITIES dropdown helper ──────────────────────────────────────
+  window.loadIngressoCities = function(selectId) {
+    get(API + '/cities?partnership=' + PART, function(err, data) {
+      var sel = document.getElementById(selectId);
+      if (!sel || err || !data) return;
+      var cities = Array.isArray(data) ? data : (data.results || []);
+      sel.innerHTML = '';
+      cities.forEach(function(c) {
+        var opt = document.createElement('option');
+        opt.value = c.id || c.cityId;
+        opt.textContent = c.name;
+        if ((c.id || c.cityId) === CITY) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    });
+  };
+
+  // ── Init ───────────────────────────────────────────────────────────
+  // Load films when home page is visible
+  function init() {
+    var homePage = document.getElementById('page-home');
+    if (homePage && homePage.classList.contains('active')) {
+      loadFilmsHome();
+    }
+  }
+
+  window.addEventListener('load', init);
+
+  // Hook into nav() to reload when returning to home
+  var _nav = window.nav;
+  window.nav = function(page) {
+    if (_nav) _nav.call(this, page);
+    if (page === 'home') setTimeout(loadFilmsHome, 100);
+  };
+
+  // Expose for manual trigger
+  window.loadIngressoFilms = loadFilmsHome;
+
 })();
 
 </script>
