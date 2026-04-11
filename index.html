@@ -662,6 +662,169 @@ select:focus-visible, textarea:focus-visible {
   border: 0 !important;
 }
 
+
+/* ── A11Y BAR REDESIGN ─────────────────────────────────────────────────────── */
+.a11y-bar {
+  background: #1A1A1A;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 20px;
+  font-size: 13px;
+  position: relative;
+  z-index: 50;
+}
+
+.a11y-skip-links {
+  display: flex;
+  gap: 16px;
+}
+
+.a11y-skip-btn {
+  color: #ccc;
+  text-decoration: none;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+}
+.a11y-skip-btn:hover,
+.a11y-skip-btn:focus {
+  background: var(--laranja);
+  color: #fff;
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+.a11y-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.a11y-label {
+  color: #aaa;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.a11y-font-btn {
+  background: transparent;
+  border: 1.5px solid #555;
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+}
+.a11y-font-btn:hover, .a11y-font-btn:focus-visible {
+  border-color: var(--laranja);
+  color: var(--laranja);
+}
+
+.a11y-contrast-wrap {
+  position: relative;
+}
+
+.a11y-contrast-btn {
+  background: transparent;
+  border: 1.5px solid #555;
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.a11y-contrast-btn:hover, .a11y-contrast-btn:focus-visible {
+  border-color: var(--laranja);
+  color: var(--laranja);
+}
+
+.a11y-contrast-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: #2A2A2A;
+  border: 1px solid #444;
+  border-radius: 8px;
+  min-width: 180px;
+  z-index: 200;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.a11y-contrast-menu[hidden] { display: none; }
+
+.a11y-contrast-menu button {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #fff;
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s;
+}
+.a11y-contrast-menu button:hover,
+.a11y-contrast-menu button:focus-visible {
+  background: var(--laranja);
+  outline: none;
+}
+
+.a11y-btn {
+  background: transparent;
+  border: 1.5px solid #555;
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: inherit;
+}
+.a11y-btn:hover { border-color: #888; }
+.a11y-btn[aria-pressed="true"] {
+  background: var(--laranja);
+  border-color: var(--laranja);
+  color: #fff;
+}
+
+/* Remove old orange bar styles that conflict */
+.vlibras-btn { display: none !important; }
+
+/* ── CONTRAST MODES ─────────────────────────────────────────────────────────── */
+body.contrast-high {
+  filter: contrast(1.5) brightness(1.1);
+}
+body.contrast-inverted {
+  filter: invert(1) hue-rotate(180deg);
+}
+body.contrast-grayscale {
+  filter: grayscale(1);
+}
+
+/* ── FONT SIZE ───────────────────────────────────────────────────────────────── */
+:root { --fscale: 1; }
+body.font-lg { --fscale: 1.13; }
+body.font-xl { --fscale: 1.25; }
+body.font-lg *, body.font-xl * {
+  font-size: calc(1em * var(--fscale)) !important;
+  line-height: 1.5 !important;
+}
+
 </style>
 </head>
 <body>
@@ -686,11 +849,27 @@ select:focus-visible, textarea:focus-visible {
 
 <!-- A11Y TOOLBAR -->
 <div class="a11y-bar" role="toolbar" aria-label="Ferramentas de acessibilidade">
-  <span class="label">Acessibilidade:</span>
-  <button class="a11y-btn" aria-pressed="false" onclick="toggleA11y('contraste',this)">Alto contraste</button>
-  <button class="a11y-btn" aria-pressed="false" onclick="toggleA11y('fonte',this)">Fonte maior</button>
-  <button class="a11y-btn" aria-pressed="false" onclick="toggleA11y('anim',this)">Sem animações</button>
-  <button class="vlibras-btn" onclick="toggleVlibras()" aria-label="Ativar VLibras">▶ VLibras</button>
+  <div class="a11y-skip-links">
+    <a href="#main-content" class="a11y-skip-btn">Ir para o conteúdo [1]</a>
+    <a href="#nav-main" class="a11y-skip-btn">Ir para o menu [2]</a>
+  </div>
+  <div class="a11y-controls">
+    <span class="a11y-label">Tamanho do texto:</span>
+    <button class="a11y-font-btn" onclick="changeFontSize('increase')" aria-label="Aumentar fonte">A+</button>
+    <button class="a11y-font-btn" onclick="changeFontSize('decrease')" aria-label="Diminuir fonte">A-</button>
+    <div class="a11y-contrast-wrap">
+      <button class="a11y-contrast-btn" onclick="toggleContrastMenu(this)" aria-haspopup="true" aria-expanded="false" aria-label="Opções de contraste">
+        ◑ Contraste
+      </button>
+      <div class="a11y-contrast-menu" id="contrast-menu" role="menu" hidden>
+        <button role="menuitem" onclick="setContrast('default')">Cores originais</button>
+        <button role="menuitem" onclick="setContrast('high')">Alto contraste</button>
+        <button role="menuitem" onclick="setContrast('inverted')">Cor invertida</button>
+        <button role="menuitem" onclick="setContrast('grayscale')">Escala de cinza</button>
+      </div>
+    </div>
+    <button class="a11y-btn" aria-pressed="false" onclick="toggleA11y('animacoes',this)">Sem animações</button>
+  </div>
 </div>
 
 <!-- VLIBRAS PANEL -->
@@ -1579,26 +1758,6 @@ document.querySelectorAll('.fchip').forEach(function(btn){
   });
 });
 
-// ── A11Y TOGGLES ─────────────────────────────────────────────────────────────
-function toggleA11y(type, btn) {
-  var on = btn.getAttribute('aria-pressed') === 'true';
-  btn.setAttribute('aria-pressed', on ? 'false' : 'true');
-  var shell = document.querySelector('.shell');
-  if (type === 'contraste') {
-    if (!on) {
-      document.documentElement.style.setProperty('--ink','#000000');
-      document.documentElement.style.setProperty('--ink2','#111111');
-      document.documentElement.style.setProperty('--ink3','#222222');
-      document.documentElement.style.setProperty('--bg','#FFFFFF');
-      document.documentElement.style.setProperty('--bg2','#F0EFEA');
-      document.documentElement.style.setProperty('--bdr','rgba(0,0,0,0.28)');
-    } else {
-      ['--ink','--ink2','--ink3','--bg','--bg2','--bdr'].forEach(function(v){ document.documentElement.style.removeProperty(v); });
-    }
-  } else if (type === 'fonte') {
-    document.body.style.fontSize = !on ? '17px' : '';
-  }
-}
 
 // ── VLIBRAS ──────────────────────────────────────────────────────────────────
 
@@ -1637,10 +1796,7 @@ function resetTrailer() {
   if (iframe) { iframe.style.display = 'none'; iframe.src = ''; }
 }
 
-function toggleVlibras() {
-  var panel = document.getElementById('vl-panel');
-  panel.classList.toggle('open');
-}
+
 
 function updateVlibras(page) {
   var msgs = {
@@ -2082,6 +2238,67 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
   window.addEventListener('load', loadCatalog);
   var _nav=window.nav;
   window.nav=function(p){if(_nav)_nav(p);if(p==='home')setTimeout(loadCatalog,100);};
+})();
+
+// ── ACESSIBILIDADE ────────────────────────────────────────────────────────────
+var fontLevel = 0; // 0=normal, 1=lg, 2=xl
+
+function changeFontSize(dir) {
+  if (dir === 'increase' && fontLevel < 2) fontLevel++;
+  if (dir === 'decrease' && fontLevel > 0) fontLevel--;
+  document.body.classList.remove('font-lg', 'font-xl');
+  if (fontLevel === 1) document.body.classList.add('font-lg');
+  if (fontLevel === 2) document.body.classList.add('font-xl');
+  try { localStorage.setItem('ant_font', fontLevel); } catch(e) {}
+}
+
+function setContrast(mode) {
+  document.body.classList.remove('contrast-high', 'contrast-inverted', 'contrast-grayscale');
+  if (mode !== 'default') document.body.classList.add('contrast-' + mode);
+  try { localStorage.setItem('ant_contrast', mode); } catch(e) {}
+  // Close menu
+  var menu = document.getElementById('contrast-menu');
+  if (menu) { menu.hidden = true; }
+  var btn = document.querySelector('.a11y-contrast-btn');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+function toggleContrastMenu(btn) {
+  var menu = document.getElementById('contrast-menu');
+  if (!menu) return;
+  var isOpen = !menu.hidden;
+  menu.hidden = isOpen;
+  btn.setAttribute('aria-expanded', String(!isOpen));
+  if (!isOpen) {
+    var first = menu.querySelector('button');
+    if (first) first.focus();
+  }
+}
+
+function toggleA11y(type, btn) {
+  }
+
+// Close contrast menu on outside click
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.a11y-contrast-wrap')) {
+    var menu = document.getElementById('contrast-menu');
+    if (menu) menu.hidden = true;
+    var btn = document.querySelector('.a11y-contrast-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+});
+
+// Restore preferences
+(function() {
+  try {
+    var f = parseInt(localStorage.getItem('ant_font') || '0');
+    fontLevel = f;
+    if (f === 1) document.body.classList.add('font-lg');
+    if (f === 2) document.body.classList.add('font-xl');
+    var c = localStorage.getItem('ant_contrast');
+    if (c && c !== 'default') document.body.classList.add('contrast-' + c);
+    if (localStorage.getItem('ant_anim') === 'true') document.body.classList.add('no-animations');
+  } catch(e) {}
 })();
 
 </script>
