@@ -804,7 +804,19 @@
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 var SENHA = 'acesso2025';
 var TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxMzcyNWY2YTUzYzRkNmRlOWIwNmIwZTFjYjllN2Q2NyIsIm5iZiI6MTc3NTc3NDQ0Ny4yMDk5OTk4LCJzdWIiOiI2OWQ4MmFlZjFjNTc0MjQxNWY0NGEyNGUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I';
-var STORAGE_KEY = 'ant_filmes';
+var SUPA_URL = 'https://gpwmmvaetokgrzekepbk.supabase.co';
+var SUPA_KEY = 'sb_publishable_lbKSyHwh8nNINEef-0Hi5Q_oPF5qt-P';
+
+function supaFetch(path, opts) {
+  return fetch(SUPA_URL + '/rest/v1' + path, Object.assign({
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+    }
+  }, opts || {}));
+}
 
 // ── DATA ────────────────────────────────────────────────────────────────────
 var filmes = [];
@@ -840,38 +852,28 @@ window.addEventListener('load', function() {
   }
 });
 
-// ── STORAGE (Netlify Blobs via /api/catalog) ────────────────────────────────
-function apiHeaders() {
-  return { 'Content-Type': 'application/json', 'X-Admin-Key': SENHA };
-}
-
+// ── STORAGE (Supabase) ──────────────────────────────────────────────────────
 function loadFilmes() {
   var tbody = document.getElementById('filmes-tbody');
   tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div style="font-size:24px">⏳</div><p>Carregando...</p></div></td></tr>';
 
-  fetch('/api/catalog')
+  supaFetch('/filmes?order=created_at.desc')
     .then(function(r){ return r.json(); })
     .then(function(data) {
       filmes = Array.isArray(data) ? data : [];
       renderTable();
       updateStats();
     })
-    .catch(function() {
-      // Fallback to localStorage if API not available
-      try {
-        var s = localStorage.getItem(STORAGE_KEY);
-        filmes = s ? JSON.parse(s) : [];
-      } catch(e) { filmes = []; }
+    .catch(function(e) {
+      console.error('Supabase load error:', e);
+      filmes = [];
       renderTable();
       updateStats();
-      showToast('Modo offline — dados locais', '');
+      showToast('Erro ao carregar filmes', 'error');
     });
 }
 
-function saveToStorage() {
-  // Kept for offline fallback only
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(filmes)); } catch(e) {}
-}
+function saveToStorage() {} // kept for compatibility
 
 function updateStats() {
   document.getElementById('stat-total').textContent = filmes.length;
@@ -914,7 +916,7 @@ function renderTable() {
     html += '<tr>' +
       '<td>' +
         '<div class="td-title">' + esc(f.titulo) + '</div>' +
-        (f.urlKey ? '<div class="td-urlkey">' + esc(f.urlKey) + '</div>' : '') +
+        (f.url_key ? '<div class="td-urlkey">' + esc(f.url_key) + '</div>' : '') +
       '</td>' +
       '<td>' + (f.app ? '<span class="app-badge">' + esc(f.app) + '</span>' : '<span style="color:var(--ink3);font-size:12px">—</span>') + '</td>' +
       '<td><div class="a11y-chips">' +
@@ -945,9 +947,9 @@ function openModal(id) {
     if (!f) return;
     document.getElementById('modal-title').textContent = 'Editar filme';
     document.getElementById('f-titulo').value = f.titulo || '';
-    document.getElementById('f-ingresso-url').value = f.ingressoUrl || '';
+    document.getElementById('f-ingresso-url').value = f.ingresso_url || '';
     document.getElementById('f-status').value = f.status || 'cartaz';
-    document.getElementById('urlkey-preview').textContent = f.urlKey || '—';
+    document.getElementById('urlkey-preview').textContent = f.url_key || '—';
 
     if (f.app) {
       document.querySelectorAll('.app-option').forEach(function(el) {
@@ -1078,14 +1080,14 @@ function saveFilme() {
     var filme = {
       id: editId || 'f_' + Date.now(),
       titulo: titulo,
-      ingressoUrl: ingressoUrl,
-      urlKey: urlKey,
+      ingresso_url: ingressoUrl,
+      url_key: urlKey,
       app: app,
       status: status,
       a11y: { ad: true, lse: true, libras: true },
-      tmdbId: tmdbData ? tmdbData.id : null,
-      tmdbData: tmdbData,
-      updatedAt: new Date().toISOString(),
+      tmdb_id: tmdbData ? tmdbData.id : null,
+      tmdb_data: tmdbData,
+      updated_at: new Date().toISOString(),
     };
 
     if (editId) {
@@ -1095,30 +1097,25 @@ function saveFilme() {
       filmes.push(filme);
     }
 
-    // Save to API
-    fetch('/api/catalog', {
-      method: 'POST',
-      headers: apiHeaders(),
-      body: JSON.stringify({ action: 'save', filme: filme })
+    // Save to Supabase
+    var method = editId ? 'PATCH' : 'POST';
+    var path   = editId ? '/filmes?id=eq.' + editId : '/filmes';
+    supaFetch(path, {
+      method: method,
+      body: JSON.stringify(filme)
     })
-    .then(function(r){ return r.json(); })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
     .then(function() {
-      saveToStorage(); // local backup
       loadFilmes();
       closeModal();
       showToast(editId ? 'Filme atualizado!' : 'Filme cadastrado!', 'success');
     })
-    .catch(function() {
-      // Fallback: save locally
-      if (editId) {
-        var idx = filmes.findIndex(function(f){ return f.id === editId; });
-        if (idx > -1) filmes[idx] = filme;
-      } else { filmes.push(filme); }
-      saveToStorage();
-      renderTable();
-      updateStats();
-      closeModal();
-      showToast('Salvo localmente (API indisponível)', '');
+    .catch(function(e) {
+      console.error('Save error:', e);
+      showToast('Erro ao salvar: ' + e.message, 'error');
     })
     .finally(function() {
       btn.innerHTML = 'Salvar filme';
@@ -1139,19 +1136,9 @@ function deleteFilme(id) {
   var f = filmes.find(function(x){ return x.id === id; });
   if (!f) return;
   if (!confirm('Remover "' + f.titulo + '"?')) return;
-  fetch('/api/catalog', {
-    method: 'POST',
-    headers: apiHeaders(),
-    body: JSON.stringify({ action: 'delete', id: id })
-  })
-  .then(function(){ loadFilmes(); showToast('Filme removido', ''); })
-  .catch(function() {
-    filmes = filmes.filter(function(x){ return x.id !== id; });
-    saveToStorage();
-    renderTable();
-    updateStats();
-    showToast('Removido localmente', '');
-  });
+  supaFetch('/filmes?id=eq.' + id, { method: 'DELETE' })
+    .then(function() { loadFilmes(); showToast('Filme removido', ''); })
+    .catch(function(e) { showToast('Erro ao remover', 'error'); });
 }
 
 // ── TOAST ────────────────────────────────────────────────────────────────────

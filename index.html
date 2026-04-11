@@ -1858,123 +1858,109 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
 
 })();
 
-// ── CATALOG — carrega filmes do admin via Netlify Blobs ──────────────────────
-(function() {
-  var TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxMzcyNWY2YTUzYzRkNmRlOWIwNmIwZTFjYjllN2Q2NyIsIm5iZiI6MTc3NTc3NDQ0Ny4yMDk5OTk4LCJzdWIiOiI2OWQ4MmFlZjFjNTc0MjQxNWY0NGEyNGUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I';
-  var TMDB_BASE  = 'https://api.themoviedb.org/3';
-  var TMDB_IMG   = 'https://image.tmdb.org/t/p/w300';
 
-  var A11Y_CLS = { ad: 'pb-ad', lse: 'pb-lse', libras: 'pb-lib' };
-  var A11Y_LBL = { ad: 'AD', lse: 'LSE', libras: 'LIBRAS' };
+// ── CATÁLOGO (Supabase) ───────────────────────────────────────────────────────
+(function() {
+  var SUPA_URL  = 'https://gpwmmvaetokgrzekepbk.supabase.co';
+  var SUPA_KEY  = 'sb_publishable_lbKSyHwh8nNINEef-0Hi5Q_oPF5qt-P';
+  var TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxMzcyNWY2YTUzYzRkNmRlOWIwNmIwZTFjYjllN2Q2NyIsIm5iZiI6MTc3NTc3NDQ0Ny4yMDk5OTk4LCJzdWIiOiI2OWQ4MmFlZjFjNTc0MjQxNWY0NGEyNGUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I';
+  var TMDB_BASE = 'https://api.themoviedb.org/3';
+  var TMDB_IMG  = 'https://image.tmdb.org/t/p/w300';
 
   function esc(s) {
     return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function buildCard(filme, tmdbData) {
-    var title  = (tmdbData && tmdbData.title) || filme.titulo || '';
-    var poster = tmdbData && tmdbData.poster_path ? TMDB_IMG + tmdbData.poster_path : '';
+  function buildCard(filme, tmdb) {
+    var title  = (tmdb && tmdb.title) || filme.titulo || '';
+    var poster = tmdb && tmdb.poster_path ? TMDB_IMG + tmdb.poster_path : '';
     var meta   = '';
-    if (tmdbData) {
-      var genre = (tmdbData.genres || [])[0];
-      var cert  = 'Livre';
-      ((tmdbData.release_dates || {}).results || []).forEach(function(r) {
-        if (r.iso_3166_1 === 'BR') r.release_dates.forEach(function(x) { if (x.certification) cert = x.certification + ' anos'; });
+    if (tmdb) {
+      var g = (tmdb.genres||[])[0];
+      var cert = 'Livre';
+      ((tmdb.release_dates||{}).results||[]).forEach(function(r) {
+        if (r.iso_3166_1==='BR') r.release_dates.forEach(function(x){if(x.certification)cert=x.certification+' anos';});
       });
-      var rt = tmdbData.runtime ? tmdbData.runtime + 'min' : '';
-      meta = [genre ? genre.name : null, cert, rt].filter(Boolean).join(' · ');
+      var rt = tmdb.runtime ? tmdb.runtime+'min' : '';
+      meta = [g?g.name:null,cert,rt].filter(Boolean).join(' · ');
     }
 
-    var urlKey = filme.urlKey || '';
-    var href   = urlKey
-      ? 'acesso-na-tela-filme.html?urlKey=' + encodeURIComponent(urlKey)
-      : 'acesso-na-tela-filme.html?film=' + encodeURIComponent(filme.titulo || '');
-
-    // Badges — always AD + LSE + LIBRAS (required by law)
-    var badges = '<span class="pbadge pb-ad">AD</span><span class="pbadge pb-lse">LSE</span><span class="pbadge pb-lib">LIBRAS</span>';
+    var href = filme.url_key
+      ? 'acesso-na-tela-filme.html?urlKey='+encodeURIComponent(filme.url_key)
+      : '#';
 
     var a = document.createElement('a');
     a.href = href;
     a.className = 'film-card-link';
-    a.setAttribute('aria-label', 'Saiba mais sobre ' + esc(title));
+    a.setAttribute('aria-label','Saiba mais sobre '+esc(title));
     a.innerHTML =
-      '<article class="film-card" role="listitem" aria-label="' + esc(title) + '">' +
-        '<div class="poster" style="' +
-          (poster ? 'background-image:url(' + poster + ');background-size:cover;background-position:center top;' : 'background:#1A2E4A;') +
-          '" aria-hidden="true">' +
-          '<div class="poster-badges">' + badges + '</div>' +
-          '<div class="poster-title">' + esc(title) + '</div>' +
+      '<article class="film-card" role="listitem" aria-label="'+esc(title)+'">' +
+        '<div class="poster" style="'+(poster?'background-image:url('+poster+');background-size:cover;background-position:center top;':'background:#1A2E4A;')+'" aria-hidden="true">' +
+          '<div class="poster-badges">' +
+            '<span class="pbadge pb-ad">AD</span>' +
+            '<span class="pbadge pb-lse">LSE</span>' +
+            '<span class="pbadge pb-lib">LIBRAS</span>' +
+          '</div>' +
+          '<div class="poster-title">'+esc(title)+'</div>' +
         '</div>' +
         '<div class="film-body">' +
-          '<div class="film-name">' + esc(title) + '</div>' +
-          '<div class="film-meta">' + esc(meta) + '</div>' +
-          '<div class="film-app"><span class="app-dot" aria-hidden="true"></span>' + esc(filme.app || '') + '</div>' +
+          '<div class="film-name">'+esc(title)+'</div>' +
+          '<div class="film-meta">'+esc(meta)+'</div>' +
+          '<div class="film-app"><span class="app-dot" aria-hidden="true"></span>'+esc(filme.app||'')+'</div>' +
           '<button class="btn-card">Saiba mais</button>' +
         '</div>' +
       '</article>';
     return a;
   }
 
+  function loadTmdb(filme) {
+    var id = filme.tmdb_id;
+    if (id) {
+      return fetch(TMDB_BASE+'/movie/'+id+'?language=pt-BR&append_to_response=release_dates', {
+        headers:{'Authorization':'Bearer '+TMDB_TOKEN,'accept':'application/json'}
+      }).then(function(r){return r.json();}).catch(function(){return null;});
+    }
+    if (filme.titulo) {
+      return fetch(TMDB_BASE+'/search/movie?query='+encodeURIComponent(filme.titulo)+'&language=pt-BR&region=BR', {
+        headers:{'Authorization':'Bearer '+TMDB_TOKEN,'accept':'application/json'}
+      }).then(function(r){return r.json();}).then(function(d){return(d.results||[])[0]||null;}).catch(function(){return null;});
+    }
+    return Promise.resolve(null);
+  }
+
   function loadCatalog() {
     var grid = document.querySelector('.films-grid[role="list"]');
     if (!grid) return;
 
-    fetch('/api/catalog')
-      .then(function(r) { return r.json(); })
-      .then(function(filmes) {
-        if (!Array.isArray(filmes) || !filmes.length) {
-          // No catalog data yet — keep static cards
-          loadStaticTMDb();
-          return;
-        }
+    fetch(SUPA_URL+'/rest/v1/filmes?status=eq.cartaz&order=created_at.desc&limit=8', {
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+    })
+    .then(function(r){return r.json();})
+    .then(function(filmes) {
+      if (!Array.isArray(filmes)||!filmes.length) { loadStaticTMDb(); return; }
 
-        // Filter: only Em cartaz
-        var emCartaz = filmes.filter(function(f) { return f.status === 'cartaz'; });
-        if (!emCartaz.length) { loadStaticTMDb(); return; }
-
-        grid.innerHTML = '';
-
-        // For each film: fetch TMDb data then build card
-        var promises = emCartaz.slice(0, 8).map(function(filme) {
-          if (filme.tmdbId) {
-            return fetch(TMDB_BASE + '/movie/' + filme.tmdbId + '?language=pt-BR&append_to_response=release_dates', {
-              headers: { 'Authorization': 'Bearer ' + TMDB_TOKEN, 'accept': 'application/json' }
-            })
-            .then(function(r) { return r.json(); })
-            .then(function(d) { return { filme: filme, tmdb: d }; })
-            .catch(function() { return { filme: filme, tmdb: null }; });
-          } else if (filme.titulo) {
-            return fetch(TMDB_BASE + '/search/movie?query=' + encodeURIComponent(filme.titulo) + '&language=pt-BR&region=BR', {
-              headers: { 'Authorization': 'Bearer ' + TMDB_TOKEN, 'accept': 'application/json' }
-            })
-            .then(function(r) { return r.json(); })
-            .then(function(d) { return { filme: filme, tmdb: (d.results || [])[0] || null }; })
-            .catch(function() { return { filme: filme, tmdb: null }; });
-          }
-          return Promise.resolve({ filme: filme, tmdb: null });
-        });
-
-        Promise.all(promises).then(function(results) {
-          results.forEach(function(item) {
-            grid.appendChild(buildCard(item.filme, item.tmdb));
-          });
-        });
-      })
-      .catch(function() {
-        // API not available — use static TMDb
-        loadStaticTMDb();
+      grid.innerHTML = '';
+      var promises = filmes.map(function(filme) {
+        return loadTmdb(filme).then(function(tmdb) { return {filme:filme,tmdb:tmdb}; });
       });
+      Promise.all(promises).then(function(results) {
+        results.forEach(function(item) {
+          grid.appendChild(buildCard(item.filme, item.tmdb));
+        });
+      });
+    })
+    .catch(function() { loadStaticTMDb(); });
   }
 
-  // Fallback: original static TMDb update
+  // Fallback static TMDb
   function loadStaticTMDb() {
-    var FILMS = [
+    var FILMS=[
       {key:'dm2',id:1022789},{key:'duna',id:693134},{key:'furiosa',id:786892},
       {key:'compadecida',id:1099413},{key:'aindaestouaqui',id:1000837},
       {key:'deadpool',id:533535},{key:'scarlet',id:1233069},{key:'mortalkombat',id:1173861}
     ];
-    FILMS.forEach(function(f) {
-      fetch(TMDB_BASE+'/movie/'+f.id+'?language=pt-BR&append_to_response=release_dates', {
+    FILMS.forEach(function(f){
+      fetch(TMDB_BASE+'/movie/'+f.id+'?language=pt-BR&append_to_response=release_dates',{
         headers:{'Authorization':'Bearer '+TMDB_TOKEN,'accept':'application/json'}
       }).then(function(r){return r.json();}).then(function(d){
         var p=document.getElementById('poster-'+f.key);
@@ -1989,8 +1975,8 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
   }
 
   window.addEventListener('load', loadCatalog);
-  var _nav = window.nav;
-  window.nav = function(p) { if (_nav) _nav(p); if (p === 'home') setTimeout(loadCatalog, 100); };
+  var _nav=window.nav;
+  window.nav=function(p){if(_nav)_nav(p);if(p==='home')setTimeout(loadCatalog,100);};
 })();
 
 </script>
