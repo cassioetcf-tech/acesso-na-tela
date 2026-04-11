@@ -840,23 +840,37 @@ window.addEventListener('load', function() {
   }
 });
 
-// ── STORAGE (localStorage as persistent store) ───────────────────────────────
-function saveToStorage() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(filmes)); } catch(e) {}
+// ── STORAGE (Netlify Blobs via /api/catalog) ────────────────────────────────
+function apiHeaders() {
+  return { 'Content-Type': 'application/json', 'X-Admin-Key': SENHA };
 }
 
-function loadFromStorage() {
-  try {
-    var s = localStorage.getItem(STORAGE_KEY);
-    return s ? JSON.parse(s) : [];
-  } catch(e) { return []; }
-}
-
-// ── LOAD & RENDER ────────────────────────────────────────────────────────────
 function loadFilmes() {
-  filmes = loadFromStorage();
-  renderTable();
-  updateStats();
+  var tbody = document.getElementById('filmes-tbody');
+  tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div style="font-size:24px">⏳</div><p>Carregando...</p></div></td></tr>';
+
+  fetch('/api/catalog')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      filmes = Array.isArray(data) ? data : [];
+      renderTable();
+      updateStats();
+    })
+    .catch(function() {
+      // Fallback to localStorage if API not available
+      try {
+        var s = localStorage.getItem(STORAGE_KEY);
+        filmes = s ? JSON.parse(s) : [];
+      } catch(e) { filmes = []; }
+      renderTable();
+      updateStats();
+      showToast('Modo offline — dados locais', '');
+    });
+}
+
+function saveToStorage() {
+  // Kept for offline fallback only
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(filmes)); } catch(e) {}
 }
 
 function updateStats() {
@@ -1081,39 +1095,40 @@ function saveFilme() {
       filmes.push(filme);
     }
 
-    saveToStorage();
-    renderTable();
-    updateStats();
-    closeModal();
-    showToast(editId ? 'Filme atualizado com sucesso!' : 'Filme cadastrado com sucesso!', 'success');
+    // Save to API
+    fetch('/api/catalog', {
+      method: 'POST',
+      headers: apiHeaders(),
+      body: JSON.stringify({ action: 'save', filme: filme })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function() {
+      saveToStorage(); // local backup
+      loadFilmes();
+      closeModal();
+      showToast(editId ? 'Filme atualizado!' : 'Filme cadastrado!', 'success');
+    })
+    .catch(function() {
+      // Fallback: save locally
+      if (editId) {
+        var idx = filmes.findIndex(function(f){ return f.id === editId; });
+        if (idx > -1) filmes[idx] = filme;
+      } else { filmes.push(filme); }
+      saveToStorage();
+      renderTable();
+      updateStats();
+      closeModal();
+      showToast('Salvo localmente (API indisponível)', '');
+    })
+    .finally(function() {
+      btn.innerHTML = 'Salvar filme';
+      btn.disabled = false;
+    });
   })
   .catch(function() {
-    // Save even without TMDb
-    var filme = {
-      id: editId || 'f_' + Date.now(),
-      titulo: titulo,
-      ingressoUrl: ingressoUrl,
-      urlKey: urlKey,
-      app: app,
-      status: status,
-      a11y: { ad: true, lse: true, libras: true },
-      updatedAt: new Date().toISOString(),
-    };
-    if (editId) {
-      var idx = filmes.findIndex(function(f){ return f.id === editId; });
-      if (idx > -1) filmes[idx] = filme;
-    } else {
-      filmes.push(filme);
-    }
-    saveToStorage();
-    renderTable();
-    updateStats();
-    closeModal();
-    showToast('Filme salvo!', 'success');
-  })
-  .finally(function() {
     btn.innerHTML = 'Salvar filme';
     btn.disabled = false;
+    showToast('Erro ao buscar dados do TMDb', 'error');
   });
 }
 
@@ -1124,11 +1139,19 @@ function deleteFilme(id) {
   var f = filmes.find(function(x){ return x.id === id; });
   if (!f) return;
   if (!confirm('Remover "' + f.titulo + '"?')) return;
-  filmes = filmes.filter(function(x){ return x.id !== id; });
-  saveToStorage();
-  renderTable();
-  updateStats();
-  showToast('Filme removido', '');
+  fetch('/api/catalog', {
+    method: 'POST',
+    headers: apiHeaders(),
+    body: JSON.stringify({ action: 'delete', id: id })
+  })
+  .then(function(){ loadFilmes(); showToast('Filme removido', ''); })
+  .catch(function() {
+    filmes = filmes.filter(function(x){ return x.id !== id; });
+    saveToStorage();
+    renderTable();
+    updateStats();
+    showToast('Removido localmente', '');
+  });
 }
 
 // ── TOAST ────────────────────────────────────────────────────────────────────

@@ -1,3 +1,7 @@
 [[edge_functions]]
   path = "/api/ingresso"
   function = "ingresso"
+
+[[edge_functions]]
+  path = "/api/catalog"
+  function = "catalog"
