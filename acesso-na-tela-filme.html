@@ -621,6 +621,20 @@ body { background: var(--bg2, #F7F6F3); margin: 0; }
 .hora-btn { cursor: pointer; }
 .hora-btn:hover { background: var(--laranja); color: #fff; border-color: var(--laranja); }
 
+
+.hora-btn.accessible { border-color: var(--laranja); color: var(--laranja); font-weight: 600; }
+.hora-btn:hover, .hora-btn.accessible:hover { background: var(--laranja); color: #fff; }
+.sessoes-empty { font-size: 14px; color: var(--ink3); padding: 16px 0; }
+.sessoes-ctrl { display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+.sessoes-ctrl select, .sessoes-ctrl input[type=date] {
+  padding: 8px 12px; border: 1.5px solid var(--bdr); border-radius: 8px;
+  font-size: 14px; background: var(--bg); color: var(--ink); cursor: pointer;
+  font-family: inherit;
+}
+.sessoes-ctrl select:focus, .sessoes-ctrl input[type=date]:focus {
+  outline: 2px solid var(--laranja); border-color: var(--laranja);
+}
+
 </style>
 </head>
 <body>
@@ -763,37 +777,8 @@ body { background: var(--bg2, #F7F6F3); margin: 0; }
           </select>
         </div>
 
-        <div class="cinema-block" aria-labelledby="c1">
-          <div class="cinema-name" id="c1">Cinemark Morumbi</div>
-          <div class="cinema-end">Av. das Nações Unidas, 4777 — Vila Suzana, SP</div>
-          <div class="horarios" role="list">
-            <div role="listitem"><button class="hora-btn" aria-label="14h10 AD">14h10<span class="hora-tipo">AD</span></button></div>
-            <div role="listitem"><button class="hora-btn" aria-label="16h30 LSE">16h30<span class="hora-tipo">LSE</span></button></div>
-            <div role="listitem"><button class="hora-btn esgotado" aria-label="19h00 esgotado" aria-disabled="true">19h00<span class="hora-tipo">AD</span></button></div>
-          </div>
-        </div>
-
-        <div class="cinema-block" aria-labelledby="c2">
-          <div class="cinema-name" id="c2">UCI Anália Franco</div>
-          <div class="cinema-end">Av. Regente Feijó, 1739 — Anália Franco, SP</div>
-          <div class="horarios" role="list">
-            <div role="listitem"><button class="hora-btn" aria-label="15h40 LSE">15h40<span class="hora-tipo">LSE</span></button></div>
-            <div role="listitem"><button class="hora-btn" aria-label="18h50 AD">18h50<span class="hora-tipo">AD</span></button></div>
-          </div>
-        </div>
-
-        <div class="cinema-block" aria-labelledby="c3">
-          <div class="cinema-name" id="c3">Cinépolis JK Iguatemi</div>
-          <div class="cinema-end">Av. JK, 2041 — Vila Olímpia, SP</div>
-          <div class="horarios" role="list">
-            <div role="listitem"><button class="hora-btn" aria-label="14h20 LIBRAS">14h20<span class="hora-tipo">LIBRAS</span></button></div>
-            <div role="listitem"><button class="hora-btn" aria-label="17h30 AD">17h30<span class="hora-tipo">AD</span></button></div>
-            <div role="listitem"><button class="hora-btn" aria-label="20h15 LSE">20h15<span class="hora-tipo">LSE</span></button></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- STREAMING -->
+        <div class="sessoes-wrap"></div><div class="sessoes-wrap"></div>
+              <!-- STREAMING -->
       <div class="block">
         <div class="block-title">Streaming</div>
         <div class="aviso" role="note">Os recursos de acessibilidade variam por plataforma. Verifique AD e LSE diretamente em cada serviço.</div>
@@ -1137,75 +1122,107 @@ window.addEventListener('load', function() {
 })();
 
 
-// ── INGRESSO SESSÕES (cidade + data + eventId) ───────────────────────────────
+
+// ── INGRESSO SESSÕES ─────────────────────────────────────────────────────────
 (function() {
-  var CITIES = {
-    '1': 'São Paulo',
-    '2': 'Rio de Janeiro',
-    '3': 'Belo Horizonte',
-    '4': 'Brasília',
-    '5': 'Curitiba',
-    '6': 'Porto Alegre',
-    '7': 'Salvador',
-    '8': 'Recife',
-    '9': 'Fortaleza',
-    '10': 'Manaus',
+  var CITIES = [
+    {id:'1', name:'São Paulo — SP'},
+    {id:'2', name:'Rio de Janeiro — RJ'},
+    {id:'3', name:'Belo Horizonte — MG'},
+    {id:'4', name:'Brasília — DF'},
+    {id:'5', name:'Curitiba — PR'},
+    {id:'6', name:'Porto Alegre — RS'},
+    {id:'7', name:'Salvador — BA'},
+    {id:'8', name:'Recife — PE'},
+    {id:'9', name:'Fortaleza — CE'},
+    {id:'10', name:'Manaus — AM'},
+  ];
+
+  // Type aliases to show in badge
+  var TYPE_ALIAS = {
+    'Dublado': 'DUB', 'Legendado': 'LEG', 'Libras': 'LIBRAS',
+    'Audiodescrição': 'AD', 'Laser': 'LASER', 'Vip': 'VIP',
+    'Normal': null, // don't show Normal
   };
 
-  function today() { return new Date().toISOString().slice(0,10); }
-  function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  // Accessibility types (highlighted in orange)
+  var A11Y_TYPES = ['Audiodescrição','Libras','Legendado'];
 
-  function formatTime(startTime) {
-    // startTime may be full ISO or just HH:mm
-    if (!startTime) return '';
-    var m = startTime.match(/(\d{2}:\d{2})/);
-    return m ? m[1] : startTime;
+  function today() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+day;
   }
 
-  function renderSessions(data, container) {
-    // data = array of day objects with theaters
+  function esc(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderSessions(data, container, a11yFlags) {
     var days = Array.isArray(data) ? data : [];
     if (!days.length) {
-      container.innerHTML = '<p class="sessoes-empty">Nenhuma sessão encontrada para esta data.</p>';
+      container.innerHTML = '<p class="sessoes-empty">Nenhuma sessão encontrada para esta data e cidade.</p>';
       return;
     }
 
     var html = '';
     days.forEach(function(day) {
       (day.theaters || []).forEach(function(theater) {
-        var rooms = theater.rooms || [];
-        var allSessions = [];
-        rooms.forEach(function(room) {
+        // Collect all sessions across rooms
+        var sessions = [];
+        (theater.rooms || []).forEach(function(room) {
           (room.sessions || []).forEach(function(s) {
-            allSessions.push({
-              time: formatTime(s.startTime || s.time),
+            sessions.push({
+              time: s.time || s.startTime || '',
               types: s.type || [],
-              room: room.name || '',
-              price: s.price,
-              siteUrl: theater.siteURL || '',
+              siteUrl: s.siteURL || theater.siteURL || '',
             });
           });
         });
-        if (!allSessions.length) return;
+        if (!sessions.length) return;
+
+        // Sort by time
+        sessions.sort(function(a,b){ return a.time < b.time ? -1 : 1; });
 
         html += '<div class="cinema-block">';
         html += '<div class="cinema-name">'+esc(theater.name)+'</div>';
-        html += '<div class="cinema-end">'+esc((theater.address||'')+' '+( theater.neighborhood||''))+'</div>';
+        var addr = [theater.address, theater.number, theater.neighborhood].filter(Boolean).join(', ');
+        html += '<div class="cinema-end">'+esc(addr)+'</div>';
         html += '<div class="horarios" role="list">';
-        allSessions.forEach(function(s) {
-          var label = s.time;
-          if (s.types.length) label += ' · ' + s.types.join(' / ');
-          html += '<div role="listitem">';
-          if (s.siteUrl) {
-            html += '<a href="'+esc(s.siteUrl)+'" target="_blank" rel="noopener">';
+
+        sessions.forEach(function(s) {
+          // Determine which types to display
+          var displayTypes = (s.types || []).filter(function(t) {
+            return TYPE_ALIAS[t] !== null;
+          });
+          // Check if any accessibility type
+          var hasA11y = s.types.some(function(t){ return A11Y_TYPES.indexOf(t) >= 0; });
+          // Check admin-set accessibility (from page data attributes)
+          if (a11yFlags) {
+            if (a11yFlags.ad) hasA11y = true;
+            if (a11yFlags.lse) hasA11y = true;
+            if (a11yFlags.libras) hasA11y = true;
           }
-          html += '<button class="hora-btn" aria-label="'+esc(label)+'">';
-          html += s.time;
-          if (s.types.length) html += '<span class="hora-tipo">'+esc(s.types.join(' '))+'</span>';
+
+          var label = s.time + (displayTypes.length ? ' ' + displayTypes.join('/') : '');
+          var buyUrl = s.siteUrl;
+          
+          html += '<div role="listitem">';
+          if (buyUrl) html += '<a href="'+esc(buyUrl)+'" target="_blank" rel="noopener" aria-label="Comprar ingresso '+esc(label)+'">';
+          html += '<button class="hora-btn'+(hasA11y?' accessible':'')+'" aria-label="'+esc(label)+'">';
+          html += esc(s.time);
+          if (displayTypes.length) {
+            html += '<span class="hora-tipo">';
+            html += displayTypes.map(function(t){ return TYPE_ALIAS[t]||t; }).join(' ');
+            html += '</span>';
+          }
           html += '</button>';
-          if (s.siteUrl) html += '</a>';
+          if (buyUrl) html += '</a>';
           html += '</div>';
         });
+
         html += '</div></div>';
       });
     });
@@ -1213,69 +1230,74 @@ window.addEventListener('load', function() {
     container.innerHTML = html || '<p class="sessoes-empty">Nenhuma sessão encontrada.</p>';
   }
 
-  function loadSessions(eventId, city, date) {
-    var wrap = document.querySelector('.sessoes-wrap') || document.querySelector('.cinema-list-wrap');
-    if (!wrap) return;
+  function buildControls(wrap, eventId, defaultCity) {
+    if (document.getElementById('sess-city')) return;
+    var ctrl = document.createElement('div');
+    ctrl.className = 'sessoes-ctrl';
+    ctrl.innerHTML =
+      '<select id="sess-city" aria-label="Selecionar cidade">'+
+      CITIES.map(function(c){
+        return '<option value="'+c.id+'"'+(c.id===defaultCity?' selected':'')+'>'+c.name+'</option>';
+      }).join('')+
+      '</select>'+
+      '<input type="date" id="sess-date" value="'+today()+'" min="'+today()+'" aria-label="Selecionar data">';
+    wrap.parentNode.insertBefore(ctrl, wrap);
 
-    // Build date selector if not exists
-    if (!document.getElementById('sess-city')) {
-      var ctrl = document.createElement('div');
-      ctrl.className = 'sessoes-ctrl';
-      ctrl.innerHTML =
-        '<select id="sess-city" aria-label="Cidade">'+
-        Object.keys(CITIES).map(function(k){
-          return '<option value="'+k+'"'+(k===city?' selected':'')+'>'+CITIES[k]+'</option>';
-        }).join('')+
-        '</select>'+
-        '<input type="date" id="sess-date" value="'+date+'" min="'+today()+'" aria-label="Data">';
-      wrap.parentNode.insertBefore(ctrl, wrap);
+    function reload() {
+      var city = document.getElementById('sess-city').value;
+      var date = document.getElementById('sess-date').value || today();
+      loadSessions(eventId, city, date, wrap);
+    }
+    document.getElementById('sess-city').addEventListener('change', reload);
+    document.getElementById('sess-date').addEventListener('change', reload);
+  }
 
-      document.getElementById('sess-city').addEventListener('change', function() {
-        loadSessions(eventId, this.value, document.getElementById('sess-date').value || today());
-      });
-      document.getElementById('sess-date').addEventListener('change', function() {
-        loadSessions(eventId, document.getElementById('sess-city').value, this.value || today());
-      });
+  function loadSessions(eventId, city, date, container) {
+    container.innerHTML = '<p style="font-size:13px;color:var(--ink3);padding:16px 0">Carregando sessões...</p>';
+    var url = '/api/ingresso?eventId='+encodeURIComponent(eventId)+'&city='+city+'&date='+date;
+    
+    // Get accessibility flags from page if available
+    var a11yFlags = null;
+    var pageData = document.querySelector('[data-a11y]');
+    if (pageData) {
+      try { a11yFlags = JSON.parse(pageData.getAttribute('data-a11y')); } catch(e) {}
     }
 
-    wrap.innerHTML = '<p style="font-size:13px;color:var(--ink3);padding:16px">Carregando sessões...</p>';
-
-    fetch('/api/ingresso?eventId='+encodeURIComponent(eventId)+'&city='+city+'&date='+date)
+    fetch(url)
       .then(function(r){ return r.json(); })
-      .then(function(data){ renderSessions(data, wrap); })
+      .then(function(data){ renderSessions(data, container, a11yFlags); })
       .catch(function(e){
-        wrap.innerHTML = '<p class="sessoes-empty">Erro ao carregar sessões.</p>';
+        container.innerHTML = '<p class="sessoes-empty">Erro ao carregar sessões.</p>';
         console.warn('Ingresso sessions error:', e);
       });
   }
 
-  // Auto-load if ?ingresso=ID or ?urlKey=xxx in URL
+  window.loadFilmeSessoes = function(eventId, city) {
+    var wrap = document.querySelector('.sessoes-wrap') || document.querySelector('.cinema-list-wrap');
+    if (!wrap) return;
+    city = city || '1';
+    buildControls(wrap, eventId, city);
+    loadSessions(eventId, city, today(), wrap);
+  };
+
+  window.loadSessoesByUrlKey = function(urlKey, city) {
+    fetch('/api/ingresso?urlKey='+encodeURIComponent(urlKey))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.id) window.loadFilmeSessoes(d.id, city);
+      });
+  };
+
   window.addEventListener('load', function() {
     var params = new URLSearchParams(window.location.search);
     var ingressoId = params.get('ingresso');
     var urlKey = params.get('urlKey');
-
     if (ingressoId) {
-      loadSessions(ingressoId, '1', today());
+      window.loadFilmeSessoes(ingressoId, '1');
     } else if (urlKey) {
-      // First get eventId from urlKey, then load sessions
-      fetch('/api/ingresso?urlKey='+encodeURIComponent(urlKey))
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          if (d.id) loadSessions(d.id, '1', today());
-        });
+      window.loadSessoesByUrlKey(urlKey, '1');
     }
   });
-
-  // Exposed globally
-  window.loadFilmeSessoes = function(eventId, city) {
-    loadSessions(eventId, city||'1', today());
-  };
-  window.loadSessoesByUrlKey = function(urlKey, city) {
-    fetch('/api/ingresso?urlKey='+encodeURIComponent(urlKey))
-      .then(function(r){ return r.json(); })
-      .then(function(d){ if(d.id) loadSessions(d.id, city||'1', today()); });
-  };
 })();
 
 </script>
