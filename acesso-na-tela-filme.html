@@ -697,17 +697,74 @@ body.font-lg *,body.font-xl *{font-size:calc(1em * var(--fscale))!important;line
 :focus-visible{outline:3px solid var(--laranja)!important;outline-offset:3px!important;border-radius:4px;}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 
+
+/* ── PAGE LOADING OVERLAY ── */
+#page-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg3, #EDEBE6);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity .35s ease, visibility .35s ease;
+}
+#page-loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.plo-spinner {
+  width: 44px; height: 44px;
+  border: 4px solid rgba(212,80,15,0.18);
+  border-top-color: var(--laranja, #D4500F);
+  border-radius: 50%;
+  animation: plo-spin .8s linear infinite;
+}
+@keyframes plo-spin { to { transform: rotate(360deg); } }
+
+/* ── SKELETON HERO (film page) ── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.sk-hero-wrap {
+  display: none;
+  background: var(--laranja, #D4500F);
+  padding: 40px 28px 48px;
+}
+.sk-hero-wrap.visible { display: flex; gap: 24px; align-items: flex-start; }
+.sk-poster-hero {
+  width: 110px; min-width: 110px; aspect-ratio: 2/3;
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(0,0,0,.18) 25%, rgba(255,255,255,.12) 50%, rgba(0,0,0,.18) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.sk-hero-info { flex: 1; display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+.sk-h { border-radius: 6px;
+  background: linear-gradient(90deg, rgba(0,0,0,.18) 25%, rgba(255,255,255,.12) 50%, rgba(0,0,0,.18) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.sk-h.sk-title-big  { height: 32px; width: 72%; }
+.sk-h.sk-sub        { height: 13px; width: 48%; margin-top: 2px; }
+.sk-h.sk-pills      { height: 26px; width: 80%; border-radius: 20px; }
+.sk-h.sk-chips      { height: 26px; width: 90%; border-radius: 20px; }
+.sk-h.sk-btns       { height: 42px; width: 55%; border-radius: 8px; margin-top: 8px; }
 </style>
 </head>
 <body>
+
+<!-- PAGE LOADING OVERLAY -->
+<div id="page-loading-overlay" role="status" aria-label="Carregando página">
+  <div class="plo-spinner" aria-hidden="true"></div>
+</div>
+
 <a href="#main-content" class="skip-link">Ir para o conteúdo principal</a>
 <a href="#nav-main" class="skip-link">Ir para o menu</a>
 
-<div class="shell">
-
-<a href="#main-film" class="skip-link">Ir para o conteúdo principal</a>
-
-<!-- A11Y TOOLBAR -->
+<!-- A11Y TOOLBAR — fora do .shell para ocupar toda a largura -->
 <div class="a11y-bar" role="toolbar" aria-label="Ferramentas de acessibilidade">
   <div class="a11y-skip-links">
     <a href="#main-content" class="a11y-skip-btn">Ir para o conteúdo [1]</a>
@@ -731,6 +788,8 @@ body.font-lg *,body.font-xl *{font-size:calc(1em * var(--fscale))!important;line
   </div>
 </div>
 
+<div class="shell">
+
 <!-- HEADER -->
 <header role="banner">
   <a class="logo" href="index.html" aria-label="Acesso na Tela - Página inicial">
@@ -751,6 +810,18 @@ body.font-lg *,body.font-xl *{font-size:calc(1em * var(--fscale))!important;line
   <a href="index.html">Em cartaz</a>
   <span aria-hidden="true">›</span>
   <span id="bc-film" aria-current="page">Divertida Mente 2</span>
+</div>
+
+<!-- SKELETON HERO (shown while loading) -->
+<div class="sk-hero-wrap" id="sk-film-hero" aria-hidden="true">
+  <div class="sk-poster-hero"></div>
+  <div class="sk-hero-info">
+    <div class="sk-h sk-title-big"></div>
+    <div class="sk-h sk-sub"></div>
+    <div class="sk-h sk-pills"></div>
+    <div class="sk-h sk-chips"></div>
+    <div class="sk-h sk-btns"></div>
+  </div>
 </div>
 
 <!-- FILM HERO -->
@@ -1371,11 +1442,20 @@ function updateAppLinks(appName) {
   if (android) android.setAttribute('aria-label', 'Baixar ' + appName + ' no Google Play');
 }
 
-// Clear static film data immediately when urlKey is in URL
+// ── PAGE LOADING OVERLAY + SKELETON HERO ─────────────────────────────────────
 (function() {
   var params = new URLSearchParams(window.location.search);
-  if (params.get('urlKey')) {
-    // Clear header to avoid showing wrong film data
+  var hasUrlKey = !!params.get('urlKey');
+
+  // Show skeleton hero and hide real hero while loading
+  var skHero = document.getElementById('sk-film-hero');
+  var realHero = document.querySelector('.fp-hero');
+
+  if (hasUrlKey) {
+    if (skHero) skHero.classList.add('visible');
+    if (realHero) realHero.style.display = 'none';
+
+    // Clear static film data to avoid showing wrong content
     var h1 = document.getElementById('fp-h1');
     var orig = document.getElementById('fp-orig');
     var pills = document.querySelector('.meta-pills');
@@ -1386,10 +1466,28 @@ function updateAppLinks(appName) {
     if (pills) pills.innerHTML = '<span class="mpill" style="background:#eee;color:#eee;border-radius:8px">...</span>';
     if (achips) achips.innerHTML = '';
     if (poster) poster.style.backgroundImage = 'none';
-    // Hide trailer until loaded
     var trailerThumb = document.getElementById('trailer-thumb');
     if (trailerThumb) trailerThumb.style.display = 'none';
   }
+
+  // Dismiss overlay once page is fully loaded (or after 2.5s max)
+  function dismissOverlay() {
+    var ov = document.getElementById('page-loading-overlay');
+    if (ov) ov.classList.add('hidden');
+    // Swap skeleton → real hero
+    if (skHero) { skHero.classList.remove('visible'); skHero.style.display = 'none'; }
+    if (realHero) realHero.style.display = '';
+  }
+
+  var dismissed = false;
+  function dismiss() {
+    if (dismissed) return;
+    dismissed = true;
+    dismissOverlay();
+  }
+
+  window.addEventListener('load', dismiss);
+  setTimeout(dismiss, 2500); // safety cap
 })();
 
 var fontLevel = 0;
