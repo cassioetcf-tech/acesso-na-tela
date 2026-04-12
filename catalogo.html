@@ -574,7 +574,7 @@ function construirChips() {
     btn.className = 'chip-plat';
     btn.dataset.plataforma = plat.id;
     btn.setAttribute('aria-pressed', 'false');
-    btn.setAttribute('onclick', 'filtrarPlataforma(this, '' + plat.id + '')');
+    btn.addEventListener('click', (function(b, id){ return function(){ filtrarPlataforma(b, id); }; })(btn, plat.id));
     if (plat.logo) {
       var img = document.createElement('img');
       img.src = TMDB_LOGO + plat.logo;
