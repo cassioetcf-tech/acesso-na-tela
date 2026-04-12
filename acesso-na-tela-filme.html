@@ -698,73 +698,76 @@ body.font-lg *,body.font-xl *{font-size:calc(1em * var(--fscale))!important;line
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 
 
-/* ── PAGE LOADING OVERLAY ── */
-#page-loading-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--bg3, #EDEBE6);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity .35s ease, visibility .35s ease;
-}
-#page-loading-overlay.hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-.plo-spinner {
-  width: 44px; height: 44px;
-  border: 4px solid rgba(212,80,15,0.18);
-  border-top-color: var(--laranja, #D4500F);
-  border-radius: 50%;
-  animation: plo-spin .8s linear infinite;
-}
-@keyframes plo-spin { to { transform: rotate(360deg); } }
-
-/* ── SKELETON HERO (film page) ── */
+/* ── SKELETON LOADING (shimmer) ── */
 @keyframes shimmer {
-  0%   { background-position: -600px 0; }
-  100% { background-position:  600px 0; }
+  0%   { background-position: -700px 0; }
+  100% { background-position:  700px 0; }
 }
-.sk-hero-wrap {
+.sk-shimmer {
+  background: linear-gradient(90deg, rgba(0,0,0,.13) 25%, rgba(255,255,255,.14) 50%, rgba(0,0,0,.13) 75%);
+  background-size: 700px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* ── SKELETON HERO ── */
+#sk-film-hero {
   display: none;
   background: var(--laranja, #D4500F);
   padding: 40px 28px 48px;
+  gap: 24px;
+  align-items: flex-start;
 }
-.sk-hero-wrap.visible { display: flex; gap: 24px; align-items: flex-start; }
+#sk-film-hero.active { display: flex; }
+
 .sk-poster-hero {
-  width: 110px; min-width: 110px; aspect-ratio: 2/3;
+  width: 110px; min-width: 110px;
+  aspect-ratio: 2/3;
   border-radius: 10px;
-  background: linear-gradient(90deg, rgba(0,0,0,.18) 25%, rgba(255,255,255,.12) 50%, rgba(0,0,0,.18) 75%);
-  background-size: 600px 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
 }
-.sk-hero-info { flex: 1; display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
-.sk-h { border-radius: 6px;
-  background: linear-gradient(90deg, rgba(0,0,0,.18) 25%, rgba(255,255,255,.12) 50%, rgba(0,0,0,.18) 75%);
-  background-size: 600px 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
+.sk-hero-body { flex: 1; display: flex; flex-direction: column; gap: 11px; padding-top: 4px; }
+.sk-hl { height: 34px; width: 68%; }
+.sk-hm { height: 13px; width: 44%; }
+.sk-hp { height: 28px; width: 85%; border-radius: 20px; margin-top: 4px; }
+.sk-hc { height: 28px; width: 95%; border-radius: 20px; }
+.sk-hb { height: 44px; width: 52%; border-radius: 8px; margin-top: 8px; }
+
+/* ── SKELETON BODY (below hero) ── */
+#sk-film-body {
+  display: none;
+  padding: 28px 28px 0;
+  gap: 24px;
 }
-.sk-h.sk-title-big  { height: 32px; width: 72%; }
-.sk-h.sk-sub        { height: 13px; width: 48%; margin-top: 2px; }
-.sk-h.sk-pills      { height: 26px; width: 80%; border-radius: 20px; }
-.sk-h.sk-chips      { height: 26px; width: 90%; border-radius: 20px; }
-.sk-h.sk-btns       { height: 42px; width: 55%; border-radius: 8px; margin-top: 8px; }
+#sk-film-body.active { display: grid; grid-template-columns: minmax(0,1fr) 264px; }
+@media(max-width:680px){ #sk-film-body.active { grid-template-columns: 1fr; } }
+
+.sk-block {
+  background: var(--bg); border: 1.5px solid var(--bdr);
+  border-radius: var(--r); padding: 20px 22px;
+  margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px;
+}
+.sk-label { height: 11px; width: 38%; background: rgba(212,80,15,.18); border-radius: 4px; }
+.sk-line-full { height: 13px; width: 100%; }
+.sk-line-80   { height: 13px; width: 80%;  }
+.sk-line-60   { height: 13px; width: 60%;  }
+.sk-line-45   { height: 13px; width: 45%;  }
+.sk-video     { width: 100%; aspect-ratio: 16/9; border-radius: var(--r); }
+.sk-row       { display: flex; justify-content: space-between; margin-bottom: 2px; }
+.sk-row-l     { height: 13px; width: 40%; }
+.sk-row-r     { height: 13px; width: 36%; }
+
+/* ── HIDE REAL HERO + BODY while loading ── */
+body.film-loading .fp-hero,
+body.film-loading .breadcrumb + .fp-hero,
+body.film-loading #film-body-content { display: none !important; }
+
 </style>
 </head>
-<body>
-
-<!-- PAGE LOADING OVERLAY -->
-<div id="page-loading-overlay" role="status" aria-label="Carregando página">
-  <div class="plo-spinner" aria-hidden="true"></div>
-</div>
-
+<body class="film-loading">
 <a href="#main-content" class="skip-link">Ir para o conteúdo principal</a>
 <a href="#nav-main" class="skip-link">Ir para o menu</a>
 
-<!-- A11Y TOOLBAR — fora do .shell para ocupar toda a largura -->
+<!-- A11Y TOOLBAR — fora do .shell para ocupar 100% da largura -->
 <div class="a11y-bar" role="toolbar" aria-label="Ferramentas de acessibilidade">
   <div class="a11y-skip-links">
     <a href="#main-content" class="a11y-skip-btn">Ir para o conteúdo [1]</a>
@@ -790,6 +793,59 @@ body.font-lg *,body.font-xl *{font-size:calc(1em * var(--fscale))!important;line
 
 <div class="shell">
 
+<!-- SKELETON HERO — visível enquanto API carrega -->
+<div id="sk-film-hero" aria-hidden="true">
+  <div class="sk-poster-hero sk-shimmer"></div>
+  <div class="sk-hero-body">
+    <div class="sk-hl sk-shimmer"></div>
+    <div class="sk-hm sk-shimmer"></div>
+    <div class="sk-hp sk-shimmer"></div>
+    <div class="sk-hc sk-shimmer"></div>
+    <div class="sk-hb sk-shimmer"></div>
+  </div>
+</div>
+
+<!-- SKELETON BODY — visível enquanto API carrega -->
+<div id="sk-film-body" aria-hidden="true">
+  <div>
+    <!-- trailer skeleton -->
+    <div class="sk-block">
+      <div class="sk-label"></div>
+      <div class="sk-video sk-shimmer"></div>
+    </div>
+    <!-- sinopse skeleton -->
+    <div class="sk-block">
+      <div class="sk-label"></div>
+      <div class="sk-line-full sk-shimmer"></div>
+      <div class="sk-line-80  sk-shimmer"></div>
+      <div class="sk-line-60  sk-shimmer"></div>
+    </div>
+    <!-- app skeleton -->
+    <div class="sk-block">
+      <div class="sk-line-45 sk-shimmer"></div>
+      <div class="sk-line-80 sk-shimmer"></div>
+      <div class="sk-line-60 sk-shimmer"></div>
+    </div>
+  </div>
+  <div>
+    <!-- ficha skeleton -->
+    <div class="sk-block">
+      <div class="sk-label"></div>
+      <div class="sk-row"><div class="sk-row-l sk-shimmer"></div><div class="sk-row-r sk-shimmer"></div></div>
+      <div class="sk-row"><div class="sk-row-l sk-shimmer"></div><div class="sk-row-r sk-shimmer"></div></div>
+      <div class="sk-row"><div class="sk-row-l sk-shimmer"></div><div class="sk-row-r sk-shimmer"></div></div>
+      <div class="sk-row"><div class="sk-row-l sk-shimmer"></div><div class="sk-row-r sk-shimmer"></div></div>
+      <div class="sk-row"><div class="sk-row-l sk-shimmer"></div><div class="sk-row-r sk-shimmer"></div></div>
+    </div>
+    <!-- comunidade skeleton -->
+    <div class="sk-block">
+      <div class="sk-label"></div>
+      <div class="sk-line-full sk-shimmer"></div>
+      <div class="sk-line-80  sk-shimmer"></div>
+    </div>
+  </div>
+</div>
+
 <!-- HEADER -->
 <header role="banner">
   <a class="logo" href="index.html" aria-label="Acesso na Tela - Página inicial">
@@ -804,24 +860,14 @@ body.font-lg *,body.font-xl *{font-size:calc(1em * var(--fscale))!important;line
   </nav>
 </header>
 
+<!-- REAL FILM CONTENT — hidden by CSS until render() runs -->
+<div id="film-body-content">
 <div class="breadcrumb" aria-label="Localização">
   <a href="index.html">Início</a>
   <span aria-hidden="true">›</span>
   <a href="index.html">Em cartaz</a>
   <span aria-hidden="true">›</span>
   <span id="bc-film" aria-current="page">Divertida Mente 2</span>
-</div>
-
-<!-- SKELETON HERO (shown while loading) -->
-<div class="sk-hero-wrap" id="sk-film-hero" aria-hidden="true">
-  <div class="sk-poster-hero"></div>
-  <div class="sk-hero-info">
-    <div class="sk-h sk-title-big"></div>
-    <div class="sk-h sk-sub"></div>
-    <div class="sk-h sk-pills"></div>
-    <div class="sk-h sk-chips"></div>
-    <div class="sk-h sk-btns"></div>
-  </div>
 </div>
 
 <!-- FILM HERO -->
@@ -1070,6 +1116,20 @@ function fetch_(path) {
   }).then(function(r) { return r.json(); });
 }
 
+// ── LOADING STATE: hide skeletons, show real content ──────────────────────────
+var _loadingDismissed = false;
+function dismissLoading() {
+  if (_loadingDismissed) return;
+  _loadingDismissed = true;
+  document.body.classList.remove('film-loading');
+  var sk1 = document.getElementById('sk-film-hero');
+  var sk2 = document.getElementById('sk-film-body');
+  if (sk1) { sk1.classList.remove('active'); sk1.style.display = 'none'; }
+  if (sk2) { sk2.classList.remove('active'); sk2.style.display = 'none'; }
+}
+// Safety timeout — show content even if API fails silently
+setTimeout(dismissLoading, 5000);
+
 function render(key, d, wp) {
 
   // Title
@@ -1168,8 +1228,13 @@ function render(key, d, wp) {
   if (tr) {
     var img = document.getElementById('trailer-img');
     if (img) { img.src='https://img.youtube.com/vi/'+tr.key+'/hqdefault.jpg'; img.alt='Trailer de '+title; }
+    var trailerThumb = document.getElementById('trailer-thumb');
+    if (trailerThumb) trailerThumb.style.display = '';
     window._trailerKey = tr.key;
   }
+
+  // ← Dados carregados: revelar conteúdo real e esconder skeletons
+  dismissLoading();
 }
 
 // Override playTrailer
@@ -1189,7 +1254,11 @@ window.addEventListener('load', function() {
   var urlKey = params.get('urlKey') || '';
   var id     = key ? IDS[key] : null;
 
-  set('fp-h1', 'Carregando...');
+  // Mostrar skeletons imediatamente (a class film-loading já oculta o conteúdo real)
+  var sk1 = document.getElementById('sk-film-hero');
+  var sk2 = document.getElementById('sk-film-body');
+  if (sk1) sk1.classList.add('active');
+  if (sk2) sk2.classList.add('active');
 
   // If urlKey is provided, fetch admin data from Supabase first, then TMDb
   if (urlKey) {
@@ -1223,17 +1292,21 @@ window.addEventListener('load', function() {
                   fetch_('/movie/' + best.id + '?language=pt-BR&append_to_response=credits,release_dates,videos'),
                   fetch_('/movie/' + best.id + '/watch/providers')
                 ]).then(function(res) { render(key, res[0], res[1]); });
+              } else {
+                dismissLoading(); // TMDb não encontrou o filme
               }
             });
+        } else {
+          dismissLoading(); // Ingresso não retornou título
         }
       })
-      .catch(function(e) { console.warn('TMDb via urlKey error:', e); });
+      .catch(function(e) { console.warn('TMDb via urlKey error:', e); dismissLoading(); });
     // Also load sessions by urlKey
     if (window.loadSessoesByUrlKey) window.loadSessoesByUrlKey(urlKey, '1');
     return;
   }
 
-  if (!id) { set('fp-h1', 'Filme não encontrado'); return; }
+  if (!id) { set('fp-h1', 'Filme não encontrado'); dismissLoading(); return; }
 
   Promise.all([
     fetch_('/movie/'+id+'?language=pt-BR&append_to_response=credits,release_dates,videos'),
@@ -1243,6 +1316,7 @@ window.addEventListener('load', function() {
   }).catch(function(e) {
     console.error('TMDb error', e);
     set('fp-h1', 'Erro ao carregar dados');
+    dismissLoading();
   });
 });
 
@@ -1442,54 +1516,6 @@ function updateAppLinks(appName) {
   if (android) android.setAttribute('aria-label', 'Baixar ' + appName + ' no Google Play');
 }
 
-// ── PAGE LOADING OVERLAY + SKELETON HERO ─────────────────────────────────────
-(function() {
-  var params = new URLSearchParams(window.location.search);
-  var hasUrlKey = !!params.get('urlKey');
-
-  // Show skeleton hero and hide real hero while loading
-  var skHero = document.getElementById('sk-film-hero');
-  var realHero = document.querySelector('.fp-hero');
-
-  if (hasUrlKey) {
-    if (skHero) skHero.classList.add('visible');
-    if (realHero) realHero.style.display = 'none';
-
-    // Clear static film data to avoid showing wrong content
-    var h1 = document.getElementById('fp-h1');
-    var orig = document.getElementById('fp-orig');
-    var pills = document.querySelector('.meta-pills');
-    var achips = document.querySelector('.fp-achips');
-    var poster = document.getElementById('fp-poster-img') || document.querySelector('.fp-poster-box');
-    if (h1) h1.textContent = 'Carregando...';
-    if (orig) orig.textContent = '';
-    if (pills) pills.innerHTML = '<span class="mpill" style="background:#eee;color:#eee;border-radius:8px">...</span>';
-    if (achips) achips.innerHTML = '';
-    if (poster) poster.style.backgroundImage = 'none';
-    var trailerThumb = document.getElementById('trailer-thumb');
-    if (trailerThumb) trailerThumb.style.display = 'none';
-  }
-
-  // Dismiss overlay once page is fully loaded (or after 2.5s max)
-  function dismissOverlay() {
-    var ov = document.getElementById('page-loading-overlay');
-    if (ov) ov.classList.add('hidden');
-    // Swap skeleton → real hero
-    if (skHero) { skHero.classList.remove('visible'); skHero.style.display = 'none'; }
-    if (realHero) realHero.style.display = '';
-  }
-
-  var dismissed = false;
-  function dismiss() {
-    if (dismissed) return;
-    dismissed = true;
-    dismissOverlay();
-  }
-
-  window.addEventListener('load', dismiss);
-  setTimeout(dismiss, 2500); // safety cap
-})();
-
 var fontLevel = 0;
 function changeFontSize(dir) {
   if (dir==='increase'&&fontLevel<2) fontLevel++;
@@ -1536,6 +1562,8 @@ document.addEventListener('click',function(e){
 })();
 
 </script>
+
+</div><!-- /#film-body-content -->
 
 <div vw class="enabled">
   <div vw-access-button class="active"></div>
