@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catálogo — Acesso na Tela</title>
+  <meta name="description" content="Filmes com audiodescrição, legenda para surdos e Libras disponíveis no streaming." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,wght@1,600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset / Base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --laranja:     #D4500F;
+      --laranja-esc: #A83D0A;
+      --laranja-cl:  #FDF0EA;
+      --laranja-bdr: #E8845A;
+      --ink:         #1A1A1A;
+      --ink2:        #444444;
+      --ink3:        #777777;
+      --bg:          #FFFFFF;
+      --bg2:         #F7F6F3;
+      --bg3:         #EDEBE6;
+      --ad:          #005C2E;
+      --lse:         #003D8F;
+      --lib:         #3D0070;
+      --bdr:         rgba(0,0,0,0.11);
+      --bdr2:        rgba(0,0,0,0.20);
+      --r:           14px;
+      --r-sm:        8px;
+      --r-lg:        20px;
+      --font-base:   16px;
+    }
+
+    /* Tamanho de texto acessível */
+    body.font-lg  { --font-base: 19px; }
+    body.font-xl  { --font-base: 22px; }
+
+    /* Modos de contraste */
+    body.alto-contraste  { filter: contrast(1.5); }
+    body.invertido       { filter: invert(1) hue-rotate(180deg); }
+    body.cinza           { filter: grayscale(1); }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: var(--font-base);
+      color: var(--ink);
+      background: var(--bg3);
+      line-height: 1.6;
+    }
+
+    /* ── Skip links ───────────────────────────────────────────────── */
+    .skip-link {
+      position: absolute; top: -999px; left: 0;
+      background: var(--laranja); color: #fff;
+      padding: 8px 16px; font-weight: 700; z-index: 9999;
+      border-radius: 0 0 var(--r-sm) 0;
+    }
+    .skip-link:focus { top: 0; }
+
+    /* ── Barra de acessibilidade ──────────────────────────────────── */
+    .a11y-bar {
+      width: 100%; background: var(--laranja-esc);
+      padding: 6px 24px; display: flex;
+      align-items: center; gap: 8px; flex-wrap: wrap;
+      position: relative; z-index: 100;
+    }
+    .a11y-bar span.a11y-label {
+      color: #fff; font-size: 0.75em; font-weight: 600;
+      margin-right: 4px; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .a11y-btn {
+      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+      color: #fff; border-radius: 6px; padding: 3px 10px;
+      font-size: 0.8em; font-family: inherit; cursor: pointer;
+      transition: background .15s;
+    }
+    .a11y-btn:hover, .a11y-btn:focus { background: rgba(255,255,255,0.28); outline: 2px solid #fff; }
+    .a11y-btn[aria-pressed="true"] { background: rgba(255,255,255,0.35); font-weight: 700; }
+    .a11y-sep { color: rgba(255,255,255,0.35); font-size: 0.8em; }
+
+    /* ── Shell ────────────────────────────────────────────────────── */
+    .shell { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Header ───────────────────────────────────────────────────── */
+    header {
+      background: var(--bg); border-bottom: 1px solid var(--bdr);
+      position: sticky; top: 0; z-index: 90;
+    }
+    .header-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0; gap: 16px;
+    }
+    .logo img { height: 36px; display: block; }
+    .logo span { font-size: 1.15em; font-weight: 700; color: var(--laranja); letter-spacing: -.02em; }
+    nav { display: flex; gap: 4px; flex-wrap: wrap; }
+    nav a {
+      color: var(--ink2); text-decoration: none; font-size: 0.9em;
+      font-weight: 500; padding: 6px 12px; border-radius: var(--r-sm);
+      transition: background .15s, color .15s;
+    }
+    nav a:hover { background: var(--bg2); color: var(--ink); }
+    nav a[aria-current="page"] {
+      background: var(--laranja-cl); color: var(--laranja); font-weight: 700;
+    }
+
+    /* ── Page hero ────────────────────────────────────────────────── */
+    .cat-hero {
+      background: var(--laranja);
+      padding: 48px 0 40px;
+      color: #fff;
+    }
+    .cat-hero h1 {
+      font-size: clamp(1.6em, 4vw, 2.4em);
+      font-weight: 700; line-height: 1.2; margin-bottom: 10px;
+    }
+    .cat-hero h1 em {
+      font-family: 'Fraunces', serif; font-style: italic; font-weight: 600;
+    }
+    .cat-hero p {
+      font-size: 1em; opacity: .88; max-width: 560px; line-height: 1.6;
+    }
+
+    /* ── Badges de acessibilidade (legenda dos filtros) ───────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 0.72em; font-weight: 700; letter-spacing: .03em;
+      color: #fff; white-space: nowrap;
+    }
+    .badge-ad  { background: var(--ad); }
+    .badge-lse { background: var(--lse); }
+    .badge-lib { background: var(--lib); }
+
+    /* ── Toolbar (busca + filtros) ───────────────────────────────── */
+    .cat-toolbar {
+      background: var(--bg);
+      border-bottom: 1px solid var(--bdr);
+      padding: 16px 0;
+      position: sticky; top: 65px; z-index: 80;
+    }
+    .toolbar-inner {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .search-wrap {
+      position: relative; flex: 1; min-width: 200px; max-width: 360px;
+    }
+    .search-wrap svg {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--ink3); pointer-events: none;
+    }
+    #busca-catalogo {
+      width: 100%; padding: 9px 12px 9px 38px;
+      border: 1px solid var(--bdr2); border-radius: var(--r-sm);
+      font-family: inherit; font-size: 0.9em; color: var(--ink);
+      background: var(--bg2); outline: none; transition: border .2s;
+    }
+    #busca-catalogo:focus { border-color: var(--laranja); background: #fff; }
+    #busca-catalogo::placeholder { color: var(--ink3); }
+
+    /* Filtro de plataformas */
+    .plataformas-label {
+      font-size: 0.82em; font-weight: 600; color: var(--ink3);
+      white-space: nowrap;
+    }
+    .plataformas-chips {
+      display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    }
+    .chip-plataforma {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px;
+      border: 1.5px solid var(--bdr2);
+      background: var(--bg);
+      font-size: 0.82em; font-weight: 600;
+      color: var(--ink2); cursor: pointer;
+      font-family: inherit; transition: all .15s;
+      white-space: nowrap;
+    }
+    .chip-plataforma img { width: 18px; height: 18px; border-radius: 4px; object-fit: cover; }
+    .chip-plataforma:hover { border-color: var(--laranja); color: var(--laranja); }
+    .chip-plataforma.ativo {
+      background: var(--laranja-cl);
+      border-color: var(--laranja);
+      color: var(--laranja);
+    }
+    .chip-plataforma:focus { outline: 2px solid var(--laranja); outline-offset: 2px; }
+
+    /* Contagem de resultados */
+    .resultado-count {
+      font-size: 0.82em; color: var(--ink3);
+      margin-left: auto; white-space: nowrap;
+    }
+
+    /* ── Grid de filmes ───────────────────────────────────────────── */
+    .cat-main { padding: 32px 0 64px; }
+
+    .filmes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    /* ── Card ─────────────────────────────────────────────────────── */
+    .film-card {
+      background: var(--bg);
+      border-radius: var(--r);
+      border: 1px solid var(--bdr);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: box-shadow .2s, transform .2s;
+      text-decoration: none; color: inherit;
+    }
+    .film-card:hover {
+      box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+      transform: translateY(-3px);
+    }
+    .film-card:focus {
+      outline: 3px solid var(--laranja); outline-offset: 2px;
+    }
+
+    .card-poster {
+      position: relative;
+      aspect-ratio: 2/3;
+      background: var(--bg3);
+      overflow: hidden;
+    }
+    .card-poster img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform .3s;
+      display: block;
+    }
+    .film-card:hover .card-poster img { transform: scale(1.04); }
+
+    .card-poster .poster-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg2); color: var(--ink3);
+      font-size: 2em;
+    }
+
+    /* Badges sobre o pôster */
+    .card-badges {
+      position: absolute; bottom: 8px; left: 8px;
+      display: flex; gap: 4px; flex-wrap: wrap;
+    }
+
+    /* Logos de streaming sobre o pôster */
+    .card-streaming {
+      position: absolute; top: 8px; right: 8px;
+      display: flex; flex-direction: column; gap: 4px; align-items: flex-end;
+    }
+    .card-streaming img {
+      width: 28px; height: 28px; border-radius: 6px;
+      border: 1.5px solid rgba(255,255,255,0.6);
+      object-fit: cover;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .card-streaming .mais-plataformas {
+      background: rgba(0,0,0,0.65); color: #fff;
+      font-size: 0.65em; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px;
+      border: 1.5px solid rgba(255,255,255,0.4);
+    }
+
+    /* Corpo do card */
+    .card-body {
+      padding: 12px 14px 14px;
+      flex: 1; display: flex; flex-direction: column; gap: 6px;
+    }
+    .card-titulo {
+      font-size: 0.95em; font-weight: 700;
+      color: var(--ink); line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-meta {
+      font-size: 0.78em; color: var(--ink3);
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .card-generos {
+      font-size: 0.75em; color: var(--ink3);
+      display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* ── Skeletons ────────────────────────────────────────────────── */
+    @keyframes shimmer {
+      0%   { background-position: -600px 0; }
+      100% { background-position: 600px 0; }
+    }
+    .sk {
+      background: linear-gradient(90deg, var(--bg2) 25%, #e8e5de 50%, var(--bg2) 75%);
+      background-size: 600px 100%;
+      animation: shimmer 1.4s infinite linear;
+      border-radius: 6px;
+    }
+    .sk-card {
+      background: var(--bg); border-radius: var(--r);
+      border: 1px solid var(--bdr); overflow: hidden;
+    }
+    .sk-poster { aspect-ratio: 2/3; }
+    .sk-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .sk-title { height: 16px; width: 85%; }
+    .sk-meta  { height: 12px; width: 55%; }
+
+    /* ── Estado vazio ─────────────────────────────────────────────── */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center; padding: 64px 24px;
+      color: var(--ink3);
+    }
+    .empty-state svg { margin-bottom: 16px; opacity: .4; }
+    .empty-state h2 { font-size: 1.1em; font-weight: 600; color: var(--ink2); margin-bottom: 6px; }
+    .empty-state p  { font-size: 0.9em; }
+
+    /* ── Footer ───────────────────────────────────────────────────── */
+    footer {
+      background: var(--ink); color: rgba(255,255,255,0.6);
+      padding: 32px 0; font-size: 0.85em; text-align: center;
+    }
+    footer strong { color: #fff; }
+    footer a { color: rgba(255,255,255,0.7); }
+
+    /* ── Responsivo ───────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .cat-hero  { padding: 32px 0 28px; }
+      .toolbar-inner { gap: 8px; }
+      .plataformas-label { display: none; }
+      .resultado-count { display: none; }
+      .filmes-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Skip links -->
+  <a href="#main-content" class="skip-link">Ir para o conteúdo</a>
+  <a href="#nav-principal" class="skip-link">Ir para o menu</a>
+
+  <!-- Barra de acessibilidade -->
+  <div class="a11y-bar" role="toolbar" aria-label="Opções de acessibilidade">
+    <span class="a11y-label" aria-hidden="true">Acessibilidade</span>
+
+    <button class="a11y-btn" onclick="ajustarFonte(-1)" aria-label="Diminuir tamanho do texto">A−</button>
+    <button class="a11y-btn" onclick="ajustarFonte(0)"  aria-label="Tamanho de texto padrão">A</button>
+    <button class="a11y-btn" onclick="ajustarFonte(1)"  aria-label="Aumentar tamanho do texto">A+</button>
+
+    <span class="a11y-sep" aria-hidden="true">|</span>
+
+    <button class="a11y-btn" id="btn-alto"    onclick="setContraste('alto')"    aria-pressed="false" aria-label="Alto contraste">Alto contraste</button>
+    <button class="a11y-btn" id="btn-inv"     onclick="setContraste('invertido')" aria-pressed="false" aria-label="Cores invertidas">Invertido</button>
+    <button class="a11y-btn" id="btn-cinza"   onclick="setContraste('cinza')"   aria-pressed="false" aria-label="Escala de cinza">Cinza</button>
+    <button class="a11y-btn" id="btn-normal"  onclick="setContraste('normal')"  aria-label="Contraste original">Original</button>
+
+    <span class="a11y-sep" aria-hidden="true">|</span>
+
+    <button class="a11y-btn" onclick="toggleVLibras()" aria-label="Abrir tradutor de Libras">Libras (VLibras)</button>
+  </div>
+
+  <!-- VLibras -->
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper>
+      <div class="vw-plugin-top-wrapper"></div>
+    </div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+
+  <div class="shell">
+
+    <!-- Header -->
+    <header>
+      <div class="header-inner">
+        <a href="index.html" class="logo" aria-label="Acesso na Tela — página inicial">
+          <span>Acesso na Tela</span>
+        </a>
+        <nav id="nav-principal" aria-label="Menu principal">
+          <a href="index.html#em-cartaz">Em cartaz</a>
+          <a href="index.html#em-breve">Em breve</a>
+          <a href="catalogo.html" aria-current="page">Catálogo</a>
+          <a href="index.html#aplicativos">Aplicativos</a>
+          <a href="faq.html">FAQ</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Hero do catálogo -->
+    <section class="cat-hero" aria-labelledby="cat-titulo">
+      <div class="shell">
+        <h1 id="cat-titulo">Catálogo de filmes <em>acessíveis</em></h1>
+        <p>Filmes com audiodescrição, legenda para surdos e Libras disponíveis no streaming. Assista quando e onde quiser.</p>
+      </div>
+    </section>
+
+    <!-- Toolbar: busca + filtro de plataformas -->
+    <div class="cat-toolbar" role="search">
+      <div class="shell">
+        <div class="toolbar-inner">
+          <div class="search-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              type="search"
+              id="busca-catalogo"
+              placeholder="Buscar filme..."
+              aria-label="Buscar no catálogo"
+              autocomplete="off"
+            />
+          </div>
+
+          <span class="plataformas-label" aria-hidden="true">Plataforma:</span>
+
+          <div
+            class="plataformas-chips"
+            id="chips-plataformas"
+            role="group"
+            aria-label="Filtrar por plataforma de streaming"
+          >
+            <button
+              class="chip-plataforma ativo"
+              data-plataforma="todas"
+              aria-pressed="true"
+              onclick="filtrarPlataforma(this, 'todas')"
+            >Todas</button>
+            <!-- chips dinâmicos inseridos via JS -->
+          </div>
+
+          <span class="resultado-count" id="resultado-count" aria-live="polite" aria-atomic="true"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid principal -->
+    <main id="main-content" class="cat-main">
+      <div class="shell">
+        <div class="filmes-grid" id="filmes-grid" aria-live="polite" aria-label="Lista de filmes do catálogo">
+          <!-- Skeletons enquanto carrega -->
+          <div class="sk-card" aria-hidden="true">
+            <div class="sk sk-poster"></div>
+            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
+          </div>
+          <div class="sk-card" aria-hidden="true">
+            <div class="sk sk-poster"></div>
+            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
+          </div>
+          <div class="sk-card" aria-hidden="true">
+            <div class="sk sk-poster"></div>
+            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
+          </div>
+          <div class="sk-card" aria-hidden="true">
+            <div class="sk sk-poster"></div>
+            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
+          </div>
+          <div class="sk-card" aria-hidden="true">
+            <div class="sk sk-poster"></div>
+            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
+          </div>
+          <div class="sk-card" aria-hidden="true">
+            <div class="sk sk-poster"></div>
+            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div><!-- /.shell -->
+
+  <footer>
+    <div class="shell">
+      <p><strong>Acesso na Tela</strong> — Uma iniciativa <strong>ETC Filmes</strong></p>
+      <p style="margin-top:6px;">Filmes com audiodescrição, legenda para surdos e Libras.</p>
+    </div>
+  </footer>
+
+  <script>
+  // ── Configurações ────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://gpwmmvaetokgrzekepbk.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_lbKSyHwh8nNINEef-0Hi5Q_oPF5qt-P';
+  const TMDB_TOKEN   = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI2NmYwMDgzMGRlMTA2MGJiNGMxMWZjMzM1YmEwMTA2MiIsIm5iZiI6MTcyNzQ4NDQzMy43NDEsInN1YiI6IjY2ZjFlOWM1YWMxZDM1NzZkNzliZjJlNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.n0yxfAKFxM8dXYMMuMH0HmhEnRFwpEGr7cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I';
+  const TMDB_BASE    = 'https://api.themoviedb.org/3';
+  const TMDB_IMG     = 'https://image.tmdb.org/t/p/w342';
+  const TMDB_IMG_OR  = 'https://image.tmdb.org/t/p/w92'; // logos de streaming
+
+  // Estado global
+  let todosFilmes    = []; // [{supabase, tmdb, providers}]
+  let plataformaAtiva = 'todas';
+  let buscaAtiva      = '';
+
+  // ── Supabase: buscar filmes com status=catalogo ──────────────────
+  async function carregarCatalogo() {
+    try {
+      const resp = await fetch(
+        `${SUPABASE_URL}/rest/v1/filmes?status=eq.catalogo&order=created_at.desc`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      );
+      const filmes = await resp.json();
+
+      if (!filmes || filmes.length === 0) {
+        renderVazio('Nenhum filme no catálogo ainda.', 'Em breve novos títulos com acessibilidade chegarão aqui.');
+        return;
+      }
+
+      // Buscar dados TMDb para cada filme em paralelo
+      const promessas = filmes.map(f => enriquecerFilme(f));
+      todosFilmes = await Promise.all(promessas);
+
+      construirChipsPlataformas();
+      renderGrid(todosFilmes);
+
+    } catch (err) {
+      console.error('Erro ao carregar catálogo:', err);
+      renderVazio('Não foi possível carregar o catálogo.', 'Verifique sua conexão e tente novamente.');
+    }
+  }
+
+  // ── Enriquecer com TMDb ──────────────────────────────────────────
+  async function enriquecerFilme(filme) {
+    try {
+      let tmdbId = filme.tmdb_id;
+      let tmdbData = filme.tmdb_data;
+
+      // Se não tem tmdb_id, buscar pelo título
+      if (!tmdbId) {
+        const busca = await fetch(
+          `${TMDB_BASE}/search/movie?query=${encodeURIComponent(filme.titulo)}&language=pt-BR&region=BR`,
+          { headers: { 'Authorization': `Bearer ${TMDB_TOKEN}` } }
+        );
+        const bd = await busca.json();
+        if (bd.results && bd.results.length > 0) tmdbId = bd.results[0].id;
+      }
+
+      // Se não tem tmdb_data completo, buscar
+      if (tmdbId && !tmdbData?.genres) {
+        const det = await fetch(
+          `${TMDB_BASE}/movie/${tmdbId}?language=pt-BR&append_to_response=credits,release_dates`,
+          { headers: { 'Authorization': `Bearer ${TMDB_TOKEN}` } }
+        );
+        tmdbData = await det.json();
+      }
+
+      // Watch providers
+      let providers = [];
+      if (tmdbId) {
+        const prov = await fetch(
+          `${TMDB_BASE}/movie/${tmdbId}/watch/providers`,
+          { headers: { 'Authorization': `Bearer ${TMDB_TOKEN}` } }
+        );
+        const pd = await prov.json();
+        const br = pd.results && pd.results.BR;
+        if (br) {
+          // Agrupar todos os tipos disponíveis
+          const todos = [
+            ...(br.flatrate || []),
+            ...(br.free     || []),
+            ...(br.ads      || []),
+          ];
+          // Deduplicar por provider_id
+          const visto = new Set();
+          providers = todos.filter(p => {
+            if (visto.has(p.provider_id)) return false;
+            visto.add(p.provider_id); return true;
+          });
+        }
+      }
+
+      return { supabase: filme, tmdb: tmdbData, providers };
+
+    } catch (err) {
+      console.warn('Erro ao enriquecer filme:', filme.titulo, err);
+      return { supabase: filme, tmdb: null, providers: [] };
+    }
+  }
+
+  // ── Construir chips de plataformas ───────────────────────────────
+  function construirChipsPlataformas() {
+    const mapa = new Map(); // provider_id → {nome, logo}
+    todosFilmes.forEach(f => {
+      f.providers.forEach(p => {
+        if (!mapa.has(p.provider_id)) {
+          mapa.set(p.provider_id, {
+            id:   p.provider_id,
+            nome: p.provider_name,
+            logo: p.logo_path ? `${TMDB_IMG_OR}${p.logo_path}` : null,
+          });
+        }
+      });
+    });
+
+    const wrap = document.getElementById('chips-plataformas');
+    // Remove chips antigos (mantém o "Todas")
+    [...wrap.querySelectorAll('[data-plataforma]:not([data-plataforma="todas"])')].forEach(el => el.remove());
+
+    mapa.forEach(plat => {
+      const btn = document.createElement('button');
+      btn.className = 'chip-plataforma';
+      btn.dataset.plataforma = plat.id;
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('onclick', `filtrarPlataforma(this, '${plat.id}')`);
+
+      if (plat.logo) {
+        const img = document.createElement('img');
+        img.src = plat.logo;
+        img.alt = '';
+        img.width = 18; img.height = 18;
+        btn.appendChild(img);
+      }
+      btn.appendChild(document.createTextNode(plat.nome));
+      wrap.appendChild(btn);
+    });
+  }
+
+  // ── Filtrar por plataforma ───────────────────────────────────────
+  function filtrarPlataforma(btn, id) {
+    plataformaAtiva = id;
+    document.querySelectorAll('.chip-plataforma').forEach(b => {
+      b.classList.remove('ativo');
+      b.setAttribute('aria-pressed', 'false');
+    });
+    btn.classList.add('ativo');
+    btn.setAttribute('aria-pressed', 'true');
+    renderGrid(filtrarFilmes());
+  }
+
+  // ── Filtrar por busca ────────────────────────────────────────────
+  document.getElementById('busca-catalogo').addEventListener('input', function () {
+    buscaAtiva = this.value.toLowerCase().trim();
+    renderGrid(filtrarFilmes());
+  });
+
+  function filtrarFilmes() {
+    return todosFilmes.filter(f => {
+      // Filtro de plataforma
+      if (plataformaAtiva !== 'todas') {
+        const temPlat = f.providers.some(p => String(p.provider_id) === String(plataformaAtiva));
+        if (!temPlat) return false;
+      }
+      // Filtro de busca
+      if (buscaAtiva) {
+        const titulo  = (f.supabase.titulo || '').toLowerCase();
+        const generos = (f.tmdb?.genres || []).map(g => g.name.toLowerCase()).join(' ');
+        const sinopse = (f.tmdb?.overview || '').toLowerCase();
+        if (!titulo.includes(buscaAtiva) && !generos.includes(buscaAtiva) && !sinopse.includes(buscaAtiva)) return false;
+      }
+      return true;
+    });
+  }
+
+  // ── Renderizar grid ──────────────────────────────────────────────
+  function renderGrid(filmes) {
+    const grid = document.getElementById('filmes-grid');
+    const count = document.getElementById('resultado-count');
+
+    grid.innerHTML = '';
+
+    if (filmes.length === 0) {
+      renderVazio('Nenhum filme encontrado.', 'Tente outro filtro ou termo de busca.');
+      count.textContent = '';
+      return;
+    }
+
+    count.textContent = `${filmes.length} filme${filmes.length > 1 ? 's' : ''}`;
+
+    filmes.forEach(f => {
+      const card = criarCard(f);
+      grid.appendChild(card);
+    });
+  }
+
+  // ── Criar card ───────────────────────────────────────────────────
+  function criarCard(f) {
+    const { supabase: sb, tmdb, providers } = f;
+
+    const urlKey = sb.url_key || '';
+    const titulo = tmdb?.title || sb.titulo || 'Filme';
+    const ano    = tmdb?.release_date ? tmdb.release_date.slice(0, 4) : '';
+    const poster = tmdb?.poster_path ? `${TMDB_IMG}${tmdb.poster_path}` : null;
+    const generos = (tmdb?.genres || []).map(g => g.name).join(', ');
+    const nota    = tmdb?.vote_average ? tmdb.vote_average.toFixed(1) : '';
+
+    // URL de destino: página de filme com urlKey
+    const href = urlKey ? `acesso-na-tela-filme.html?urlKey=${urlKey}` : '#';
+
+    const card = document.createElement('a');
+    card.href  = href;
+    card.className = 'film-card';
+    card.setAttribute('aria-label', `${titulo}${ano ? ', ' + ano : ''}. Acessível com audiodescrição, legenda para surdos e Libras.`);
+
+    // Pôster
+    const posterDiv = document.createElement('div');
+    posterDiv.className = 'card-poster';
+
+    if (poster) {
+      const img = document.createElement('img');
+      img.src   = poster;
+      img.alt   = `Pôster do filme ${titulo}`;
+      img.loading = 'lazy';
+      posterDiv.appendChild(img);
+    } else {
+      const ph = document.createElement('div');
+      ph.className = 'poster-placeholder';
+      ph.setAttribute('aria-hidden', 'true');
+      ph.textContent = '🎬';
+      posterDiv.appendChild(ph);
+    }
+
+    // Logos de streaming no canto do pôster
+    if (providers.length > 0) {
+      const streamDiv = document.createElement('div');
+      streamDiv.className = 'card-streaming';
+      streamDiv.setAttribute('aria-hidden', 'true'); // informação redundante — aria-label do card já cobre
+
+      const limite = 3;
+      providers.slice(0, limite).forEach(p => {
+        if (p.logo_path) {
+          const img = document.createElement('img');
+          img.src   = `${TMDB_IMG_OR}${p.logo_path}`;
+          img.alt   = p.provider_name;
+          img.title = p.provider_name;
+          streamDiv.appendChild(img);
+        }
+      });
+
+      if (providers.length > limite) {
+        const mais = document.createElement('span');
+        mais.className = 'mais-plataformas';
+        mais.textContent = `+${providers.length - limite}`;
+        streamDiv.appendChild(mais);
+      }
+
+      posterDiv.appendChild(streamDiv);
+    }
+
+    // Badges de acessibilidade
+    const badgesDiv = document.createElement('div');
+    badgesDiv.className = 'card-badges';
+    badgesDiv.innerHTML = `
+      <span class="badge badge-ad"  aria-label="Audiodescrição">AD</span>
+      <span class="badge badge-lse" aria-label="Legenda para surdos">LSE</span>
+      <span class="badge badge-lib" aria-label="Libras">LIBRAS</span>
+    `;
+    posterDiv.appendChild(badgesDiv);
+
+    card.appendChild(posterDiv);
+
+    // Corpo do card
+    const body = document.createElement('div');
+    body.className = 'card-body';
+
+    const tituloEl = document.createElement('h2');
+    tituloEl.className = 'card-titulo';
+    tituloEl.textContent = titulo;
+    body.appendChild(tituloEl);
+
+    const meta = document.createElement('div');
+    meta.className = 'card-meta';
+    if (ano)  meta.innerHTML += `<span>${ano}</span>`;
+    if (nota) meta.innerHTML += `<span aria-label="Nota ${nota}">⭐ ${nota}</span>`;
+    if (providers.length > 0) {
+      const nomesPlat = providers.slice(0, 2).map(p => p.provider_name).join(', ');
+      const extra = providers.length > 2 ? ` +${providers.length - 2}` : '';
+      meta.innerHTML += `<span aria-label="Disponível em ${providers.map(p => p.provider_name).join(', ')}">${nomesPlat}${extra}</span>`;
+    }
+    body.appendChild(meta);
+
+    if (generos) {
+      const gen = document.createElement('div');
+      gen.className = 'card-generos';
+      gen.textContent = generos;
+      body.appendChild(gen);
+    }
+
+    card.appendChild(body);
+    return card;
+  }
+
+  // ── Estado vazio ─────────────────────────────────────────────────
+  function renderVazio(titulo, descricao) {
+    document.getElementById('filmes-grid').innerHTML = `
+      <div class="empty-state" role="status">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <rect x="2" y="2" width="20" height="20" rx="3"/>
+          <path d="M9 9h6M9 13h4"/>
+        </svg>
+        <h2>${titulo}</h2>
+        <p>${descricao}</p>
+      </div>
+    `;
+  }
+
+  // ── Acessibilidade: tamanho de fonte ─────────────────────────────
+  function ajustarFonte(dir) {
+    document.body.classList.remove('font-lg', 'font-xl');
+    if (dir === 1)       document.body.classList.add('font-lg');
+    else if (dir === 2)  document.body.classList.add('font-xl');
+    const nivel = dir === 1 ? 'lg' : dir === 2 ? 'xl' : 'normal';
+    localStorage.setItem('ant_fonte', nivel);
+  }
+
+  // ── Acessibilidade: contraste ────────────────────────────────────
+  function setContraste(modo) {
+    document.body.classList.remove('alto-contraste', 'invertido', 'cinza');
+    ['btn-alto','btn-inv','btn-cinza'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.setAttribute('aria-pressed', 'false');
+    });
+    if (modo !== 'normal') {
+      document.body.classList.add(modo);
+      const mapa = { alto: 'btn-alto', invertido: 'btn-inv', cinza: 'btn-cinza' };
+      const b = document.getElementById(mapa[modo]);
+      if (b) b.setAttribute('aria-pressed', 'true');
+    }
+    localStorage.setItem('ant_contraste', modo);
+  }
+
+  // ── VLibras ──────────────────────────────────────────────────────
+  function toggleVLibras() {
+    try { new window.VLibras.Widget('https://vlibras.gov.br/app'); } catch(e) {}
+    const btn = document.querySelector('[vw-access-button]');
+    if (btn) btn.click();
+  }
+
+  // ── Restaurar preferências salvas ────────────────────────────────
+  function restaurarPreferencias() {
+    const fonte = localStorage.getItem('ant_fonte');
+    if (fonte === 'lg') ajustarFonte(1);
+    if (fonte === 'xl') ajustarFonte(2);
+
+    const contraste = localStorage.getItem('ant_contraste');
+    if (contraste && contraste !== 'normal') setContraste(contraste);
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    restaurarPreferencias();
+    carregarCatalogo();
+  });
+  </script>
+
+</body>
+</html>
