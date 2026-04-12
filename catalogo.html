@@ -1,845 +1,702 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Catálogo — Acesso na Tela</title>
-  <meta name="description" content="Filmes com audiodescrição, legenda para surdos e Libras disponíveis no streaming." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,wght@1,600&display=swap" rel="stylesheet" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo — Acesso na Tela</title>
+<meta name="description" content="Filmes com audiodescrição, legenda para surdos e Libras disponíveis no streaming." />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap');
 
-  <style>
-    /* ── Reset / Base ─────────────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --laranja:      #D4500F;
+  --laranja-esc:  #A83D0A;
+  --laranja-cl:   #FDF0EA;
+  --laranja-bdr:  #E8845A;
+  --ink:   #1A1A1A;
+  --ink2:  #444444;
+  --ink3:  #777777;
+  --bg:    #FFFFFF;
+  --bg2:   #F7F6F3;
+  --bg3:   #EDEBE6;
+  --ad:    #005C2E;
+  --lse:   #003D8F;
+  --lib:   #3D0070;
+  --bdr:   rgba(0,0,0,0.11);
+  --bdr2:  rgba(0,0,0,0.20);
+  --r:     14px;
+  --r-sm:  8px;
+  --r-lg:  20px;
+}
 
-    :root {
-      --laranja:     #D4500F;
-      --laranja-esc: #A83D0A;
-      --laranja-cl:  #FDF0EA;
-      --laranja-bdr: #E8845A;
-      --ink:         #1A1A1A;
-      --ink2:        #444444;
-      --ink3:        #777777;
-      --bg:          #FFFFFF;
-      --bg2:         #F7F6F3;
-      --bg3:         #EDEBE6;
-      --ad:          #005C2E;
-      --lse:         #003D8F;
-      --lib:         #3D0070;
-      --bdr:         rgba(0,0,0,0.11);
-      --bdr2:        rgba(0,0,0,0.20);
-      --r:           14px;
-      --r-sm:        8px;
-      --r-lg:        20px;
-      --font-base:   16px;
-    }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* Tamanho de texto acessível */
-    body.font-lg  { --font-base: 19px; }
-    body.font-xl  { --font-base: 22px; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--bg3);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
 
-    /* Modos de contraste */
-    body.alto-contraste  { filter: contrast(1.5); }
-    body.invertido       { filter: invert(1) hue-rotate(180deg); }
-    body.cinza           { filter: grayscale(1); }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
 
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Inter', sans-serif;
-      font-size: var(--font-base);
-      color: var(--ink);
-      background: var(--bg3);
-      line-height: 1.6;
-    }
+*:focus-visible { outline: 3px solid var(--laranja); outline-offset: 3px; border-radius: 4px; }
 
-    /* ── Skip links ───────────────────────────────────────────────── */
-    .skip-link {
-      position: absolute; top: -999px; left: 0;
-      background: var(--laranja); color: #fff;
-      padding: 8px 16px; font-weight: 700; z-index: 9999;
-      border-radius: 0 0 var(--r-sm) 0;
-    }
-    .skip-link:focus { top: 0; }
+.shell { max-width: 1000px; margin: 0 auto; background: var(--bg); min-height: 100vh; }
 
-    /* ── Barra de acessibilidade ──────────────────────────────────── */
-    .a11y-bar {
-      width: 100%; background: var(--laranja-esc);
-      padding: 6px 24px; display: flex;
-      align-items: center; gap: 8px; flex-wrap: wrap;
-      position: relative; z-index: 100;
-    }
-    .a11y-bar span.a11y-label {
-      color: #fff; font-size: 0.75em; font-weight: 600;
-      margin-right: 4px; text-transform: uppercase; letter-spacing: .04em;
-    }
-    .a11y-btn {
-      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
-      color: #fff; border-radius: 6px; padding: 3px 10px;
-      font-size: 0.8em; font-family: inherit; cursor: pointer;
-      transition: background .15s;
-    }
-    .a11y-btn:hover, .a11y-btn:focus { background: rgba(255,255,255,0.28); outline: 2px solid #fff; }
-    .a11y-btn[aria-pressed="true"] { background: rgba(255,255,255,0.35); font-weight: 700; }
-    .a11y-sep { color: rgba(255,255,255,0.35); font-size: 0.8em; }
+/* ── A11Y BAR ── */
+.a11y-bar {
+  background: #1A1A1A;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 20px;
+  font-size: 13px;
+  position: relative;
+  z-index: 50;
+}
+.a11y-skip-links { display: flex; gap: 16px; }
+.a11y-skip-btn {
+  color: #ccc;
+  text-decoration: none;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+}
+.a11y-skip-btn:hover, .a11y-skip-btn:focus {
+  background: var(--laranja); color: #fff;
+  outline: 2px solid #fff; outline-offset: 1px;
+}
+.a11y-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.a11y-label { color: #aaa; font-size: 12px; white-space: nowrap; }
+.a11y-font-btn {
+  background: transparent; border: 1.5px solid #555; color: #fff;
+  padding: 3px 10px; border-radius: 4px; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all .15s; font-family: inherit;
+}
+.a11y-font-btn:hover, .a11y-font-btn:focus-visible { border-color: var(--laranja); color: var(--laranja); }
+.a11y-contrast-wrap { position: relative; }
+.a11y-contrast-btn {
+  background: transparent; border: 1.5px solid #555; color: #fff;
+  padding: 4px 12px; border-radius: 4px; font-size: 12px;
+  cursor: pointer; transition: all .15s; font-family: inherit; white-space: nowrap;
+}
+.a11y-contrast-btn:hover, .a11y-contrast-btn:focus-visible { border-color: var(--laranja); color: var(--laranja); }
+.a11y-contrast-menu {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  background: #2A2A2A; border: 1px solid #444; border-radius: 8px;
+  min-width: 180px; z-index: 200; overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.a11y-contrast-menu[hidden] { display: none; }
+.a11y-contrast-menu button {
+  display: block; width: 100%; background: transparent; border: none;
+  color: #fff; padding: 10px 16px; text-align: left; font-size: 13px;
+  cursor: pointer; font-family: inherit; transition: background .15s;
+}
+.a11y-contrast-menu button:hover,
+.a11y-contrast-menu button:focus-visible { background: var(--laranja); outline: none; }
 
-    /* ── Shell ────────────────────────────────────────────────────── */
-    .shell { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+/* ── CONTRAST + FONT MODES ── */
+body.contrast-high    { filter: contrast(1.5) brightness(1.1); }
+body.contrast-inverted { filter: invert(1) hue-rotate(180deg); }
+body.contrast-grayscale { filter: grayscale(1); }
+:root { --fscale: 1; }
+body.font-lg { --fscale: 1.13; }
+body.font-xl { --fscale: 1.25; }
+body.font-lg *, body.font-xl * { font-size: calc(1em * var(--fscale)) !important; line-height: 1.5 !important; }
 
-    /* ── Header ───────────────────────────────────────────────────── */
-    header {
-      background: var(--bg); border-bottom: 1px solid var(--bdr);
-      position: sticky; top: 0; z-index: 90;
-    }
-    .header-inner {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 0; gap: 16px;
-    }
-    .logo img { height: 36px; display: block; }
-    .logo span { font-size: 1.15em; font-weight: 700; color: var(--laranja); letter-spacing: -.02em; }
-    nav { display: flex; gap: 4px; flex-wrap: wrap; }
-    nav a {
-      color: var(--ink2); text-decoration: none; font-size: 0.9em;
-      font-weight: 500; padding: 6px 12px; border-radius: var(--r-sm);
-      transition: background .15s, color .15s;
-    }
-    nav a:hover { background: var(--bg2); color: var(--ink); }
-    nav a[aria-current="page"] {
-      background: var(--laranja-cl); color: var(--laranja); font-weight: 700;
-    }
+/* ── HEADER ── */
+header {
+  background: #FFFFFF;
+  border-bottom: 2px solid var(--bg3);
+  padding: 0 28px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
+.logo img { height: 44px; width: auto; display: block; }
+nav { display: flex; gap: 2px; }
+nav a {
+  color: var(--ink2);
+  font-size: 13px; font-weight: 600;
+  padding: 8px 13px; border-radius: var(--r-sm);
+  text-decoration: none; cursor: pointer;
+  transition: background .12s; letter-spacing: 0.1px;
+}
+nav a:hover { background: var(--laranja-cl); color: var(--laranja); }
+nav a.active { background: var(--laranja-cl); color: var(--laranja); font-weight: 700; }
+nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
 
-    /* ── Page hero ────────────────────────────────────────────────── */
-    .cat-hero {
-      background: var(--laranja);
-      padding: 48px 0 40px;
-      color: #fff;
-    }
-    .cat-hero h1 {
-      font-size: clamp(1.6em, 4vw, 2.4em);
-      font-weight: 700; line-height: 1.2; margin-bottom: 10px;
-    }
-    .cat-hero h1 em {
-      font-family: 'Fraunces', serif; font-style: italic; font-weight: 600;
-    }
-    .cat-hero p {
-      font-size: 1em; opacity: .88; max-width: 560px; line-height: 1.6;
-    }
+/* ── HERO CATÁLOGO ── */
+.cat-hero {
+  background: var(--laranja);
+  padding: 48px 28px 44px;
+}
+.cat-hero h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 800; color: #fff;
+  line-height: 1.1; letter-spacing: -0.5px;
+  margin-bottom: 10px;
+}
+.cat-hero h1 em { color: #FFE5B0; font-style: italic; font-family: 'Fraunces', serif; font-weight: 500; }
+.cat-hero p { font-size: 15px; color: rgba(255,255,255,0.85); line-height: 1.65; max-width: 520px; }
 
-    /* ── Badges de acessibilidade (legenda dos filtros) ───────────── */
-    .badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 3px 10px; border-radius: 20px;
-      font-size: 0.72em; font-weight: 700; letter-spacing: .03em;
-      color: #fff; white-space: nowrap;
-    }
-    .badge-ad  { background: var(--ad); }
-    .badge-lse { background: var(--lse); }
-    .badge-lib { background: var(--lib); }
+/* ── TOOLBAR ── */
+.cat-toolbar {
+  background: var(--bg);
+  border-bottom: 1.5px solid var(--bdr);
+  padding: 14px 28px;
+  position: sticky; top: 72px; z-index: 90;
+}
+.toolbar-inner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.search-wrap { position: relative; flex: 1; min-width: 180px; max-width: 340px; }
+.search-wrap svg {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  color: var(--ink3); pointer-events: none;
+}
+#busca-catalogo {
+  width: 100%; padding: 9px 12px 9px 36px;
+  border: 1.5px solid var(--bdr2); border-radius: var(--r-sm);
+  font-family: inherit; font-size: 13px; color: var(--ink);
+  background: var(--bg2); outline: none; transition: border .15s;
+  font-weight: 500;
+}
+#busca-catalogo:focus { border-color: var(--laranja); background: #fff; outline: 3px solid var(--laranja); outline-offset: 2px; }
+#busca-catalogo::placeholder { color: var(--ink3); }
 
-    /* ── Toolbar (busca + filtros) ───────────────────────────────── */
-    .cat-toolbar {
-      background: var(--bg);
-      border-bottom: 1px solid var(--bdr);
-      padding: 16px 0;
-      position: sticky; top: 65px; z-index: 80;
-    }
-    .toolbar-inner {
-      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    }
-    .search-wrap {
-      position: relative; flex: 1; min-width: 200px; max-width: 360px;
-    }
-    .search-wrap svg {
-      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-      color: var(--ink3); pointer-events: none;
-    }
-    #busca-catalogo {
-      width: 100%; padding: 9px 12px 9px 38px;
-      border: 1px solid var(--bdr2); border-radius: var(--r-sm);
-      font-family: inherit; font-size: 0.9em; color: var(--ink);
-      background: var(--bg2); outline: none; transition: border .2s;
-    }
-    #busca-catalogo:focus { border-color: var(--laranja); background: #fff; }
-    #busca-catalogo::placeholder { color: var(--ink3); }
+.plat-label { font-size: 12px; font-weight: 600; color: var(--ink3); white-space: nowrap; }
+.plat-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; flex: 1; }
+.chip-plat {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px;
+  border: 1.5px solid var(--bdr2); background: var(--bg);
+  font-size: 12px; font-weight: 600; color: var(--ink2);
+  cursor: pointer; font-family: inherit; transition: all .12s;
+  white-space: nowrap;
+}
+.chip-plat img { width: 16px; height: 16px; border-radius: 3px; object-fit: cover; }
+.chip-plat:hover { border-color: var(--laranja); color: var(--laranja); }
+.chip-plat.ativo { background: var(--laranja-cl); border-color: var(--laranja); color: var(--laranja); }
+.chip-plat:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
 
-    /* Filtro de plataformas */
-    .plataformas-label {
-      font-size: 0.82em; font-weight: 600; color: var(--ink3);
-      white-space: nowrap;
-    }
-    .plataformas-chips {
-      display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
-    }
-    .chip-plataforma {
-      display: flex; align-items: center; gap: 6px;
-      padding: 5px 12px; border-radius: 20px;
-      border: 1.5px solid var(--bdr2);
-      background: var(--bg);
-      font-size: 0.82em; font-weight: 600;
-      color: var(--ink2); cursor: pointer;
-      font-family: inherit; transition: all .15s;
-      white-space: nowrap;
-    }
-    .chip-plataforma img { width: 18px; height: 18px; border-radius: 4px; object-fit: cover; }
-    .chip-plataforma:hover { border-color: var(--laranja); color: var(--laranja); }
-    .chip-plataforma.ativo {
-      background: var(--laranja-cl);
-      border-color: var(--laranja);
-      color: var(--laranja);
-    }
-    .chip-plataforma:focus { outline: 2px solid var(--laranja); outline-offset: 2px; }
+.resultado-count { font-size: 12px; color: var(--ink3); white-space: nowrap; margin-left: auto; }
 
-    /* Contagem de resultados */
-    .resultado-count {
-      font-size: 0.82em; color: var(--ink3);
-      margin-left: auto; white-space: nowrap;
-    }
+/* ── MAIN / GRID ── */
+.cat-main { padding: 32px 28px 60px; }
 
-    /* ── Grid de filmes ───────────────────────────────────────────── */
-    .cat-main { padding: 32px 0 64px; }
+.filmes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 16px;
+}
 
-    .filmes-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 20px;
-    }
+/* ── CARD ── */
+a.film-card-link {
+  display: block; text-decoration: none; color: inherit;
+  border-radius: var(--r); outline: none;
+}
+a.film-card-link:focus-visible { outline: 3px solid var(--laranja); outline-offset: 3px; }
+a.film-card-link:hover .film-card { border-color: var(--laranja); transform: translateY(-3px); }
 
-    /* ── Card ─────────────────────────────────────────────────────── */
-    .film-card {
-      background: var(--bg);
-      border-radius: var(--r);
-      border: 1px solid var(--bdr);
-      overflow: hidden;
-      display: flex; flex-direction: column;
-      transition: box-shadow .2s, transform .2s;
-      text-decoration: none; color: inherit;
-    }
-    .film-card:hover {
-      box-shadow: 0 8px 28px rgba(0,0,0,0.13);
-      transform: translateY(-3px);
-    }
-    .film-card:focus {
-      outline: 3px solid var(--laranja); outline-offset: 2px;
-    }
+.film-card {
+  background: var(--bg);
+  border: 1.5px solid var(--bdr);
+  border-radius: var(--r);
+  overflow: hidden;
+  transition: box-shadow .15s, transform .15s, border-color .15s;
+}
+a.film-card-link:hover .film-card { box-shadow: 0 6px 24px rgba(0,0,0,0.12); }
 
-    .card-poster {
-      position: relative;
-      aspect-ratio: 2/3;
-      background: var(--bg3);
-      overflow: hidden;
-    }
-    .card-poster img {
-      width: 100%; height: 100%; object-fit: cover;
-      transition: transform .3s;
-      display: block;
-    }
-    .film-card:hover .card-poster img { transform: scale(1.04); }
+/* Pôster */
+.film-poster {
+  position: relative;
+  aspect-ratio: 2/3;
+  background: var(--bg2);
+  overflow: hidden;
+}
+.film-poster img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform .25s;
+}
+a.film-card-link:hover .film-poster img { transform: scale(1.04); }
+.film-poster .poster-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.5em; color: var(--ink3);
+}
 
-    .card-poster .poster-placeholder {
-      width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--bg2); color: var(--ink3);
-      font-size: 2em;
-    }
+/* Badges acessibilidade sobre o pôster */
+.poster-badges {
+  position: absolute; bottom: 8px; left: 8px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.pbadge {
+  font-size: 9px; font-weight: 800;
+  padding: 3px 8px; border-radius: 5px;
+  width: fit-content; letter-spacing: .5px;
+}
+.pb-ad  { background: var(--ad);  color: #fff; }
+.pb-lse { background: var(--lse); color: #fff; }
+.pb-lib { background: var(--lib); color: #fff; }
 
-    /* Badges sobre o pôster */
-    .card-badges {
-      position: absolute; bottom: 8px; left: 8px;
-      display: flex; gap: 4px; flex-wrap: wrap;
-    }
+/* Logos streaming sobre pôster */
+.poster-streaming {
+  position: absolute; top: 8px; right: 8px;
+  display: flex; flex-direction: column; gap: 4px; align-items: flex-end;
+}
+.poster-streaming img {
+  width: 26px; height: 26px; border-radius: 6px;
+  border: 1.5px solid rgba(255,255,255,0.6);
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.poster-streaming .mais-plat {
+  background: rgba(0,0,0,0.65); color: #fff;
+  font-size: 9px; font-weight: 700;
+  padding: 2px 5px; border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.4);
+}
 
-    /* Logos de streaming sobre o pôster */
-    .card-streaming {
-      position: absolute; top: 8px; right: 8px;
-      display: flex; flex-direction: column; gap: 4px; align-items: flex-end;
-    }
-    .card-streaming img {
-      width: 28px; height: 28px; border-radius: 6px;
-      border: 1.5px solid rgba(255,255,255,0.6);
-      object-fit: cover;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-    .card-streaming .mais-plataformas {
-      background: rgba(0,0,0,0.65); color: #fff;
-      font-size: 0.65em; font-weight: 700;
-      padding: 2px 6px; border-radius: 4px;
-      border: 1.5px solid rgba(255,255,255,0.4);
-    }
+/* Corpo do card */
+.film-body { padding: 11px 12px 13px; }
+.film-name { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 3px; line-height: 1.25; }
+.film-meta { font-size: 11px; color: var(--ink3); font-weight: 500; }
 
-    /* Corpo do card */
-    .card-body {
-      padding: 12px 14px 14px;
-      flex: 1; display: flex; flex-direction: column; gap: 6px;
-    }
-    .card-titulo {
-      font-size: 0.95em; font-weight: 700;
-      color: var(--ink); line-height: 1.3;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    .card-meta {
-      font-size: 0.78em; color: var(--ink3);
-      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-    }
-    .card-generos {
-      font-size: 0.75em; color: var(--ink3);
-      display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
+/* ── SKELETONS ── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.sk {
+  background: linear-gradient(90deg, var(--bg2) 25%, #e8e5de 50%, var(--bg2) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+.sk-card { background: var(--bg); border: 1.5px solid var(--bdr); border-radius: var(--r); overflow: hidden; }
+.sk-poster { aspect-ratio: 2/3; }
+.sk-body { padding: 11px 12px 13px; display: flex; flex-direction: column; gap: 8px; }
+.sk-title { height: 14px; width: 88%; }
+.sk-meta  { height: 11px; width: 55%; }
 
-    /* ── Skeletons ────────────────────────────────────────────────── */
-    @keyframes shimmer {
-      0%   { background-position: -600px 0; }
-      100% { background-position: 600px 0; }
-    }
-    .sk {
-      background: linear-gradient(90deg, var(--bg2) 25%, #e8e5de 50%, var(--bg2) 75%);
-      background-size: 600px 100%;
-      animation: shimmer 1.4s infinite linear;
-      border-radius: 6px;
-    }
-    .sk-card {
-      background: var(--bg); border-radius: var(--r);
-      border: 1px solid var(--bdr); overflow: hidden;
-    }
-    .sk-poster { aspect-ratio: 2/3; }
-    .sk-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
-    .sk-title { height: 16px; width: 85%; }
-    .sk-meta  { height: 12px; width: 55%; }
+/* ── ESTADO VAZIO ── */
+.empty-state {
+  grid-column: 1 / -1; text-align: center;
+  padding: 64px 24px; color: var(--ink3);
+}
+.empty-state h2 { font-size: 16px; font-weight: 700; color: var(--ink2); margin-bottom: 6px; }
+.empty-state p  { font-size: 13px; }
 
-    /* ── Estado vazio ─────────────────────────────────────────────── */
-    .empty-state {
-      grid-column: 1 / -1;
-      text-align: center; padding: 64px 24px;
-      color: var(--ink3);
-    }
-    .empty-state svg { margin-bottom: 16px; opacity: .4; }
-    .empty-state h2 { font-size: 1.1em; font-weight: 600; color: var(--ink2); margin-bottom: 6px; }
-    .empty-state p  { font-size: 0.9em; }
+/* ── FOOTER ── */
+footer { background: var(--bg2); border-top: 1px solid var(--bdr); padding: 22px 28px; text-align: center; font-size: 12px; color: var(--ink3); }
+footer a { color: var(--laranja); text-decoration: none; font-weight: 600; }
+footer a:hover { text-decoration: underline; }
+footer strong { color: var(--ink2); font-weight: 700; }
+.foot-row + .foot-row { margin-top: 5px; }
 
-    /* ── Footer ───────────────────────────────────────────────────── */
-    footer {
-      background: var(--ink); color: rgba(255,255,255,0.6);
-      padding: 32px 0; font-size: 0.85em; text-align: center;
-    }
-    footer strong { color: #fff; }
-    footer a { color: rgba(255,255,255,0.7); }
-
-    /* ── Responsivo ───────────────────────────────────────────────── */
-    @media (max-width: 640px) {
-      .cat-hero  { padding: 32px 0 28px; }
-      .toolbar-inner { gap: 8px; }
-      .plataformas-label { display: none; }
-      .resultado-count { display: none; }
-      .filmes-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
-    }
-  </style>
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .cat-toolbar { padding: 12px 16px; }
+  .cat-main { padding: 20px 16px 48px; }
+  .filmes-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+  .plat-label { display: none; }
+  .resultado-count { display: none; }
+  .cat-hero { padding: 32px 16px 28px; }
+}
+</style>
 </head>
 <body>
 
-  <!-- Skip links -->
-  <a href="#main-content" class="skip-link">Ir para o conteúdo</a>
-  <a href="#nav-principal" class="skip-link">Ir para o menu</a>
-
-  <!-- Barra de acessibilidade -->
-  <div class="a11y-bar" role="toolbar" aria-label="Opções de acessibilidade">
-    <span class="a11y-label" aria-hidden="true">Acessibilidade</span>
-
-    <button class="a11y-btn" onclick="ajustarFonte(-1)" aria-label="Diminuir tamanho do texto">A−</button>
-    <button class="a11y-btn" onclick="ajustarFonte(0)"  aria-label="Tamanho de texto padrão">A</button>
-    <button class="a11y-btn" onclick="ajustarFonte(1)"  aria-label="Aumentar tamanho do texto">A+</button>
-
-    <span class="a11y-sep" aria-hidden="true">|</span>
-
-    <button class="a11y-btn" id="btn-alto"    onclick="setContraste('alto')"    aria-pressed="false" aria-label="Alto contraste">Alto contraste</button>
-    <button class="a11y-btn" id="btn-inv"     onclick="setContraste('invertido')" aria-pressed="false" aria-label="Cores invertidas">Invertido</button>
-    <button class="a11y-btn" id="btn-cinza"   onclick="setContraste('cinza')"   aria-pressed="false" aria-label="Escala de cinza">Cinza</button>
-    <button class="a11y-btn" id="btn-normal"  onclick="setContraste('normal')"  aria-label="Contraste original">Original</button>
-
-    <span class="a11y-sep" aria-hidden="true">|</span>
-
-    <button class="a11y-btn" onclick="toggleVLibras()" aria-label="Abrir tradutor de Libras">Libras (VLibras)</button>
+<!-- A11Y BAR -->
+<div class="a11y-bar" role="toolbar" aria-label="Ferramentas de acessibilidade">
+  <div class="a11y-skip-links">
+    <a href="#main-content" class="a11y-skip-btn">Ir para o conteúdo [1]</a>
+    <a href="#nav-main" class="a11y-skip-btn">Ir para o menu [2]</a>
   </div>
-
-  <!-- VLibras -->
-  <div vw class="enabled">
-    <div vw-access-button class="active"></div>
-    <div vw-plugin-wrapper>
-      <div class="vw-plugin-top-wrapper"></div>
+  <div class="a11y-controls">
+    <span class="a11y-label">Tamanho do texto:</span>
+    <button class="a11y-font-btn" onclick="changeFontSize('increase')" aria-label="Aumentar fonte">A+</button>
+    <button class="a11y-font-btn" onclick="changeFontSize('decrease')" aria-label="Diminuir fonte">A-</button>
+    <div class="a11y-contrast-wrap">
+      <button class="a11y-contrast-btn" onclick="toggleContrastMenu(this)" aria-haspopup="true" aria-expanded="false" aria-label="Opções de contraste">
+        ◑ Contraste
+      </button>
+      <div class="a11y-contrast-menu" id="contrast-menu" role="menu" hidden>
+        <button role="menuitem" onclick="setContrast('default')">Cores originais</button>
+        <button role="menuitem" onclick="setContrast('high')">Alto contraste</button>
+        <button role="menuitem" onclick="setContrast('inverted')">Cor invertida</button>
+        <button role="menuitem" onclick="setContrast('grayscale')">Escala de cinza</button>
+      </div>
     </div>
   </div>
-  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+</div>
 
-  <div class="shell">
+<div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
 
-    <!-- Header -->
-    <header>
-      <div class="header-inner">
-        <a href="index.html" class="logo" aria-label="Acesso na Tela — página inicial">
-          <span>Acesso na Tela</span>
-        </a>
-        <nav id="nav-principal" aria-label="Menu principal">
-          <a href="index.html#em-cartaz">Em cartaz</a>
-          <a href="index.html#em-breve">Em breve</a>
-          <a href="catalogo.html" aria-current="page">Catálogo</a>
-          <a href="index.html#aplicativos">Aplicativos</a>
-          <a href="faq.html">FAQ</a>
-        </nav>
-      </div>
-    </header>
+<div class="shell">
 
-    <!-- Hero do catálogo -->
-    <section class="cat-hero" aria-labelledby="cat-titulo">
-      <div class="shell">
-        <h1 id="cat-titulo">Catálogo de filmes <em>acessíveis</em></h1>
-        <p>Filmes com audiodescrição, legenda para surdos e Libras disponíveis no streaming. Assista quando e onde quiser.</p>
-      </div>
-    </section>
+<!-- HEADER -->
+<header role="banner">
+  <a class="logo" href="index.html" aria-label="Acesso na Tela — página inicial">
+    <img src="data:image/png;base64,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" alt="Acesso na Tela" />
+  </a>
+  <nav id="nav-main" role="navigation" aria-label="Navegação principal">
+    <a href="index.html#h-cartaz">Em cartaz</a>
+    <a href="index.html#h-breve">Em breve</a>
+    <a href="catalogo.html" class="active" aria-current="page">Catálogo</a>
+    <a href="index.html#aplicativos">Aplicativos</a>
+    <a href="faq.html">FAQ</a>
+  </nav>
+</header>
 
-    <!-- Toolbar: busca + filtro de plataformas -->
-    <div class="cat-toolbar" role="search">
-      <div class="shell">
-        <div class="toolbar-inner">
-          <div class="search-wrap">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input
-              type="search"
-              id="busca-catalogo"
-              placeholder="Buscar filme..."
-              aria-label="Buscar no catálogo"
-              autocomplete="off"
-            />
-          </div>
+<!-- HERO -->
+<section class="cat-hero" aria-labelledby="cat-h1">
+  <h1 id="cat-h1">Catálogo de filmes <em>acessíveis</em></h1>
+  <p>Filmes com audiodescrição, legenda para surdos e Libras disponíveis no streaming. Assista quando e onde quiser.</p>
+</section>
 
-          <span class="plataformas-label" aria-hidden="true">Plataforma:</span>
-
-          <div
-            class="plataformas-chips"
-            id="chips-plataformas"
-            role="group"
-            aria-label="Filtrar por plataforma de streaming"
-          >
-            <button
-              class="chip-plataforma ativo"
-              data-plataforma="todas"
-              aria-pressed="true"
-              onclick="filtrarPlataforma(this, 'todas')"
-            >Todas</button>
-            <!-- chips dinâmicos inseridos via JS -->
-          </div>
-
-          <span class="resultado-count" id="resultado-count" aria-live="polite" aria-atomic="true"></span>
-        </div>
-      </div>
+<!-- TOOLBAR -->
+<div class="cat-toolbar" role="search" aria-label="Filtrar catálogo">
+  <div class="toolbar-inner">
+    <div class="search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input
+        type="search"
+        id="busca-catalogo"
+        placeholder="Buscar filme..."
+        aria-label="Buscar no catálogo"
+        autocomplete="off"
+      />
     </div>
-
-    <!-- Grid principal -->
-    <main id="main-content" class="cat-main">
-      <div class="shell">
-        <div class="filmes-grid" id="filmes-grid" aria-live="polite" aria-label="Lista de filmes do catálogo">
-          <!-- Skeletons enquanto carrega -->
-          <div class="sk-card" aria-hidden="true">
-            <div class="sk sk-poster"></div>
-            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
-          </div>
-          <div class="sk-card" aria-hidden="true">
-            <div class="sk sk-poster"></div>
-            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
-          </div>
-          <div class="sk-card" aria-hidden="true">
-            <div class="sk sk-poster"></div>
-            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
-          </div>
-          <div class="sk-card" aria-hidden="true">
-            <div class="sk sk-poster"></div>
-            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
-          </div>
-          <div class="sk-card" aria-hidden="true">
-            <div class="sk sk-poster"></div>
-            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
-          </div>
-          <div class="sk-card" aria-hidden="true">
-            <div class="sk sk-poster"></div>
-            <div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div>
-          </div>
-        </div>
-      </div>
-    </main>
-
-  </div><!-- /.shell -->
-
-  <footer>
-    <div class="shell">
-      <p><strong>Acesso na Tela</strong> — Uma iniciativa <strong>ETC Filmes</strong></p>
-      <p style="margin-top:6px;">Filmes com audiodescrição, legenda para surdos e Libras.</p>
+    <span class="plat-label" aria-hidden="true">Plataforma:</span>
+    <div class="plat-chips" id="chips-plataformas" role="group" aria-label="Filtrar por plataforma de streaming">
+      <button class="chip-plat ativo" data-plataforma="todas" aria-pressed="true">Todas</button>
     </div>
-  </footer>
+    <span class="resultado-count" id="resultado-count" aria-live="polite" aria-atomic="true"></span>
+  </div>
+</div>
 
-  <script>
-  // ── Configurações ────────────────────────────────────────────────
-  const SUPABASE_URL = 'https://gpwmmvaetokgrzekepbk.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_lbKSyHwh8nNINEef-0Hi5Q_oPF5qt-P';
-  const TMDB_TOKEN   = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI2NmYwMDgzMGRlMTA2MGJiNGMxMWZjMzM1YmEwMTA2MiIsIm5iZiI6MTcyNzQ4NDQzMy43NDEsInN1YiI6IjY2ZjFlOWM1YWMxZDM1NzZkNzliZjJlNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.n0yxfAKFxM8dXYMMuMH0HmhEnRFwpEGr7cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I';
-  const TMDB_BASE    = 'https://api.themoviedb.org/3';
-  const TMDB_IMG     = 'https://image.tmdb.org/t/p/w342';
-  const TMDB_IMG_OR  = 'https://image.tmdb.org/t/p/w92'; // logos de streaming
+<!-- GRID -->
+<main id="main-content" class="cat-main" tabindex="-1">
+  <div class="filmes-grid" id="filmes-grid" aria-live="polite" aria-label="Lista de filmes do catálogo">
+    <!-- Skeletons -->
+    <div class="sk-card" aria-hidden="true"><div class="sk sk-poster"></div><div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div></div>
+    <div class="sk-card" aria-hidden="true"><div class="sk sk-poster"></div><div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div></div>
+    <div class="sk-card" aria-hidden="true"><div class="sk sk-poster"></div><div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div></div>
+    <div class="sk-card" aria-hidden="true"><div class="sk sk-poster"></div><div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div></div>
+    <div class="sk-card" aria-hidden="true"><div class="sk sk-poster"></div><div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div></div>
+    <div class="sk-card" aria-hidden="true"><div class="sk sk-poster"></div><div class="sk-body"><div class="sk sk-title"></div><div class="sk sk-meta"></div></div></div>
+  </div>
+</main>
 
-  // Estado global
-  let todosFilmes    = []; // [{supabase, tmdb, providers}]
-  let plataformaAtiva = 'todas';
-  let buscaAtiva      = '';
+<!-- FOOTER -->
+<footer role="contentinfo">
+  <p class="foot-row" style="margin-bottom:14px;"><img src="data:image/png;base64,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" alt="Acesso na Tela" style="height:36px;width:auto;opacity:0.85;" /></p>
+  <p class="foot-row">Uma iniciativa independente com apoio da <strong>ETC Filmes</strong> &nbsp;·&nbsp; <a href="#">Política de Privacidade</a> &nbsp;·&nbsp; <a href="#">Acessibilidade</a> &nbsp;·&nbsp; <a href="#">Fale Conosco</a></p>
+  <p class="foot-row" style="font-size:11px;margin-top:5px;">VLibras · WCAG 2.2 AA · ABNT NBR 17225</p>
+</footer>
 
-  // ── Supabase: buscar filmes com status=catalogo ──────────────────
-  async function carregarCatalogo() {
-    try {
-      const resp = await fetch(
-        `${SUPABASE_URL}/rest/v1/filmes?status=eq.catalogo&order=created_at.desc`,
-        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-      );
-      const filmes = await resp.json();
+</div><!-- /.shell -->
 
-      if (!filmes || filmes.length === 0) {
-        renderVazio('Nenhum filme no catálogo ainda.', 'Em breve novos títulos com acessibilidade chegarão aqui.');
-        return;
-      }
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+var SUPABASE_URL = 'https://gpwmmvaetokgrzekepbk.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_lbKSyHwh8nNINEef-0Hi5Q_oPF5qt-P';
+var TMDB_TOKEN   = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI2NmYwMDgzMGRlMTA2MGJiNGMxMWZjMzM1YmEwMTA2MiIsIm5iZiI6MTcyNzQ4NDQzMy43NDEsInN1YiI6IjY2ZjFlOWM1YWMxZDM1NzZkNzliZjJlNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.n0yxfAKFxM8dXYMMuMH0HmhEnRFwpEGr7cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I';
+var TMDB_BASE    = 'https://api.themoviedb.org/3';
+var TMDB_IMG     = 'https://image.tmdb.org/t/p/w342';
+var TMDB_LOGO    = 'https://image.tmdb.org/t/p/w92';
 
-      // Buscar dados TMDb para cada filme em paralelo
-      const promessas = filmes.map(f => enriquecerFilme(f));
-      todosFilmes = await Promise.all(promessas);
+// ── ESTADO ───────────────────────────────────────────────────────────────────
+var todosFilmes     = [];
+var plataformaAtiva = 'todas';
+var buscaAtiva      = '';
 
-      construirChipsPlataformas();
-      renderGrid(todosFilmes);
+// ── A11Y: FONTE ───────────────────────────────────────────────────────────────
+var fontLevel = 0;
+function changeFontSize(dir) {
+  if (dir === 'increase' && fontLevel < 2) fontLevel++;
+  if (dir === 'decrease' && fontLevel > 0) fontLevel--;
+  document.body.classList.remove('font-lg', 'font-xl');
+  if (fontLevel === 1) document.body.classList.add('font-lg');
+  if (fontLevel === 2) document.body.classList.add('font-xl');
+  try { localStorage.setItem('ant_font', fontLevel); } catch(e) {}
+}
 
-    } catch (err) {
-      console.error('Erro ao carregar catálogo:', err);
-      renderVazio('Não foi possível carregar o catálogo.', 'Verifique sua conexão e tente novamente.');
-    }
-  }
+// ── A11Y: CONTRASTE ───────────────────────────────────────────────────────────
+function setContrast(mode) {
+  document.body.classList.remove('contrast-high', 'contrast-inverted', 'contrast-grayscale');
+  if (mode !== 'default') document.body.classList.add('contrast-' + mode);
+  try { localStorage.setItem('ant_contrast', mode); } catch(e) {}
+  var menu = document.getElementById('contrast-menu');
+  if (menu) menu.hidden = true;
+  var btn = document.querySelector('.a11y-contrast-btn');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+function toggleContrastMenu(btn) {
+  var menu = document.getElementById('contrast-menu');
+  if (!menu) return;
+  var isOpen = !menu.hidden;
+  menu.hidden = isOpen;
+  btn.setAttribute('aria-expanded', String(!isOpen));
+  if (!isOpen) { var first = menu.querySelector('button'); if (first) first.focus(); }
+}
 
-  // ── Enriquecer com TMDb ──────────────────────────────────────────
-  async function enriquecerFilme(filme) {
-    try {
-      let tmdbId = filme.tmdb_id;
-      let tmdbData = filme.tmdb_data;
+// ── RESTAURAR PREFERÊNCIAS ────────────────────────────────────────────────────
+function restaurarPrefs() {
+  try {
+    var f = parseInt(localStorage.getItem('ant_font') || '0');
+    fontLevel = f;
+    document.body.classList.remove('font-lg', 'font-xl');
+    if (fontLevel === 1) document.body.classList.add('font-lg');
+    if (fontLevel === 2) document.body.classList.add('font-xl');
+    var c = localStorage.getItem('ant_contrast');
+    if (c && c !== 'default') setContrast(c);
+  } catch(e) {}
+}
 
-      // Se não tem tmdb_id, buscar pelo título
-      if (!tmdbId) {
-        const busca = await fetch(
-          `${TMDB_BASE}/search/movie?query=${encodeURIComponent(filme.titulo)}&language=pt-BR&region=BR`,
-          { headers: { 'Authorization': `Bearer ${TMDB_TOKEN}` } }
-        );
-        const bd = await busca.json();
-        if (bd.results && bd.results.length > 0) tmdbId = bd.results[0].id;
-      }
-
-      // Se não tem tmdb_data completo, buscar
-      if (tmdbId && !tmdbData?.genres) {
-        const det = await fetch(
-          `${TMDB_BASE}/movie/${tmdbId}?language=pt-BR&append_to_response=credits,release_dates`,
-          { headers: { 'Authorization': `Bearer ${TMDB_TOKEN}` } }
-        );
-        tmdbData = await det.json();
-      }
-
-      // Watch providers
-      let providers = [];
-      if (tmdbId) {
-        const prov = await fetch(
-          `${TMDB_BASE}/movie/${tmdbId}/watch/providers`,
-          { headers: { 'Authorization': `Bearer ${TMDB_TOKEN}` } }
-        );
-        const pd = await prov.json();
-        const br = pd.results && pd.results.BR;
-        if (br) {
-          // Agrupar todos os tipos disponíveis
-          const todos = [
-            ...(br.flatrate || []),
-            ...(br.free     || []),
-            ...(br.ads      || []),
-          ];
-          // Deduplicar por provider_id
-          const visto = new Set();
-          providers = todos.filter(p => {
-            if (visto.has(p.provider_id)) return false;
-            visto.add(p.provider_id); return true;
-          });
-        }
-      }
-
-      return { supabase: filme, tmdb: tmdbData, providers };
-
-    } catch (err) {
-      console.warn('Erro ao enriquecer filme:', filme.titulo, err);
-      return { supabase: filme, tmdb: null, providers: [] };
-    }
-  }
-
-  // ── Construir chips de plataformas ───────────────────────────────
-  function construirChipsPlataformas() {
-    const mapa = new Map(); // provider_id → {nome, logo}
-    todosFilmes.forEach(f => {
-      f.providers.forEach(p => {
-        if (!mapa.has(p.provider_id)) {
-          mapa.set(p.provider_id, {
-            id:   p.provider_id,
-            nome: p.provider_name,
-            logo: p.logo_path ? `${TMDB_IMG_OR}${p.logo_path}` : null,
-          });
-        }
-      });
-    });
-
-    const wrap = document.getElementById('chips-plataformas');
-    // Remove chips antigos (mantém o "Todas")
-    [...wrap.querySelectorAll('[data-plataforma]:not([data-plataforma="todas"])')].forEach(el => el.remove());
-
-    mapa.forEach(plat => {
-      const btn = document.createElement('button');
-      btn.className = 'chip-plataforma';
-      btn.dataset.plataforma = plat.id;
-      btn.setAttribute('aria-pressed', 'false');
-      btn.setAttribute('onclick', `filtrarPlataforma(this, '${plat.id}')`);
-
-      if (plat.logo) {
-        const img = document.createElement('img');
-        img.src = plat.logo;
-        img.alt = '';
-        img.width = 18; img.height = 18;
-        btn.appendChild(img);
-      }
-      btn.appendChild(document.createTextNode(plat.nome));
-      wrap.appendChild(btn);
-    });
-  }
-
-  // ── Filtrar por plataforma ───────────────────────────────────────
-  function filtrarPlataforma(btn, id) {
-    plataformaAtiva = id;
-    document.querySelectorAll('.chip-plataforma').forEach(b => {
-      b.classList.remove('ativo');
-      b.setAttribute('aria-pressed', 'false');
-    });
-    btn.classList.add('ativo');
-    btn.setAttribute('aria-pressed', 'true');
-    renderGrid(filtrarFilmes());
-  }
-
-  // ── Filtrar por busca ────────────────────────────────────────────
-  document.getElementById('busca-catalogo').addEventListener('input', function () {
-    buscaAtiva = this.value.toLowerCase().trim();
-    renderGrid(filtrarFilmes());
-  });
-
-  function filtrarFilmes() {
-    return todosFilmes.filter(f => {
-      // Filtro de plataforma
-      if (plataformaAtiva !== 'todas') {
-        const temPlat = f.providers.some(p => String(p.provider_id) === String(plataformaAtiva));
-        if (!temPlat) return false;
-      }
-      // Filtro de busca
-      if (buscaAtiva) {
-        const titulo  = (f.supabase.titulo || '').toLowerCase();
-        const generos = (f.tmdb?.genres || []).map(g => g.name.toLowerCase()).join(' ');
-        const sinopse = (f.tmdb?.overview || '').toLowerCase();
-        if (!titulo.includes(buscaAtiva) && !generos.includes(buscaAtiva) && !sinopse.includes(buscaAtiva)) return false;
-      }
-      return true;
-    });
-  }
-
-  // ── Renderizar grid ──────────────────────────────────────────────
-  function renderGrid(filmes) {
-    const grid = document.getElementById('filmes-grid');
-    const count = document.getElementById('resultado-count');
-
-    grid.innerHTML = '';
-
-    if (filmes.length === 0) {
-      renderVazio('Nenhum filme encontrado.', 'Tente outro filtro ou termo de busca.');
-      count.textContent = '';
+// ── CARREGAR CATÁLOGO ─────────────────────────────────────────────────────────
+async function carregarCatalogo() {
+  try {
+    var resp = await fetch(
+      SUPABASE_URL + '/rest/v1/filmes?status=eq.catalogo&order=created_at.desc',
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
+    );
+    var filmes = await resp.json();
+    if (!filmes || filmes.length === 0) {
+      renderVazio('Nenhum filme no catálogo ainda.', 'Em breve novos títulos com acessibilidade chegarão aqui.');
       return;
     }
-
-    count.textContent = `${filmes.length} filme${filmes.length > 1 ? 's' : ''}`;
-
-    filmes.forEach(f => {
-      const card = criarCard(f);
-      grid.appendChild(card);
-    });
+    todosFilmes = await Promise.all(filmes.map(enriquecerFilme));
+    construirChips();
+    renderGrid(todosFilmes);
+  } catch(err) {
+    console.error('Erro ao carregar catálogo:', err);
+    renderVazio('Não foi possível carregar o catálogo.', 'Verifique sua conexão e tente novamente.');
   }
+}
 
-  // ── Criar card ───────────────────────────────────────────────────
-  function criarCard(f) {
-    const { supabase: sb, tmdb, providers } = f;
-
-    const urlKey = sb.url_key || '';
-    const titulo = tmdb?.title || sb.titulo || 'Filme';
-    const ano    = tmdb?.release_date ? tmdb.release_date.slice(0, 4) : '';
-    const poster = tmdb?.poster_path ? `${TMDB_IMG}${tmdb.poster_path}` : null;
-    const generos = (tmdb?.genres || []).map(g => g.name).join(', ');
-    const nota    = tmdb?.vote_average ? tmdb.vote_average.toFixed(1) : '';
-
-    // URL de destino: página de filme com urlKey
-    const href = urlKey ? `acesso-na-tela-filme.html?urlKey=${urlKey}` : '#';
-
-    const card = document.createElement('a');
-    card.href  = href;
-    card.className = 'film-card';
-    card.setAttribute('aria-label', `${titulo}${ano ? ', ' + ano : ''}. Acessível com audiodescrição, legenda para surdos e Libras.`);
-
-    // Pôster
-    const posterDiv = document.createElement('div');
-    posterDiv.className = 'card-poster';
-
-    if (poster) {
-      const img = document.createElement('img');
-      img.src   = poster;
-      img.alt   = `Pôster do filme ${titulo}`;
-      img.loading = 'lazy';
-      posterDiv.appendChild(img);
-    } else {
-      const ph = document.createElement('div');
-      ph.className = 'poster-placeholder';
-      ph.setAttribute('aria-hidden', 'true');
-      ph.textContent = '🎬';
-      posterDiv.appendChild(ph);
+// ── ENRIQUECER COM TMDB ───────────────────────────────────────────────────────
+async function enriquecerFilme(filme) {
+  try {
+    var tmdbId = filme.tmdb_id;
+    var tmdbData = filme.tmdb_data;
+    if (!tmdbId) {
+      var busca = await fetch(
+        TMDB_BASE + '/search/movie?query=' + encodeURIComponent(filme.titulo) + '&language=pt-BR&region=BR',
+        { headers: { 'Authorization': 'Bearer ' + TMDB_TOKEN } }
+      );
+      var bd = await busca.json();
+      if (bd.results && bd.results.length > 0) tmdbId = bd.results[0].id;
     }
-
-    // Logos de streaming no canto do pôster
-    if (providers.length > 0) {
-      const streamDiv = document.createElement('div');
-      streamDiv.className = 'card-streaming';
-      streamDiv.setAttribute('aria-hidden', 'true'); // informação redundante — aria-label do card já cobre
-
-      const limite = 3;
-      providers.slice(0, limite).forEach(p => {
-        if (p.logo_path) {
-          const img = document.createElement('img');
-          img.src   = `${TMDB_IMG_OR}${p.logo_path}`;
-          img.alt   = p.provider_name;
-          img.title = p.provider_name;
-          streamDiv.appendChild(img);
-        }
-      });
-
-      if (providers.length > limite) {
-        const mais = document.createElement('span');
-        mais.className = 'mais-plataformas';
-        mais.textContent = `+${providers.length - limite}`;
-        streamDiv.appendChild(mais);
+    if (tmdbId && !(tmdbData && tmdbData.genres)) {
+      var det = await fetch(
+        TMDB_BASE + '/movie/' + tmdbId + '?language=pt-BR',
+        { headers: { 'Authorization': 'Bearer ' + TMDB_TOKEN } }
+      );
+      tmdbData = await det.json();
+    }
+    var providers = [];
+    if (tmdbId) {
+      var prov = await fetch(
+        TMDB_BASE + '/movie/' + tmdbId + '/watch/providers',
+        { headers: { 'Authorization': 'Bearer ' + TMDB_TOKEN } }
+      );
+      var pd = await prov.json();
+      var br = pd.results && pd.results.BR;
+      if (br) {
+        var todos = (br.flatrate||[]).concat(br.free||[]).concat(br.ads||[]);
+        var visto = {};
+        providers = todos.filter(function(p) {
+          if (visto[p.provider_id]) return false;
+          visto[p.provider_id] = true; return true;
+        });
       }
-
-      posterDiv.appendChild(streamDiv);
     }
-
-    // Badges de acessibilidade
-    const badgesDiv = document.createElement('div');
-    badgesDiv.className = 'card-badges';
-    badgesDiv.innerHTML = `
-      <span class="badge badge-ad"  aria-label="Audiodescrição">AD</span>
-      <span class="badge badge-lse" aria-label="Legenda para surdos">LSE</span>
-      <span class="badge badge-lib" aria-label="Libras">LIBRAS</span>
-    `;
-    posterDiv.appendChild(badgesDiv);
-
-    card.appendChild(posterDiv);
-
-    // Corpo do card
-    const body = document.createElement('div');
-    body.className = 'card-body';
-
-    const tituloEl = document.createElement('h2');
-    tituloEl.className = 'card-titulo';
-    tituloEl.textContent = titulo;
-    body.appendChild(tituloEl);
-
-    const meta = document.createElement('div');
-    meta.className = 'card-meta';
-    if (ano)  meta.innerHTML += `<span>${ano}</span>`;
-    if (nota) meta.innerHTML += `<span aria-label="Nota ${nota}">⭐ ${nota}</span>`;
-    if (providers.length > 0) {
-      const nomesPlat = providers.slice(0, 2).map(p => p.provider_name).join(', ');
-      const extra = providers.length > 2 ? ` +${providers.length - 2}` : '';
-      meta.innerHTML += `<span aria-label="Disponível em ${providers.map(p => p.provider_name).join(', ')}">${nomesPlat}${extra}</span>`;
-    }
-    body.appendChild(meta);
-
-    if (generos) {
-      const gen = document.createElement('div');
-      gen.className = 'card-generos';
-      gen.textContent = generos;
-      body.appendChild(gen);
-    }
-
-    card.appendChild(body);
-    return card;
+    return { sb: filme, tmdb: tmdbData, providers: providers };
+  } catch(e) {
+    return { sb: filme, tmdb: null, providers: [] };
   }
+}
 
-  // ── Estado vazio ─────────────────────────────────────────────────
-  function renderVazio(titulo, descricao) {
-    document.getElementById('filmes-grid').innerHTML = `
-      <div class="empty-state" role="status">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <rect x="2" y="2" width="20" height="20" rx="3"/>
-          <path d="M9 9h6M9 13h4"/>
-        </svg>
-        <h2>${titulo}</h2>
-        <p>${descricao}</p>
-      </div>
-    `;
-  }
-
-  // ── Acessibilidade: tamanho de fonte ─────────────────────────────
-  function ajustarFonte(dir) {
-    document.body.classList.remove('font-lg', 'font-xl');
-    if (dir === 1)       document.body.classList.add('font-lg');
-    else if (dir === 2)  document.body.classList.add('font-xl');
-    const nivel = dir === 1 ? 'lg' : dir === 2 ? 'xl' : 'normal';
-    localStorage.setItem('ant_fonte', nivel);
-  }
-
-  // ── Acessibilidade: contraste ────────────────────────────────────
-  function setContraste(modo) {
-    document.body.classList.remove('alto-contraste', 'invertido', 'cinza');
-    ['btn-alto','btn-inv','btn-cinza'].forEach(id => {
-      const b = document.getElementById(id);
-      if (b) b.setAttribute('aria-pressed', 'false');
+// ── CHIPS DE PLATAFORMAS ──────────────────────────────────────────────────────
+function construirChips() {
+  var mapa = {};
+  todosFilmes.forEach(function(f) {
+    f.providers.forEach(function(p) {
+      if (!mapa[p.provider_id]) {
+        mapa[p.provider_id] = { id: p.provider_id, nome: p.provider_name, logo: p.logo_path };
+      }
     });
-    if (modo !== 'normal') {
-      document.body.classList.add(modo);
-      const mapa = { alto: 'btn-alto', invertido: 'btn-inv', cinza: 'btn-cinza' };
-      const b = document.getElementById(mapa[modo]);
-      if (b) b.setAttribute('aria-pressed', 'true');
-    }
-    localStorage.setItem('ant_contraste', modo);
-  }
-
-  // ── VLibras ──────────────────────────────────────────────────────
-  function toggleVLibras() {
-    try { new window.VLibras.Widget('https://vlibras.gov.br/app'); } catch(e) {}
-    const btn = document.querySelector('[vw-access-button]');
-    if (btn) btn.click();
-  }
-
-  // ── Restaurar preferências salvas ────────────────────────────────
-  function restaurarPreferencias() {
-    const fonte = localStorage.getItem('ant_fonte');
-    if (fonte === 'lg') ajustarFonte(1);
-    if (fonte === 'xl') ajustarFonte(2);
-
-    const contraste = localStorage.getItem('ant_contraste');
-    if (contraste && contraste !== 'normal') setContraste(contraste);
-  }
-
-  // ── Init ─────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', () => {
-    restaurarPreferencias();
-    carregarCatalogo();
   });
-  </script>
+  var wrap = document.getElementById('chips-plataformas');
+  Array.from(wrap.querySelectorAll('[data-plataforma]:not([data-plataforma="todas"])')).forEach(function(el){ el.remove(); });
+  Object.values(mapa).forEach(function(plat) {
+    var btn = document.createElement('button');
+    btn.className = 'chip-plat';
+    btn.dataset.plataforma = plat.id;
+    btn.setAttribute('aria-pressed', 'false');
+    btn.setAttribute('onclick', 'filtrarPlataforma(this, '' + plat.id + '')');
+    if (plat.logo) {
+      var img = document.createElement('img');
+      img.src = TMDB_LOGO + plat.logo;
+      img.alt = ''; img.width = 16; img.height = 16;
+      btn.appendChild(img);
+    }
+    btn.appendChild(document.createTextNode(plat.nome));
+    wrap.appendChild(btn);
+  });
+}
 
+// ── FILTRO PLATAFORMA ─────────────────────────────────────────────────────────
+function filtrarPlataforma(btn, id) {
+  plataformaAtiva = id;
+  document.querySelectorAll('.chip-plat').forEach(function(b) {
+    b.classList.remove('ativo'); b.setAttribute('aria-pressed', 'false');
+  });
+  btn.classList.add('ativo'); btn.setAttribute('aria-pressed', 'true');
+  renderGrid(filtrarFilmes());
+}
+
+// ── FILTRO BUSCA ──────────────────────────────────────────────────────────────
+document.getElementById('busca-catalogo').addEventListener('input', function() {
+  buscaAtiva = this.value.toLowerCase().trim();
+  renderGrid(filtrarFilmes());
+});
+
+function filtrarFilmes() {
+  return todosFilmes.filter(function(f) {
+    if (plataformaAtiva !== 'todas') {
+      if (!f.providers.some(function(p){ return String(p.provider_id) === String(plataformaAtiva); })) return false;
+    }
+    if (buscaAtiva) {
+      var titulo   = (f.sb.titulo || '').toLowerCase();
+      var generos  = (f.tmdb && f.tmdb.genres ? f.tmdb.genres.map(function(g){ return g.name.toLowerCase(); }).join(' ') : '');
+      var sinopse  = (f.tmdb && f.tmdb.overview ? f.tmdb.overview.toLowerCase() : '');
+      if (!titulo.includes(buscaAtiva) && !generos.includes(buscaAtiva) && !sinopse.includes(buscaAtiva)) return false;
+    }
+    return true;
+  });
+}
+
+// ── RENDERIZAR GRID ───────────────────────────────────────────────────────────
+function renderGrid(filmes) {
+  var grid  = document.getElementById('filmes-grid');
+  var count = document.getElementById('resultado-count');
+  grid.innerHTML = '';
+  if (filmes.length === 0) {
+    renderVazio('Nenhum filme encontrado.', 'Tente outro filtro ou termo de busca.');
+    count.textContent = ''; return;
+  }
+  count.textContent = filmes.length + ' filme' + (filmes.length > 1 ? 's' : '');
+  filmes.forEach(function(f) { grid.appendChild(criarCard(f)); });
+}
+
+// ── CRIAR CARD ────────────────────────────────────────────────────────────────
+function criarCard(f) {
+  var sb = f.sb, tmdb = f.tmdb, providers = f.providers;
+  var urlKey  = sb.url_key || '';
+  var titulo  = (tmdb && tmdb.title) ? tmdb.title : sb.titulo || 'Filme';
+  var ano     = (tmdb && tmdb.release_date) ? tmdb.release_date.slice(0,4) : '';
+  var poster  = (tmdb && tmdb.poster_path) ? TMDB_IMG + tmdb.poster_path : null;
+  var generos = (tmdb && tmdb.genres) ? tmdb.genres.map(function(g){ return g.name; }).join(', ') : '';
+  var href    = urlKey ? 'acesso-na-tela-filme.html?urlKey=' + urlKey : '#';
+
+  var link = document.createElement('a');
+  link.href = href;
+  link.className = 'film-card-link';
+  link.setAttribute('aria-label', titulo + (ano ? ', ' + ano : '') + '. Acessível com audiodescrição, legenda para surdos e Libras.');
+
+  var card = document.createElement('div');
+  card.className = 'film-card';
+
+  // Pôster
+  var posterDiv = document.createElement('div');
+  posterDiv.className = 'film-poster';
+
+  if (poster) {
+    var img = document.createElement('img');
+    img.src = poster; img.alt = 'Pôster do filme ' + titulo; img.loading = 'lazy';
+    posterDiv.appendChild(img);
+  } else {
+    var ph = document.createElement('div');
+    ph.className = 'poster-placeholder'; ph.setAttribute('aria-hidden','true'); ph.textContent = '🎬';
+    posterDiv.appendChild(ph);
+  }
+
+  // Logos streaming (canto sup direito)
+  if (providers.length > 0) {
+    var stDiv = document.createElement('div');
+    stDiv.className = 'poster-streaming'; stDiv.setAttribute('aria-hidden','true');
+    var limite = 3;
+    providers.slice(0, limite).forEach(function(p) {
+      if (p.logo_path) {
+        var li = document.createElement('img');
+        li.src = TMDB_LOGO + p.logo_path; li.alt = p.provider_name; li.title = p.provider_name;
+        stDiv.appendChild(li);
+      }
+    });
+    if (providers.length > limite) {
+      var mais = document.createElement('span');
+      mais.className = 'mais-plat'; mais.textContent = '+' + (providers.length - limite);
+      stDiv.appendChild(mais);
+    }
+    posterDiv.appendChild(stDiv);
+  }
+
+  // Badges a11y (canto inf esquerdo)
+  var badgesDiv = document.createElement('div');
+  badgesDiv.className = 'poster-badges';
+  badgesDiv.innerHTML = '<span class="pbadge pb-ad" aria-label="Audiodescrição">AD</span><span class="pbadge pb-lse" aria-label="Legenda p/ surdos">LSE</span><span class="pbadge pb-lib" aria-label="Libras">LIBRAS</span>';
+  posterDiv.appendChild(badgesDiv);
+
+  card.appendChild(posterDiv);
+
+  // Corpo
+  var body = document.createElement('div');
+  body.className = 'film-body';
+
+  var h2 = document.createElement('h2');
+  h2.className = 'film-name'; h2.textContent = titulo;
+  body.appendChild(h2);
+
+  var meta = document.createElement('div');
+  meta.className = 'film-meta';
+  var parts = [];
+  if (ano) parts.push(ano);
+  if (generos) parts.push(generos.split(',')[0]);
+  if (providers.length > 0) parts.push(providers.slice(0,2).map(function(p){ return p.provider_name; }).join(', ') + (providers.length > 2 ? ' +' + (providers.length-2) : ''));
+  meta.textContent = parts.join(' · ');
+  body.appendChild(meta);
+
+  card.appendChild(body);
+  link.appendChild(card);
+  return link;
+}
+
+// ── ESTADO VAZIO ──────────────────────────────────────────────────────────────
+function renderVazio(titulo, desc) {
+  document.getElementById('filmes-grid').innerHTML =
+    '<div class="empty-state" role="status"><h2>' + titulo + '</h2><p>' + desc + '</p></div>';
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+restaurarPrefs();
+carregarCatalogo();
+</script>
 </body>
 </html>
