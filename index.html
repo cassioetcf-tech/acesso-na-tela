@@ -215,6 +215,37 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
 /* ── FILMS GRID ── */
 .films-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 16px; margin-bottom: 44px; }
 
+/* ── SKELETON LOADING ── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.sk-card {
+  background: var(--bg);
+  border: 1.5px solid var(--bdr);
+  border-radius: var(--r);
+  overflow: hidden;
+  pointer-events: none;
+}
+.sk-poster {
+  aspect-ratio: 2/3;
+  background: linear-gradient(90deg, var(--bdr) 25%, var(--laranja-cl) 50%, var(--bdr) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.sk-body { padding: 12px 12px 14px; }
+.sk-line {
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--bdr) 25%, var(--laranja-cl) 50%, var(--bdr) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  margin-bottom: 6px;
+}
+.sk-line.sk-title  { height: 13px; width: 90%; }
+.sk-line.sk-meta   { height: 11px; width: 60%; }
+.sk-line.sk-app    { height: 11px; width: 45%; margin-bottom: 10px; }
+.sk-line.sk-btn    { height: 30px; width: 100%; border-radius: 6px; margin-bottom: 0; }
+
 .film-card {
   background: var(--bg);
   border: 1.5px solid var(--bdr);
@@ -955,116 +986,22 @@ body.font-lg *, body.font-xl * {
         <div class="leg-item" role="listitem"><div class="leg-dot dot-lib" aria-hidden="true"></div>LIBRAS</div>
       </div>
 
-      <div class="films-grid" role="list" aria-labelledby="h-cartaz">
-
-        <a href="acesso-na-tela-filme.html?urlKey=divertida-mente-2" class="film-card-link" aria-label="Saiba mais sobre Divertida Mente 2"><article class="film-card" role="listitem" data-film="dm2" aria-label="Divertida Mente 2">
-          <div class="poster p1" id="poster-dm2" aria-hidden="true">
-            <div class="poster-badges"><span class="pbadge pb-ad">AD</span><span class="pbadge pb-lib">LIBRAS</span></div>
-            <div class="poster-title">Divertida Mente 2</div>
-          </div>
-          <div class="film-body">
-            <div class="film-name">Divertida Mente 2</div>
-            <div class="film-meta">Animação · Livre · 100min</div>
-            <div class="film-app"><span class="app-dot" aria-hidden="true"></span>MovieReading</div>
-            <button class="btn-card">Saiba mais</button>
-          </div>
-        </article></a>
-
-        <a href="acesso-na-tela-filme.html?urlKey=duna-parte-2" class="film-card-link" aria-label="Saiba mais sobre Duna: Parte Dois"><article class="film-card" role="listitem" data-film="duna" aria-label="Duna: Parte Dois">
-          <div class="poster p2" id="poster-duna" aria-hidden="true">
-            <div class="poster-badges"><span class="pbadge pb-lse">LSE</span></div>
-            <div class="poster-title">Duna: Parte Dois</div>
-          </div>
-          <div class="film-body">
-            <div class="film-name">Duna: Parte Dois</div>
-            <div class="film-meta">Ficção científica · 14 anos · 166min</div>
-            <div class="film-app"><span class="app-dot" aria-hidden="true"></span>MLOAD</div>
-            <button class="btn-card">Saiba mais</button>
-          </div>
-        </article></a>
-
-        <a href="acesso-na-tela-filme.html?urlKey=furiosa-uma-saga-mad-max" class="film-card-link" aria-label="Saiba mais sobre Furiosa"><article class="film-card" role="listitem" data-film="furiosa" aria-label="Furiosa">
-          <div class="poster p3" id="poster-furiosa" aria-hidden="true">
-            <div class="poster-badges"><span class="pbadge pb-ad">AD</span><span class="pbadge pb-lse">LSE</span></div>
-            <div class="poster-title">Furiosa</div>
-          </div>
-          <div class="film-body">
-            <div class="film-name">Furiosa: Uma Saga Mad Max</div>
-            <div class="film-meta">Ação · 16 anos · 148min</div>
-            <div class="film-app"><span class="app-dot" aria-hidden="true"></span>GRETA</div>
-            <button class="btn-card">Saiba mais</button>
-          </div>
-        </article></a>
-
-        <a href="acesso-na-tela-filme.html?urlKey=o-auto-da-compadecida-2" class="film-card-link" aria-label="Saiba mais sobre O Auto da Compadecida 2"><article class="film-card" role="listitem" data-film="compadecida" aria-label="O Auto da Compadecida 2">
-          <div class="poster p4" id="poster-compadecida" aria-hidden="true">
-            <div class="poster-badges"><span class="pbadge pb-ad">AD</span><span class="pbadge pb-lib">LIBRAS</span></div>
-            <div class="poster-title">O Auto da Compadecida 2</div>
-          </div>
-          <div class="film-body">
-            <div class="film-name">O Auto da Compadecida 2</div>
-            <div class="film-meta">Comédia · 12 anos · 118min</div>
-            <div class="film-app"><span class="app-dot" aria-hidden="true"></span>PingPlay</div>
-            <button class="btn-card">Saiba mais</button>
-          </div>
-        </article></a>
-
-        <a href="acesso-na-tela-filme.html?urlKey=ainda-estou-aqui" class="film-card-link" aria-label="Saiba mais sobre Ainda Estou Aqui"><article class="film-card" role="listitem" data-film="aindaestouaqui" aria-label="Ainda Estou Aqui">
-          <div class="poster p5" id="poster-aindaestouaqui" aria-hidden="true">
-            <div class="poster-badges"><span class="pbadge pb-ad">AD</span></div>
-            <div class="poster-title">Ainda Estou Aqui</div>
-          </div>
-          <div class="film-body">
-            <div class="film-name">Ainda Estou Aqui</div>
-            <div class="film-meta">Drama · 14 anos · 137min</div>
-            <div class="film-app"><span class="app-dot" aria-hidden="true"></span>MovieReading</div>
-            <button class="btn-card">Saiba mais</button>
-          </div>
-        </article></a>
-
-        <a href="acesso-na-tela-filme.html?urlKey=deadpool-e-wolverine" class="film-card-link" aria-label="Saiba mais sobre Deadpool e Wolverine"><article class="film-card" role="listitem" data-film="deadpool" aria-label="Deadpool e Wolverine">
-          <div class="poster p6" id="poster-deadpool" aria-hidden="true">
-            <div class="poster-badges"><span class="pbadge pb-lse">LSE</span><span class="pbadge pb-lib">LIBRAS</span></div>
-            <div class="poster-title">Deadpool &amp; Wolverine</div>
-          </div>
-          <div class="film-body">
-            <div class="film-name">Deadpool & Wolverine</div>
-            <div class="film-meta">Ação · 18 anos · 127min</div>
-            <div class="film-app"><span class="app-dot" aria-hidden="true"></span>GRETA</div>
-            <button class="btn-card">Saiba mais</button>
-          </div>
-        </article></a>
-
+      <div class="films-grid" role="list" aria-labelledby="h-cartaz" id="grid-cartaz">
+        <div class="sk-card" aria-hidden="true"><div class="sk-poster"></div><div class="sk-body"><div class="sk-line sk-title"></div><div class="sk-line sk-meta"></div><div class="sk-line sk-app"></div><div class="sk-line sk-btn"></div></div></div>
+        <div class="sk-card" aria-hidden="true"><div class="sk-poster"></div><div class="sk-body"><div class="sk-line sk-title"></div><div class="sk-line sk-meta"></div><div class="sk-line sk-app"></div><div class="sk-line sk-btn"></div></div></div>
+        <div class="sk-card" aria-hidden="true"><div class="sk-poster"></div><div class="sk-body"><div class="sk-line sk-title"></div><div class="sk-line sk-meta"></div><div class="sk-line sk-app"></div><div class="sk-line sk-btn"></div></div></div>
+        <div class="sk-card" aria-hidden="true"><div class="sk-poster"></div><div class="sk-body"><div class="sk-line sk-title"></div><div class="sk-line sk-meta"></div><div class="sk-line sk-app"></div><div class="sk-line sk-btn"></div></div></div>
+        <div class="sk-card" aria-hidden="true"><div class="sk-poster"></div><div class="sk-body"><div class="sk-line sk-title"></div><div class="sk-line sk-meta"></div><div class="sk-line sk-app"></div><div class="sk-line sk-btn"></div></div></div>
+        <div class="sk-card" aria-hidden="true"><div class="sk-poster"></div><div class="sk-body"><div class="sk-line sk-title"></div><div class="sk-line sk-meta"></div><div class="sk-line sk-app"></div><div class="sk-line sk-btn"></div></div></div>
       </div>
 
       <div class="sec-head">
         <h2 class="sec-title" id="h-breve">Em breve</h2>
       </div>
       <div class="coming-grid" role="list" aria-labelledby="h-breve">
-        <a href="acesso-na-tela-filme.html?film=scarlet" class="film-card-link" aria-label="Saiba mais sobre Scarlet"><article class="film-card" role="listitem" data-film="scarlet" aria-label="Scarlet">
-          <div class="poster pc1" id="poster-scarlet" aria-hidden="true">
-            <div class="poster-badges"></div>
-            <div class="poster-title"></div>
-          </div>
-          <div class="film-body">
-            <div class="film-name">Scarlet</div>
-            <div class="film-meta">Animação · A confirmar</div>
-            <div class="film-app" style="color:var(--ink3);">Acessibilidade a confirmar</div>
-            <button class="btn-card" aria-label="Ver página de Scarlet">Saiba mais</button>
-          </div>
-        </article></a>
-        <a href="acesso-na-tela-filme.html?film=mortalkombat" class="film-card-link" aria-label="Saiba mais sobre Mortal Kombat 2"><article class="film-card" role="listitem" data-film="mortalkombat" aria-label="Mortal Kombat 2">
-          <div class="poster pc2" id="poster-mortalkombat" aria-hidden="true">
-            <div class="poster-badges"></div>
-            <div class="poster-title"></div>
-          </div>
-          <div class="film-body">
-            <div class="film-name">Mortal Kombat 2</div>
-            <div class="film-meta">Ação · A confirmar</div>
-            <div class="film-app" style="color:var(--ink3);">Acessibilidade a confirmar</div>
-            <button class="btn-card" aria-label="Ver página de Mortal Kombat 2">Saiba mais</button>
-          </div>
-        </article></a>
+        <div class="sk-card" aria-hidden="true"><div class="sk-poster"></div><div class="sk-body"><div class="sk-line sk-title"></div><div class="sk-line sk-meta"></div><div class="sk-line sk-app"></div><div class="sk-line sk-btn"></div></div></div>
+        <div class="sk-card" aria-hidden="true"><div class="sk-poster"></div><div class="sk-body"><div class="sk-line sk-title"></div><div class="sk-line sk-meta"></div><div class="sk-line sk-app"></div><div class="sk-line sk-btn"></div></div></div>
+        <div class="sk-card" aria-hidden="true"><div class="sk-poster"></div><div class="sk-body"><div class="sk-line sk-title"></div><div class="sk-line sk-meta"></div><div class="sk-line sk-app"></div><div class="sk-line sk-btn"></div></div></div>
       </div>
 
       <div class="sec-head">
@@ -2238,7 +2175,7 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
   }
 
   function loadCatalog() {
-    var grid = document.querySelector('.films-grid[role="list"]');
+    var grid = document.getElementById('grid-cartaz') || document.querySelector('.films-grid[role="list"]');
     if (!grid) return;
 
     fetch(SUPA_URL+'/rest/v1/filmes?status=in.(cartaz,breve)&order=status.asc,created_at.desc&limit=20', {
@@ -2248,21 +2185,18 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
     .then(function(filmes) {
       if (!Array.isArray(filmes)||!filmes.length) { loadStaticTMDb(); return; }
 
-      grid.innerHTML = '';
       var promises = filmes.map(function(filme) {
         return loadTmdb(filme).then(function(tmdb) { return {filme:filme,tmdb:tmdb}; });
       });
       Promise.all(promises).then(function(results) {
-        // Split into Em cartaz and Em breve
         var cartaz = results.filter(function(i){ return i.filme.status === 'cartaz'; });
         var breve  = results.filter(function(i){ return i.filme.status === 'breve'; });
 
-        // Render Em cartaz
+        // Render Em cartaz — substitui skeletons pelo conteúdo real
         grid.innerHTML = '';
         cartaz.slice(0,8).forEach(function(item) { grid.appendChild(buildCard(item.filme, item.tmdb)); });
 
-        // Render Em breve section if exists
-        console.log('Breve films:', breve.length);
+        // Render Em breve
         var breveSection = document.querySelector('.coming-grid[aria-labelledby="h-breve"]') || document.querySelector('.coming-grid');
         if (breveSection && breve.length) {
           breveSection.innerHTML = '';
@@ -2273,25 +2207,56 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
     .catch(function() { loadStaticTMDb(); });
   }
 
-  // Fallback static TMDb
+  // Fallback static TMDb — sem cards pré-existentes, não há o que atualizar de estático
+  // Busca os filmes do TMDb e monta os cards dinamicamente
   function loadStaticTMDb() {
+    var grid = document.getElementById('grid-cartaz') || document.querySelector('.films-grid[role="list"]');
     var FILMS=[
-      {key:'dm2',id:1022789},{key:'duna',id:693134},{key:'furiosa',id:786892},
-      {key:'compadecida',id:1099413},{key:'aindaestouaqui',id:1000837},
-      {key:'deadpool',id:533535},{key:'scarlet',id:1233069},{key:'mortalkombat',id:1173861}
+      {key:'dm2',   id:1022789, urlKey:'divertida-mente-2',        badges:['AD','LIBRAS'], app:'MovieReading'},
+      {key:'duna',  id:693134,  urlKey:'duna-parte-2',             badges:['LSE'],         app:'MLOAD'},
+      {key:'furiosa',id:786892, urlKey:'furiosa-uma-saga-mad-max', badges:['AD','LSE'],    app:'GRETA'},
+      {key:'compadecida',id:1099413,urlKey:'o-auto-da-compadecida-2',badges:['AD','LIBRAS'],app:'MovieReading'},
+      {key:'aindaestouaqui',id:1000837,urlKey:'ainda-estou-aqui',  badges:['AD'],          app:'MovieReading'},
+      {key:'deadpool',id:533535,urlKey:'deadpool-e-wolverine',     badges:['LSE','LIBRAS'],app:'GRETA'}
     ];
-    FILMS.forEach(function(f){
-      fetch(TMDB_BASE+'/movie/'+f.id+'?language=pt-BR&append_to_response=release_dates',{
+    var promises = FILMS.map(function(f){
+      return fetch(TMDB_BASE+'/movie/'+f.id+'?language=pt-BR&append_to_response=release_dates',{
         headers:{'Authorization':'Bearer '+TMDB_TOKEN,'accept':'application/json'}
       }).then(function(r){return r.json();}).then(function(d){
-        var p=document.getElementById('poster-'+f.key);
-        if(p&&d.poster_path){p.style.backgroundImage='url('+TMDB_IMG+d.poster_path+')';p.style.backgroundSize='cover';p.style.backgroundPosition='center top';}
-        var c=document.querySelector('[data-film="'+f.key+'"]');if(!c)return;
-        var t=d.title||d.original_title||'',g=(d.genres||[])[0],rt=d.runtime?d.runtime+'min':'';
-        var cert='Livre';((d.release_dates||{}).results||[]).forEach(function(r){if(r.iso_3166_1==='BR')r.release_dates.forEach(function(x){if(x.certification)cert=x.certification+' anos';});});
-        var nm=c.querySelector('.film-name'),mt=c.querySelector('.film-meta');
-        if(nm)nm.textContent=t;if(mt)mt.textContent=[g?g.name:null,cert,rt].filter(Boolean).join(' · ');
-      }).catch(function(){});
+        return {f:f, d:d};
+      }).catch(function(){ return {f:f, d:{}}; });
+    });
+    Promise.all(promises).then(function(results){
+      if (grid) {
+        // Substitui skeletons pelo conteúdo real
+        grid.innerHTML = '';
+        // Limpa skeletons do "Em breve" também no fallback
+        var breveGrid = document.querySelector('.coming-grid[aria-labelledby="h-breve"]') || document.querySelector('.coming-grid');
+        if (breveGrid) breveGrid.innerHTML = '<p style="font-size:13px;color:var(--ink3);padding:8px 0">Em breve disponível</p>';
+
+        results.forEach(function(item){
+          var f = item.f, d = item.d;
+          var filme = {
+            url_key: f.urlKey,
+            titulo: d.title || d.original_title || f.key,
+            genero: (d.genres||[])[0] ? (d.genres[0]).name : '',
+            duracao: d.runtime ? d.runtime+'min' : '',
+            classificacao: 'Livre',
+            app: f.app,
+            ad: f.badges.indexOf('AD') >= 0,
+            lse: f.badges.indexOf('LSE') >= 0,
+            libras: f.badges.indexOf('LIBRAS') >= 0,
+            status: 'cartaz'
+          };
+          ((d.release_dates||{}).results||[]).forEach(function(r){
+            if(r.iso_3166_1==='BR') r.release_dates.forEach(function(x){
+              if(x.certification) filme.classificacao = x.certification+' anos';
+            });
+          });
+          var tmdb = d.poster_path ? {poster_path: d.poster_path} : null;
+          grid.appendChild(buildCard(filme, tmdb));
+        });
+      }
     });
   }
 
