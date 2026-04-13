@@ -584,6 +584,188 @@
 
   .empty-state p { margin-top: 8px; font-size: 14px; }
 
+  /* ── AUTOMATION PANEL ── */
+  .auto-panel {
+    background: var(--bg2);
+    border: 1px solid var(--bdr);
+    border-radius: var(--r);
+    padding: 24px;
+    margin-bottom: 28px;
+  }
+
+  .auto-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 0;
+  }
+
+  .auto-panel-header.open { margin-bottom: 20px; }
+
+  .auto-panel-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .auto-icon {
+    width: 40px; height: 40px;
+    background: #FFF5F0;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .auto-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .auto-sub {
+    font-size: 12px;
+    color: var(--ink3);
+    margin-top: 2px;
+  }
+
+  .auto-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .btn-auto {
+    background: var(--laranja);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn-auto:hover { background: var(--laranja-dk); }
+  .btn-auto:disabled { opacity: .6; cursor: not-allowed; }
+
+  .btn-toggle-log {
+    background: transparent;
+    border: 1.5px solid var(--bdr);
+    color: var(--ink3);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-toggle-log:hover { border-color: var(--ink3); color: var(--ink2); }
+
+  .auto-log {
+    display: none;
+    margin-top: 20px;
+    border-top: 1px solid var(--bdr);
+    padding-top: 16px;
+  }
+
+  .auto-log.open { display: block; }
+
+  .auto-log-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink3);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 10px;
+  }
+
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .log-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    background: #F9FAFB;
+    border: 1px solid var(--bdr);
+  }
+
+  .log-item.log-ok    { background: #F0FDF4; border-color: #BBF7D0; }
+  .log-item.log-skip  { background: #FAFAFA; border-color: var(--bdr); }
+  .log-item.log-err   { background: #FEF2F2; border-color: #FECACA; }
+  .log-item.log-info  { background: #EFF6FF; border-color: #BFDBFE; }
+
+  .log-icon { font-size: 15px; line-height: 1.4; flex-shrink: 0; }
+
+  .log-text { flex: 1; line-height: 1.4; }
+  .log-text strong { font-weight: 600; }
+  .log-tag {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  .tag-cartaz   { background: #DCFCE7; color: #166534; }
+  .tag-catalogo { background: #F1F5F9; color: #475569; }
+  .tag-breve    { background: #FEF9C3; color: #854D0E; }
+
+  .auto-progress {
+    display: none;
+    margin-top: 14px;
+  }
+  .auto-progress.open { display: block; }
+  .progress-bar-wrap {
+    height: 6px;
+    background: #F1F5F9;
+    border-radius: 20px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--laranja);
+    border-radius: 20px;
+    transition: width .3s ease;
+    width: 0%;
+  }
+  .progress-label {
+    font-size: 12px;
+    color: var(--ink3);
+  }
+
+  .auto-summary {
+    display: none;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 14px;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    color: #1E40AF;
+  }
+  .auto-summary.open { display: block; }
+
   /* ── LOADING ── */
   .spinner {
     display: inline-block;
@@ -653,6 +835,39 @@
       <div class="stat-card">
         <div class="stat-num" id="stat-catalogo" style="color:#475569">—</div>
         <div class="stat-label">Catálogo</div>
+      </div>
+    </div>
+
+    <!-- AUTOMATION PANEL -->
+    <div class="auto-panel">
+      <div class="auto-panel-header" id="auto-header">
+        <div class="auto-panel-left">
+          <div class="auto-icon">🔄</div>
+          <div>
+            <div class="auto-title">Sincronização automática de status</div>
+            <div class="auto-sub">Verifica sessões na Ingresso.com e atualiza status dos filmes automaticamente</div>
+          </div>
+        </div>
+        <div class="auto-right">
+          <button class="btn-toggle-log" id="btn-toggle-log" onclick="toggleLog()" style="display:none;">Ver histórico</button>
+          <button class="btn-auto" id="btn-sync" onclick="runSync()">
+            ▶ Sincronizar agora
+          </button>
+        </div>
+      </div>
+
+      <div class="auto-progress" id="auto-progress">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-label" id="progress-label">Iniciando...</div>
+      </div>
+
+      <div class="auto-summary" id="auto-summary"></div>
+
+      <div class="auto-log" id="auto-log">
+        <div class="auto-log-title">Resultado da sincronização</div>
+        <div class="log-list" id="log-list"></div>
       </div>
     </div>
 
@@ -877,9 +1092,9 @@ function saveToStorage() {} // kept for compatibility
 
 function updateStats() {
   document.getElementById('stat-total').textContent = filmes.length;
-  document.getElementById('stat-cartaz').textContent  = filmes.filter(function(f){return f.status==='cartaz';}).length;
-  document.getElementById('stat-breve').textContent   = filmes.filter(function(f){return f.status==='breve';}).length;
-  document.getElementById('stat-catalogo').textContent = filmes.filter(function(f){return f.status==='catalogo';}).length;
+  document.getElementById('stat-cartaz').textContent  = filmes.filter(function(f){return (f.status||'').toLowerCase()==='cartaz';}).length;
+  document.getElementById('stat-breve').textContent   = filmes.filter(function(f){return (f.status||'').toLowerCase()==='breve';}).length;
+  document.getElementById('stat-catalogo').textContent = filmes.filter(function(f){return (f.status||'').toLowerCase()==='catalogo';}).length;
 }
 
 function setFilter(filter, el) {
@@ -896,7 +1111,7 @@ function renderTable() {
   var tbody = document.getElementById('filmes-tbody');
 
   var list = filmes.filter(function(f) {
-    var matchFilter = currentFilter === 'todos' || f.status === currentFilter;
+    var matchFilter = currentFilter === 'todos' || (f.status || '').toLowerCase() === currentFilter;
     var matchSearch = !q || f.titulo.toLowerCase().includes(q);
     return matchFilter && matchSearch;
   });
@@ -910,8 +1125,9 @@ function renderTable() {
 
   var html = '';
   list.forEach(function(f) {
-    var statusCls = {cartaz:'status-cartaz', breve:'status-breve', catalogo:'status-catalogo'}[f.status] || '';
-    var statusTxt = {cartaz:'Em cartaz', breve:'Em breve', catalogo:'Catálogo'}[f.status] || f.status;
+    var s = (f.status || '').toLowerCase();
+    var statusCls = {cartaz:'status-cartaz', breve:'status-breve', catalogo:'status-catalogo'}[s] || '';
+    var statusTxt = {cartaz:'Em cartaz', breve:'Em breve', catalogo:'Catálogo'}[s] || f.status;
 
     html += '<tr>' +
       '<td>' +
@@ -1163,6 +1379,238 @@ document.getElementById('modal-overlay').addEventListener('click', function(e) {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeModal();
 });
+
+// ── AUTOMATION: AUTO-SYNC STATUS ─────────────────────────────────────────────
+
+var syncLog = [];
+var logOpen = false;
+
+function toggleLog() {
+  logOpen = !logOpen;
+  document.getElementById('auto-log').classList.toggle('open', logOpen);
+  document.getElementById('btn-toggle-log').textContent = logOpen ? 'Ocultar histórico' : 'Ver histórico';
+  document.getElementById('auto-header').classList.toggle('open', logOpen);
+}
+
+function addLog(type, icon, html, tagLabel, tagClass) {
+  syncLog.push({ type: type, icon: icon, html: html, tagLabel: tagLabel, tagClass: tagClass });
+  renderLog();
+}
+
+function renderLog() {
+  var el = document.getElementById('log-list');
+  var html = '';
+  syncLog.slice().reverse().forEach(function(item) {
+    html += '<div class="log-item log-' + item.type + '">' +
+      '<span class="log-icon">' + item.icon + '</span>' +
+      '<span class="log-text">' + item.html + '</span>' +
+      (item.tagLabel ? '<span class="log-tag ' + (item.tagClass||'') + '">' + item.tagLabel + '</span>' : '') +
+    '</div>';
+  });
+  el.innerHTML = html || '<div style="color:var(--ink3);font-size:13px;padding:8px">Nenhuma alteração registrada.</div>';
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = label;
+}
+
+function ingressoFetch(params) {
+  var url = '/api/ingresso?' + params;
+  return fetch(url).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  });
+}
+
+async function checkFilmHasSessions(urlKey) {
+  // Get today's date and next 7 days
+  var today = new Date();
+  var dates = [];
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(today);
+    d.setDate(today.getDate() + i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+
+  try {
+    // First get eventId from urlKey
+    var eventData = await ingressoFetch('urlKey=' + encodeURIComponent(urlKey));
+    var eventId = eventData && eventData.id ? eventData.id : null;
+    if (!eventId) return false;
+
+    // Try São Paulo (city 1) for at least one date
+    for (var j = 0; j < dates.length; j++) {
+      try {
+        var sessions = await ingressoFetch(
+          'eventId=' + eventId + '&city=1&date=' + dates[j]
+        );
+        // Sessions exist if we get an array with at least one item with theaters
+        if (Array.isArray(sessions) && sessions.length > 0) return true;
+        if (sessions && sessions.theaters && sessions.theaters.length > 0) return true;
+        if (sessions && sessions.sessions && sessions.sessions.length > 0) return true;
+        // Also check if the response is an object with data
+        if (sessions && typeof sessions === 'object' && !Array.isArray(sessions)) {
+          var vals = Object.values(sessions);
+          if (vals.some(function(v){ return Array.isArray(v) && v.length > 0; })) return true;
+        }
+      } catch(e) {
+        // This date might not have data — continue
+      }
+    }
+    return false;
+  } catch(e) {
+    // If urlKey not found on Ingresso, no sessions
+    return false;
+  }
+}
+
+async function runSync() {
+  var btn = document.getElementById('btn-sync');
+  var progress = document.getElementById('auto-progress');
+  var summary = document.getElementById('auto-summary');
+
+  syncLog = [];
+  logOpen = true;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Verificando...';
+  progress.classList.add('open');
+  summary.classList.remove('open');
+  document.getElementById('auto-log').classList.add('open');
+  document.getElementById('auto-header').classList.add('open');
+  document.getElementById('btn-toggle-log').style.display = 'none';
+  renderLog();
+
+  var toCheck = filmes.filter(function(f) {
+    var s = (f.status || '').toLowerCase();
+    return (s === 'cartaz' || s === 'breve') && f.url_key;
+  });
+
+  var noUrlKey = filmes.filter(function(f) {
+    var s = (f.status || '').toLowerCase();
+    return (s === 'cartaz' || s === 'breve') && !f.url_key;
+  });
+
+  noUrlKey.forEach(function(f) {
+    addLog('skip', '⚠️',
+      '<strong>' + esc(f.titulo) + '</strong> — sem URL da Ingresso cadastrada, ignorado',
+      null, null);
+  });
+
+  if (toCheck.length === 0) {
+    setProgress(100, 'Nenhum filme para verificar.');
+    btn.disabled = false;
+    btn.innerHTML = '▶ Sincronizar agora';
+    summary.classList.add('open');
+    summary.textContent = 'Nenhum filme em cartaz ou em breve com URL Ingresso cadastrada.';
+    progress.classList.remove('open');
+    document.getElementById('btn-toggle-log').style.display = '';
+    return;
+  }
+
+  var changed = 0;
+  var errors  = 0;
+
+  for (var i = 0; i < toCheck.length; i++) {
+    var f = toCheck[i];
+    var pct = Math.round(((i) / toCheck.length) * 100);
+    setProgress(pct, 'Verificando ' + (i+1) + ' de ' + toCheck.length + ': ' + f.titulo);
+
+    var currentStatus = (f.status || '').toLowerCase();
+    var hasSessions = false;
+
+    try {
+      hasSessions = await checkFilmHasSessions(f.url_key);
+    } catch(e) {
+      addLog('err', '❌',
+        '<strong>' + esc(f.titulo) + '</strong> — erro ao consultar Ingresso: ' + e.message,
+        null, null);
+      errors++;
+      continue;
+    }
+
+    var newStatus = null;
+
+    if (currentStatus === 'cartaz' && !hasSessions) {
+      newStatus = 'CATALOGO';
+    } else if (currentStatus === 'breve' && hasSessions) {
+      newStatus = 'CARTAZ';
+    }
+
+    if (newStatus) {
+      // Update Supabase
+      try {
+        var resp = await supaFetch('/filmes?id=eq.' + f.id, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: newStatus, updated_at: new Date().toISOString() })
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+        var oldLabel = currentStatus === 'cartaz' ? 'Em cartaz' : 'Em breve';
+        var newLabel = newStatus === 'CATALOGO' ? 'Catálogo' : 'Em cartaz';
+        var tagClass = newStatus === 'CATALOGO' ? 'tag-catalogo' : 'tag-cartaz';
+        var arrow = newStatus === 'CATALOGO' ? '📦' : '🎬';
+
+        addLog('ok', arrow,
+          '<strong>' + esc(f.titulo) + '</strong> — ' + oldLabel + ' → ' + newLabel,
+          newLabel, tagClass);
+
+        // Update local array
+        var idx = filmes.findIndex(function(x){ return x.id === f.id; });
+        if (idx > -1) filmes[idx].status = newStatus.toLowerCase() === 'catalogo' ? 'catalogo' : 'cartaz';
+        changed++;
+
+      } catch(e2) {
+        addLog('err', '❌',
+          '<strong>' + esc(f.titulo) + '</strong> — erro ao atualizar: ' + e2.message,
+          null, null);
+        errors++;
+      }
+    } else {
+      var keepLabel = hasSessions ? 'tem sessões' : 'sem sessões esta semana';
+      addLog('skip', '✅',
+        '<strong>' + esc(f.titulo) + '</strong> — status mantido (' + keepLabel + ')',
+        null, null);
+    }
+  }
+
+  setProgress(100, 'Concluído!');
+  setTimeout(function(){ progress.classList.remove('open'); }, 1200);
+
+  // Reload from Supabase to sync everything
+  await loadFilmesAsync();
+
+  btn.disabled = false;
+  btn.innerHTML = '▶ Sincronizar agora';
+  document.getElementById('btn-toggle-log').style.display = '';
+
+  var summaryText = '✅ Sincronização concluída — ' + changed + ' filme' + (changed !== 1 ? 's' : '') + ' atualizado' + (changed !== 1 ? 's' : '');
+  if (errors > 0) summaryText += ', ' + errors + ' erro' + (errors !== 1 ? 's' : '');
+  summaryText += '.';
+  summary.classList.add('open');
+  summary.textContent = summaryText;
+  if (errors > 0) {
+    summary.style.background = '#FEF2F2';
+    summary.style.borderColor = '#FECACA';
+    summary.style.color = '#991B1B';
+  } else {
+    summary.style.background = '#EFF6FF';
+    summary.style.borderColor = '#BFDBFE';
+    summary.style.color = '#1E40AF';
+  }
+}
+
+function loadFilmesAsync() {
+  return supaFetch('/filmes?order=created_at.desc')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      filmes = Array.isArray(data) ? data : [];
+      renderTable();
+      updateStats();
+    })
+    .catch(function(e) { console.error('Reload error:', e); });
+}
 </script>
 
 </body>
