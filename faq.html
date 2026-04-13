@@ -438,4 +438,33 @@ document.querySelectorAll('.faq-question').forEach(function(btn) {
     // Abre o clicado (se estava fechado)
     if (!expanded) {
       btn.setAttribute('aria-expanded', 'true');
-      answer.hidden = fa
+      answer.hidden = false;
+    }
+  });
+});
+
+// Fechar menu de contraste ao clicar fora
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.a11y-contrast-wrap')) {
+    var menu = document.getElementById('contrast-menu');
+    if (menu) menu.hidden = true;
+    var btn = document.querySelector('.a11y-contrast-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+});
+</script>
+
+<!-- VLibras Widget oficial -->
+<div vw class="enabled">
+  <div vw-access-button class="active"></div>
+  <div vw-plugin-wrapper>
+    <div class="vw-plugin-top-wrapper"></div>
+  </div>
+</div>
+<script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+<script>
+  new window.VLibras.Widget('https://vlibras.gov.br/app');
+</script>
+
+</body>
+</html>
