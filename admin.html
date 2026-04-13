@@ -1540,15 +1540,36 @@ function importBuscar() {
   fetch('/api/ingresso?type=nowplaying')
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      var lista = Array.isArray(data) ? data : (data.results || data.films || []);
-      if (!lista.length) throw new Error('Nenhum filme retornado pela API.');
+      console.log('[Importador] resposta raw:', JSON.stringify(data).substring(0, 400));
+      // Ingresso can return array, or object with items/results/films/events key
+      var lista = Array.isArray(data)
+        ? data
+        : (data.items || data.results || data.films || data.events || data.data || []);
+      // Some endpoints return a paginated wrapper with 'items' inside a root key
+      if (!lista.length && typeof data === 'object') {
+        var keys = Object.keys(data);
+        for (var i = 0; i < keys.length; i++) {
+          if (Array.isArray(data[keys[i]]) && data[keys[i]].length) {
+            lista = data[keys[i]];
+            break;
+          }
+        }
+      }
+      if (!lista.length) throw new Error('Nenhum filme retornado. Veja o console para detalhes da resposta.');
 
       var cadastrados = filmes.map(function(f) { return f.url_key; });
 
       importFilmes = lista.map(function(f) {
-        var urlKey = f.urlKey || f.url_key || f.id || '';
-        return { id: f.id || urlKey, title: f.title || f.titulo || '', urlKey: urlKey, exists: cadastrados.includes(urlKey) };
-      });
+        // Ingresso /films returns: f.title, f.urlKey or f.url, f.id
+        // Ingresso /events returns: f.title, f.urlKey, f.id
+        var urlKey = f.urlKey || f.url_key || f.url || '';
+        // Extract urlKey from full URL if needed (e.g. "/filme/meu-filme" -> "meu-filme")
+        if (urlKey && urlKey.indexOf('/') !== -1) {
+          urlKey = urlKey.split('/').filter(Boolean).pop();
+        }
+        var title = f.title || f.titulo || f.name || '';
+        return { id: f.id || urlKey, title: title, urlKey: urlKey, exists: cadastrados.includes(urlKey) };
+      }).filter(function(f) { return f.title && f.urlKey; });
 
       importSel = {};
       importAppMap = {};
