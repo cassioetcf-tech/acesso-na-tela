@@ -5,13 +5,17 @@ export default async function handler(request) {
   const date = url.searchParams.get('date') || new Date().toISOString().slice(0,10);
   const eventId = url.searchParams.get('eventId') || '';
   const urlKey = url.searchParams.get('urlKey') || '';
+  const type   = url.searchParams.get('type')   || '';
 
   const PART = 'locomotivadigital';
   const BASE = 'https://api-content.ingresso.com/v0';
 
   let target;
 
-  if (urlKey) {
+  if (type === 'nowplaying') {
+    // List all now-playing films for the partnership (used by admin importer)
+    target = `${BASE}/films?partnership=${PART}&types=nowplaying`;
+  } else if (urlKey) {
     // Step 1: get eventId from url-key (exact endpoint from PingPlay code)
     target = `${BASE}/events/url-key/${urlKey}/partnership/${PART}`;
   } else if (eventId) {
