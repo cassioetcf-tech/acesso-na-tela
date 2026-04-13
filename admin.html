@@ -1540,7 +1540,8 @@ function importBuscar() {
   fetch('/api/ingresso?type=nowplaying')
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      console.log('[Importador] resposta raw:', JSON.stringify(data).substring(0, 400));
+      console.log('[Importador] resposta raw:', JSON.stringify(data).substring(0, 800));
+      console.log('[Importador] tipo:', typeof data, Array.isArray(data) ? 'array['+data.length+']' : 'object keys: '+Object.keys(data).join(','));
       // Ingresso can return array, or object with items/results/films/events key
       var lista = Array.isArray(data)
         ? data
