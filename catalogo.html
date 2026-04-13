@@ -622,7 +622,7 @@ function criarCard(f) {
   var ano     = (tmdb && tmdb.release_date) ? tmdb.release_date.slice(0,4) : '';
   var poster  = (tmdb && tmdb.poster_path) ? TMDB_IMG + tmdb.poster_path : null;
   var generos = (tmdb && tmdb.genres) ? tmdb.genres.map(function(g){ return g.name; }).join(', ') : '';
-  var href    = urlKey ? 'acesso-na-tela-filme.html?urlKey=' + urlKey : '#';
+  var href    = urlKey ? 'catalogo-filme.html?urlKey=' + urlKey : '#';
 
   var link = document.createElement('a');
   link.href = href;
