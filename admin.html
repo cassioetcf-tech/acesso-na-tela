@@ -766,6 +766,67 @@
   }
   .auto-summary.open { display: block; }
 
+  /* ── SEM ACESSIBILIDADE TOGGLE ── */
+  .sem-a11y-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1.5px solid var(--bdr);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .15s;
+    user-select: none;
+  }
+  .sem-a11y-toggle:hover { border-color: #94A3B8; }
+  .sem-a11y-toggle.active {
+    border-color: #94A3B8;
+    background: #F8FAFC;
+  }
+
+  .sem-a11y-checkbox {
+    width: 20px; height: 20px;
+    border: 2px solid #CBD5E1;
+    border-radius: 5px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+    transition: all .15s;
+    color: #475569;
+  }
+  .sem-a11y-toggle.active .sem-a11y-checkbox {
+    background: #475569;
+    border-color: #475569;
+    color: #fff;
+  }
+
+  .sem-a11y-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .sem-a11y-hint {
+    font-size: 11px;
+    color: var(--ink3);
+    margin-top: 2px;
+  }
+
+  /* badge na tabela */
+  .chip-sem-a11y {
+    background: #F1F5F9;
+    color: #64748B;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid #E2E8F0;
+  }
+
   /* ── LOADING ── */
   .spinner {
     display: inline-block;
@@ -949,48 +1010,41 @@
       </div>
     </div>
 
+    <!-- Sem acessibilidade toggle -->
     <div class="field">
+      <label class="sem-a11y-toggle" id="sem-a11y-label" onclick="toggleSemA11y()">
+        <div class="sem-a11y-checkbox" id="sem-a11y-check">
+          <svg id="sem-a11y-x" width="12" height="12" viewBox="0 0 12 12" fill="none" style="display:none">
+            <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="sem-a11y-name">Este filme não possui acessibilidade</div>
+          <div class="sem-a11y-hint">Casos especiais permitidos por lei — oculta app e badges AD/LSE/LIBRAS</div>
+        </div>
+      </label>
+    </div>
+
+    <div id="app-block" class="field">
       <label>Aplicativo disponível *</label>
       <div class="app-selector">
         <label class="app-option" onclick="selectApp('MovieReading',this)">
           <input type="radio" name="app" value="MovieReading">
-          <div>
-            <div class="app-option-name">MovieReading</div>
-            <div class="app-option-type">AD · LSE · Libras</div>
-          </div>
+          <div class="app-option-name">MovieReading</div>
         </label>
         <label class="app-option" onclick="selectApp('MLOAD',this)">
           <input type="radio" name="app" value="MLOAD">
-          <div>
-            <div class="app-option-name">MLOAD</div>
-            <div class="app-option-type">AD · Libras</div>
-          </div>
+          <div class="app-option-name">MLOAD</div>
         </label>
         <label class="app-option" onclick="selectApp('GRETA',this)">
           <input type="radio" name="app" value="GRETA">
-          <div>
-            <div class="app-option-name">GRETA</div>
-            <div class="app-option-type">LSE · AD</div>
-          </div>
+          <div class="app-option-name">GRETA</div>
         </label>
         <label class="app-option" onclick="selectApp('PingPlay',this)">
           <input type="radio" name="app" value="PingPlay">
-          <div>
-            <div class="app-option-name">PingPlay</div>
-            <div class="app-option-type">AD · Cinema</div>
-          </div>
+          <div class="app-option-name">PingPlay</div>
         </label>
       </div>
-    </div>
-
-    <div class="field">
-      <label>Recursos de acessibilidade</label>
-      <div class="a11y-fixed">
-        <div class="a11y-fixed-item chip-ad">✓ AD</div>
-        <div class="a11y-fixed-item chip-lse">✓ LSE</div>
-        <div class="a11y-fixed-item chip-libras">✓ LIBRAS</div>
-      </div>
-      <div class="field-hint">Obrigatório por lei — sempre habilitados</div>
     </div>
 
     <div class="field">
@@ -1136,9 +1190,15 @@ function renderTable() {
       '</td>' +
       '<td>' + (f.app ? '<span class="app-badge">' + esc(f.app) + '</span>' : '<span style="color:var(--ink3);font-size:12px">—</span>') + '</td>' +
       '<td><div class="a11y-chips">' +
-        '<span class="a11y-chip chip-ad">AD</span>' +
-        '<span class="a11y-chip chip-lse">LSE</span>' +
-        '<span class="a11y-chip chip-libras">LIBRAS</span>' +
+        (function() {
+          var a = f.a11y || {};
+          if (a.ad === false && a.lse === false && a.libras === false) {
+            return '<span class="chip-sem-a11y">⊗ Sem acessibilidade</span>';
+          }
+          return '<span class="a11y-chip chip-ad">AD</span>' +
+                 '<span class="a11y-chip chip-lse">LSE</span>' +
+                 '<span class="a11y-chip chip-libras">LIBRAS</span>';
+        })() +
       '</div></td>' +
       '<td><span class="status-badge ' + statusCls + '">' + statusTxt + '</span></td>' +
       '<td>' +
@@ -1177,6 +1237,10 @@ function openModal(id) {
       });
     }
 
+    // Restore sem-acessibilidade
+    var isSemA11y = f.a11y && f.a11y.ad === false && f.a11y.lse === false && f.a11y.libras === false;
+    setSemA11y(!!isSemA11y);
+
     if (f.tmdbData) showPreview(f.tmdbData);
   } else {
     document.getElementById('modal-title').textContent = 'Adicionar filme';
@@ -1202,11 +1266,30 @@ function clearForm() {
     el.classList.remove('selected');
     el.querySelector('input[type=radio]').checked = false;
   });
+  // Reset sem-acessibilidade
+  setSemA11y(false);
 }
 
 function selectApp(name, el) {
   document.querySelectorAll('.app-option').forEach(function(o){ o.classList.remove('selected'); });
   el.classList.add('selected');
+}
+
+// ── SEM ACESSIBILIDADE ────────────────────────────────────────────────────────
+var semA11yActive = false;
+
+function setSemA11y(val) {
+  semA11yActive = val;
+  var label = document.getElementById('sem-a11y-label');
+  var xIcon = document.getElementById('sem-a11y-x');
+  var appBlock = document.getElementById('app-block');
+  label.classList.toggle('active', val);
+  xIcon.style.display = val ? '' : 'none';
+  appBlock.style.display = val ? 'none' : '';
+}
+
+function toggleSemA11y() {
+  setSemA11y(!semA11yActive);
 }
 
 // ── URL KEY EXTRACTION ────────────────────────────────────────────────────────
@@ -1279,7 +1362,7 @@ function saveFilme() {
   if (checkedRadio) app = checkedRadio.value;
 
   if (!titulo) { showToast('Informe o título do filme', 'error'); return; }
-  if (!app) { showToast('Selecione o aplicativo', 'error'); return; }
+  if (!semA11yActive && !app) { showToast('Selecione o aplicativo', 'error'); return; }
 
   var btn = document.getElementById('btn-save');
   btn.innerHTML = '<span class="spinner"></span> Salvando...';
@@ -1293,14 +1376,18 @@ function saveFilme() {
   .then(function(d) {
     var tmdbData = (d.results || [])[0] || null;
 
+    var a11yVal = semA11yActive
+      ? { ad: false, lse: false, libras: false }
+      : { ad: true,  lse: true,  libras: true  };
+
     var filme = {
       id: editId || 'f_' + Date.now(),
       titulo: titulo,
       ingresso_url: ingressoUrl,
       url_key: urlKey,
-      app: app,
+      app: semA11yActive ? null : app,
       status: status,
-      a11y: { ad: true, lse: true, libras: true },
+      a11y: a11yVal,
       tmdb_id: tmdbData ? tmdbData.id : null,
       tmdb_data: tmdbData,
       updated_at: new Date().toISOString(),
