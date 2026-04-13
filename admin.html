@@ -1540,36 +1540,19 @@ function importBuscar() {
   fetch('/api/ingresso?type=nowplaying')
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      console.log('[Importador] resposta raw:', JSON.stringify(data).substring(0, 800));
-      console.log('[Importador] tipo:', typeof data, Array.isArray(data) ? 'array['+data.length+']' : 'object keys: '+Object.keys(data).join(','));
-      // Ingresso can return array, or object with items/results/films/events key
-      var lista = Array.isArray(data)
-        ? data
-        : (data.items || data.results || data.films || data.events || data.data || []);
-      // Some endpoints return a paginated wrapper with 'items' inside a root key
-      if (!lista.length && typeof data === 'object') {
-        var keys = Object.keys(data);
-        for (var i = 0; i < keys.length; i++) {
-          if (Array.isArray(data[keys[i]]) && data[keys[i]].length) {
-            lista = data[keys[i]];
-            break;
-          }
-        }
-      }
-      if (!lista.length) throw new Error('Nenhum filme retornado. Veja o console para detalhes da resposta.');
+      if (data.error) throw new Error(data.error);
+      var lista = Array.isArray(data) ? data : [];
+      if (!lista.length) throw new Error('Nenhum filme encontrado.');
 
       var cadastrados = filmes.map(function(f) { return f.url_key; });
 
       importFilmes = lista.map(function(f) {
-        // Ingresso /films returns: f.title, f.urlKey or f.url, f.id
-        // Ingresso /events returns: f.title, f.urlKey, f.id
-        var urlKey = f.urlKey || f.url_key || f.url || '';
-        // Extract urlKey from full URL if needed (e.g. "/filme/meu-filme" -> "meu-filme")
-        if (urlKey && urlKey.indexOf('/') !== -1) {
-          urlKey = urlKey.split('/').filter(Boolean).pop();
-        }
-        var title = f.title || f.titulo || f.name || '';
-        return { id: f.id || urlKey, title: title, urlKey: urlKey, exists: cadastrados.includes(urlKey) };
+        return {
+          id:      f.id || f.adoroId || f.urlKey,
+          title:   f.title || '',
+          urlKey:  f.urlKey || '',
+          exists:  cadastrados.includes(f.urlKey)
+        };
       }).filter(function(f) { return f.title && f.urlKey; });
 
       importSel = {};
