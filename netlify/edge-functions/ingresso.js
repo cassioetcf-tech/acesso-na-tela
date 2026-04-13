@@ -13,31 +13,61 @@ export default async function handler(request) {
   let target;
 
   if (type === 'nowplaying') {
-    // Busca filmes em cartaz direto da página pública da Ingresso
-    // e extrai os urlKeys do HTML (usado pelo importador do admin)
-    target = null;
+    // Scraping AdoroCinema — HTML server-side renderizado, sem CORS
+    // Busca todas as páginas em paralelo
     try {
-      const pageResp = await fetch('https://www.ingresso.com/filmes/em-cartaz', {
-        headers: {
-          'Accept': 'text/html,application/xhtml+xml',
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
-          'Referer': 'https://www.ingresso.com/',
-        }
-      });
-      const html = await pageResp.text();
-      // Extract urlKeys from href="/filme/URLKEY" patterns
-      const matches = [...html.matchAll(/href="\/filme\/([a-z0-9\-]+)"/g)];
+      const BASE_URL = 'https://www.adorocinema.com/filmes/numero-cinemas/';
+      const HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
+        'Accept': 'text/html',
+        'Referer': 'https://www.adorocinema.com/',
+      };
+
+      // Fetch página 1 primeiro para descobrir total de páginas
+      const page1 = await fetch(BASE_URL, { headers: HEADERS });
+      const html1 = await page1.text();
+
+      // Descobre número total de páginas
+      const pageNums = [...html1.matchAll(/[?&]page=(\d+)/g)].map(m => parseInt(m[1]));
+      const totalPages = pageNums.length ? Math.max(...pageNums) : 1;
+
+      // Busca demais páginas em paralelo
+      const extraFetches = [];
+      for (let p = 2; p <= totalPages; p++) {
+        extraFetches.push(
+          fetch(BASE_URL + '?page=' + p, { headers: HEADERS }).then(r => r.text())
+        );
+      }
+      const extraHtmls = await Promise.all(extraFetches);
+      const allHtmls = [html1, ...extraHtmls];
+
+      // Extrai filmes de todas as páginas
       const seen = new Set();
       const films = [];
-      for (const m of matches) {
-        const urlKey = m[1];
-        if (!seen.has(urlKey) && urlKey.length > 2) {
-          seen.add(urlKey);
-          // Extract title from nearby text — look for the urlKey converted to title
-          const title = urlKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-          films.push({ id: urlKey, urlKey, title });
+      const re = /href="\/filmes\/(filme-[\d]+)\/"[^>]*>([^<]+)<\/a>/g;
+
+      for (const html of allHtmls) {
+        let m;
+        re.lastIndex = 0;
+        while ((m = re.exec(html)) !== null) {
+          const adoroId = m[1];
+          const title   = m[2].trim();
+          if (seen.has(adoroId) || title.length < 2) continue;
+          seen.add(adoroId);
+
+          const urlKey = title.toLowerCase()
+            .replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e')
+            .replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o')
+            .replace(/[úùûü]/g,'u').replace(/[ç]/g,'c')
+            .replace(/[^a-z0-9\s]/g,'').trim().replace(/\s+/g,'-');
+
+          films.push({ id: adoroId, adoroId, title, urlKey });
         }
       }
+
+      console.log('[AdoroCinema] pages:', totalPages, 'films:', films.length);
+
       return new Response(JSON.stringify(films), {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
