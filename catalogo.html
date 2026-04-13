@@ -654,7 +654,7 @@ function criarCard(f) {
   // Badges a11y (canto inf esquerdo)
   var badgesDiv = document.createElement('div');
   badgesDiv.className = 'poster-badges';
-  var hasA11y = !filme.a11y || filme.a11y.ad !== false || filme.a11y.lse !== false || filme.a11y.libras !== false;
+  var hasA11y = !sb.a11y || sb.a11y.ad !== false || sb.a11y.lse !== false || sb.a11y.libras !== false;
   badgesDiv.innerHTML = hasA11y
     ? '<span class="pbadge pb-ad" aria-label="Audiodescrição">AD</span><span class="pbadge pb-lse" aria-label="Legenda p/ surdos">LSE</span><span class="pbadge pb-lib" aria-label="Libras">LIBRAS</span>'
     : '<span class="pbadge pb-none"><span class="pb-none-x"></span>Sem acessibilidade</span>';

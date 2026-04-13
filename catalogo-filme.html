@@ -1382,49 +1382,56 @@ window.addEventListener('load', function() {
   if (sk1) sk1.classList.add('active');
   if (sk2) sk2.classList.add('active');
 
-  // If urlKey is provided, fetch admin data from Supabase first, then TMDb
+  // If urlKey is provided, fetch from Supabase first (has tmdb_id), then TMDb
   if (urlKey) {
-    // Get admin data (status, app) from Supabase
     fetch('https://gpwmmvaetokgrzekepbk.supabase.co/rest/v1/filmes?url_key=eq.' + encodeURIComponent(urlKey) + '&limit=1', {
       headers: { 'apikey': 'sb_publishable_lbKSyHwh8nNINEef-0Hi5Q_oPF5qt-P', 'Authorization': 'Bearer sb_publishable_lbKSyHwh8nNINEef-0Hi5Q_oPF5qt-P' }
     }).then(function(r){ return r.json(); }).then(function(data) {
       var f = data && data[0];
       if (f) {
-        window._filmeStatus = f.status || 'cartaz';
-        if (f.app) {
+        window._filmeStatus = f.status || 'catalogo';
+        var semA11y = f.a11y && f.a11y.ad === false && f.a11y.lse === false && f.a11y.libras === false;
+        var appBlock = document.querySelector('.app-destaque');
+        if (semA11y) {
+          if (appBlock) appBlock.style.display = 'none';
+        } else if (f.app) {
           set('app-dest-title', f.app);
           set('ad-sub', 'Aplicativo gratuito · iOS e Android');
           if (window.updateAppLinks) updateAppLinks(f.app);
         }
       }
-    }).catch(function(){});
-    // Get film title from Ingresso API, then search TMDb
-    fetch('/api/ingresso?urlKey=' + encodeURIComponent(urlKey))
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        var title = d.title || d.originalTitle || '';
-        var tmdbId = d.movieIdUrl ? null : null; // Ingresso doesn't have TMDb ID
-        if (title) {
-          // Search TMDb by title
-          return fetch_('/search/movie?query=' + encodeURIComponent(title) + '&language=pt-BR&region=BR')
-            .then(function(s) {
-              var best = (s.results || [])[0];
-              if (best && best.id) {
-                return Promise.all([
-                  fetch_('/movie/' + best.id + '?language=pt-BR&append_to_response=credits,release_dates,videos'),
-                  fetch_('/movie/' + best.id + '/watch/providers')
-                ]).then(function(res) { render(key, res[0], res[1]); });
-              } else {
-                dismissLoading(); // TMDb não encontrou o filme
-              }
-            });
-        } else {
-          dismissLoading(); // Ingresso não retornou título
-        }
-      })
-      .catch(function(e) { console.warn('TMDb via urlKey error:', e); dismissLoading(); });
-    // Also load sessions by urlKey
-    if (window.loadSessoesByUrlKey) window.loadSessoesByUrlKey(urlKey, '1');
+
+      // Se Supabase tem tmdb_id, usa direto
+      var tmdbId = f && f.tmdb_id;
+      if (tmdbId) {
+        return Promise.all([
+          fetch_('/movie/' + tmdbId + '?language=pt-BR&append_to_response=credits,release_dates,videos'),
+          fetch_('/movie/' + tmdbId + '/watch/providers')
+        ]).then(function(res) { render(key, res[0], res[1]); })
+          .catch(function(e) { console.warn('TMDb by id error:', e); dismissLoading(); });
+      }
+
+      // Fallback: busca por título no Supabase ou Ingresso
+      fetch('/api/ingresso?urlKey=' + encodeURIComponent(urlKey))
+        .then(function(r){ return r.json(); })
+        .then(function(d) {
+          var title = (f && f.titulo) || d.title || d.originalTitle || '';
+          if (title) {
+            return fetch_('/search/movie?query=' + encodeURIComponent(title) + '&language=pt-BR&region=BR')
+              .then(function(s) {
+                var best = (s.results || [])[0];
+                if (best && best.id) {
+                  return Promise.all([
+                    fetch_('/movie/' + best.id + '?language=pt-BR&append_to_response=credits,release_dates,videos'),
+                    fetch_('/movie/' + best.id + '/watch/providers')
+                  ]).then(function(res) { render(key, res[0], res[1]); });
+                } else { dismissLoading(); }
+              });
+          } else { dismissLoading(); }
+        })
+        .catch(function(e) { console.warn('Fallback error:', e); dismissLoading(); });
+
+    }).catch(function(e) { console.warn('Supabase error:', e); dismissLoading(); });
     return;
   }
 
