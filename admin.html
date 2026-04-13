@@ -981,35 +981,29 @@
   <!-- IMPORT PANEL -->
   <div id="import-panel" style="display:none;margin-top:24px;">
     <div class="auto-panel" style="padding:0">
-
       <div style="padding:18px 22px 0;display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div class="auto-title" style="margin-bottom:3px;">Importar filmes da Ingresso.com</div>
           <div class="auto-sub">Selecione quais filmes cadastrar em lote no Supabase.</div>
         </div>
-        <button class="btn btn-outline" onclick="closeImportPanel()" style="font-size:12px;">✕ Fechar</button>
+        <button class="btn btn-outline" onclick="closeImportPanel()" style="font-size:12px;">&#10005; Fechar</button>
       </div>
-
-      <!-- Step tabs -->
       <div style="display:flex;gap:0;border-bottom:1px solid #e2e8f0;margin:16px 0 0;padding:0 22px;">
         <div id="itab-buscar" class="filter-tab active" style="cursor:default">1. Buscar</div>
         <div id="itab-selecionar" class="filter-tab" style="cursor:default">2. Selecionar</div>
         <div id="itab-confirmar" class="filter-tab" style="cursor:default">3. Confirmar</div>
       </div>
-
       <div style="padding:18px 22px 22px;">
-
-        <!-- Step 1: buscar -->
+        <!-- Step 1 -->
         <div id="istep-buscar">
           <p style="font-size:13px;color:#64748b;margin-bottom:16px;">Clique em "Buscar" para carregar todos os filmes em cartaz via API da Ingresso.com.</p>
           <button class="btn btn-primary" id="btn-import-buscar" onclick="importBuscar()">Buscar filmes em cartaz</button>
           <div id="import-buscar-result" style="margin-top:12px;font-size:13px;color:#64748b;"></div>
         </div>
-
-        <!-- Step 2: selecionar -->
+        <!-- Step 2 -->
         <div id="istep-selecionar" style="display:none;">
           <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
-            <input type="text" class="search-input" style="flex:1;min-width:180px;" placeholder="Filtrar por título..." oninput="importFiltrar(this.value)" id="import-filtro">
+            <input type="text" class="search-input" style="flex:1;min-width:180px;" placeholder="Filtrar por t&#237;tulo..." oninput="importFiltrar(this.value)" id="import-filtro">
             <button class="btn btn-outline" style="font-size:12px;" onclick="importSelecionarTodos(true)">Selecionar tudo</button>
             <button class="btn btn-outline" style="font-size:12px;" onclick="importSelecionarTodos(false)">Limpar</button>
           </div>
@@ -1017,18 +1011,16 @@
             <span id="import-count-label">0 filmes</span>
             <span id="import-sel-label" style="color:#D4500F;font-weight:600;">0 selecionados</span>
           </div>
-          <!-- column heads -->
           <div style="display:grid;grid-template-columns:20px 1fr 160px 120px;gap:12px;padding:0 14px;margin-bottom:4px;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">
             <span></span><span>Filme</span><span>Aplicativo</span><span>Status</span>
           </div>
           <div id="import-film-list" style="display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto;margin-bottom:16px;"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #e2e8f0;">
             <span style="font-size:13px;color:#64748b;">Selecionados: <strong id="import-sel-count" style="color:#1e293b;">0</strong></span>
-            <button class="btn btn-primary" onclick="importIrConfirmar()">Revisar importação →</button>
+            <button class="btn btn-primary" onclick="importIrConfirmar()">Revisar importa&#231;&#227;o &#8594;</button>
           </div>
         </div>
-
-        <!-- Step 3: confirmar -->
+        <!-- Step 3 -->
         <div id="istep-confirmar" style="display:none;">
           <div id="import-confirm-note" style="font-size:13px;background:#f1f5f9;border-radius:8px;padding:10px 14px;margin-bottom:12px;color:#475569;"></div>
           <div style="display:grid;grid-template-columns:1fr 160px 120px;gap:12px;padding:0 14px;margin-bottom:4px;font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">
@@ -1036,12 +1028,11 @@
           </div>
           <div id="import-confirm-list" style="display:flex;flex-direction:column;gap:6px;max-height:380px;overflow-y:auto;margin-bottom:16px;"></div>
           <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:12px;border-top:1px solid #e2e8f0;">
-            <button class="btn btn-outline" onclick="importShowStep('selecionar')">← Voltar</button>
+            <button class="btn btn-outline" onclick="importShowStep('selecionar')">&#8592; Voltar</button>
             <button class="btn btn-primary" id="btn-import-salvar" onclick="importSalvar()">Cadastrar no Supabase</button>
           </div>
           <div id="import-save-result" style="margin-top:12px;"></div>
         </div>
-
       </div>
     </div>
   </div>
@@ -1518,6 +1509,8 @@ function deleteFilme(id) {
 var importFilmes    = [];
 var importSel       = {};
 var importFiltroVal = '';
+var importAppMap    = {};
+var importStMap     = {};
 
 function openImportPanel() {
   var panel = document.getElementById('import-panel');
@@ -1550,26 +1543,25 @@ function importBuscar() {
       var lista = Array.isArray(data) ? data : (data.results || data.films || []);
       if (!lista.length) throw new Error('Nenhum filme retornado pela API.');
 
-      // IDs já cadastrados no Supabase
       var cadastrados = filmes.map(function(f) { return f.url_key; });
 
       importFilmes = lista.map(function(f) {
         var urlKey = f.urlKey || f.url_key || f.id || '';
-        return {
-          id:      f.id || urlKey,
-          title:   f.title || f.titulo || '',
-          urlKey:  urlKey,
-          exists:  cadastrados.includes(urlKey),
-        };
+        return { id: f.id || urlKey, title: f.title || f.titulo || '', urlKey: urlKey, exists: cadastrados.includes(urlKey) };
       });
 
       importSel = {};
-      importFilmes.forEach(function(f) { importSel[f.id] = !f.exists; });
+      importAppMap = {};
+      importStMap = {};
+      importFilmes.forEach(function(f) {
+        importSel[f.id] = !f.exists;
+        importAppMap[f.id] = 'MovieReading';
+        importStMap[f.id] = 'cartaz';
+      });
 
       btn.textContent = 'Buscar filmes em cartaz';
       btn.disabled = false;
-      document.getElementById('import-buscar-result').innerHTML =
-        '✓ ' + importFilmes.length + ' filmes encontrados. <a href="#" style="color:#D4500F;font-weight:600;text-decoration:none;" onclick="importShowStep('selecionar');return false;">Selecionar →</a>';
+      document.getElementById('import-buscar-result').innerHTML = '&#10003; ' + importFilmes.length + ' filmes encontrados. <a href="#" style="color:#D4500F;font-weight:600;text-decoration:none;" onclick="importShowStep(\'selecionar\');return false;">Selecionar &#8594;</a>';
       importShowStep('selecionar');
       importRenderList();
     })
@@ -1590,29 +1582,26 @@ function importRenderList() {
     total++;
     var checked = importSel[f.id];
     if (checked) sel++;
+    var appVal = importAppMap[f.id] || 'MovieReading';
+    var stVal  = importStMap[f.id]  || 'cartaz';
 
-    var appVal = window['iapp_' + f.id] || 'MovieReading';
-    var stVal  = window['ist_'  + f.id] || 'cartaz';
+    var apps = ['MovieReading','MLOAD','GRETA','PingPlay','Sem Acessibilidade'];
+    var appOpts = apps.map(function(a) {
+      return '<option value="' + a + '"' + (appVal === a ? ' selected' : '') + '>' + a + '</option>';
+    }).join('');
+    var stOpts =
+      '<option value="cartaz"' + (stVal === 'cartaz' ? ' selected' : '') + '>Em cartaz</option>' +
+      '<option value="breve"'  + (stVal === 'breve'  ? ' selected' : '') + '>Em breve</option>';
 
-    html += '<div style="display:grid;grid-template-columns:20px 1fr 160px 120px;gap:12px;align-items:center;padding:10px 14px;background:#fff;border:1px solid ' + (checked ? '#D4500F' : '#e2e8f0') + ';border-radius:10px;" id="irow-' + f.id + '">';
-    html += '<input type="checkbox" ' + (checked ? 'checked' : '') + ' style="accent-color:#D4500F;width:15px;height:15px;cursor:pointer;" onchange="importToggle('' + f.id + '',this.checked)">';
+    html += '<div style="display:grid;grid-template-columns:20px 1fr 160px 120px;gap:12px;align-items:center;padding:10px 14px;background:#fff;border:1px solid ' + (checked ? '#D4500F' : '#e2e8f0') + ';border-radius:10px;">';
+    html += '<input type="checkbox"' + (checked ? ' checked' : '') + ' style="accent-color:#D4500F;width:15px;height:15px;cursor:pointer;" onchange="importToggle(\'' + f.id + '\',this.checked)">';
     html += '<div>';
-    html += '<div style="font-size:13px;font-weight:600;color:#1e293b;">' + escHtml(f.title) + '</div>';
+    html += '<div style="font-size:13px;font-weight:600;color:#1e293b;">' + importEsc(f.title) + '</div>';
     html += '<div style="font-size:11px;color:#94a3b8;font-family:monospace;">' + f.urlKey + '</div>';
-    if (f.exists) html += '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#f1f5f9;color:#64748b;display:inline-block;margin-top:2px;">Já cadastrado</span>';
+    if (f.exists) html += '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#f1f5f9;color:#64748b;display:inline-block;margin-top:2px;">J\u00e1 cadastrado</span>';
     html += '</div>';
-
-    html += '<select style="font-size:12px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:8px;width:100%;" id="iapp-' + f.id + '" onchange="window['iapp_' + f.id + '']=this.value">';
-    ['MovieReading','MLOAD','GRETA','PingPlay','Sem Acessibilidade'].forEach(function(a) {
-      html += '<option value="' + a + '"' + (appVal === a ? ' selected' : '') + '>' + a + '</option>';
-    });
-    html += '</select>';
-
-    html += '<select style="font-size:12px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:8px;width:100%;" id="ist-' + f.id + '" onchange="window['ist_' + f.id + '']=this.value">';
-    html += '<option value="cartaz"' + (stVal === 'cartaz' ? ' selected' : '') + '>Em cartaz</option>';
-    html += '<option value="breve"'  + (stVal === 'breve'  ? ' selected' : '') + '>Em breve</option>';
-    html += '</select>';
-
+    html += '<select style="font-size:12px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:8px;width:100%;" onchange="importAppMap[\'' + f.id + '\']=this.value">' + appOpts + '</select>';
+    html += '<select style="font-size:12px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:8px;width:100%;" onchange="importStMap[\'' + f.id + '\']=this.value">' + stOpts + '</select>';
     html += '</div>';
   });
 
@@ -1638,16 +1627,14 @@ function importIrConfirmar() {
   var sel = importFilmes.filter(function(f) { return importSel[f.id]; });
   if (!sel.length) { showToast('Selecione ao menos um filme.', 'error'); return; }
 
-  document.getElementById('import-confirm-note').textContent = sel.length + ' filme(s) serão cadastrados no Supabase.';
+  document.getElementById('import-confirm-note').textContent = sel.length + ' filme(s) ser\u00e3o cadastrados no Supabase.';
   var html = '';
   sel.forEach(function(f) {
-    var appEl = document.getElementById('iapp-' + f.id);
-    var stEl  = document.getElementById('ist-'  + f.id);
-    var appVal = (appEl ? appEl.value : null) || window['iapp_' + f.id] || 'MovieReading';
-    var stVal  = (stEl  ? stEl.value  : null) || window['ist_'  + f.id] || 'cartaz';
+    var appVal = importAppMap[f.id] || 'MovieReading';
+    var stVal  = importStMap[f.id]  || 'cartaz';
     html += '<div style="display:grid;grid-template-columns:1fr 160px 120px;gap:12px;align-items:center;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;">';
-    html += '<div><div style="font-size:13px;font-weight:600;color:#1e293b;">' + escHtml(f.title) + '</div><div style="font-size:11px;color:#94a3b8;font-family:monospace;">' + f.urlKey + '</div></div>';
-    html += '<span style="font-size:12px;color:#475569;">' + escHtml(appVal) + '</span>';
+    html += '<div><div style="font-size:13px;font-weight:600;color:#1e293b;">' + importEsc(f.title) + '</div><div style="font-size:11px;color:#94a3b8;font-family:monospace;">' + f.urlKey + '</div></div>';
+    html += '<span style="font-size:12px;color:#475569;">' + importEsc(appVal) + '</span>';
     html += '<span style="font-size:12px;color:#475569;">' + stVal + '</span>';
     html += '</div>';
   });
@@ -1662,35 +1649,30 @@ function importSalvar() {
   btn.disabled = true;
 
   var sel = importFilmes.filter(function(f) { return importSel[f.id]; });
-
-  // Collect app/status per film (captured at confirm step)
   var payloads = sel.map(function(f) {
-    var appEl = document.getElementById('iapp-' + f.id);
-    var stEl  = document.getElementById('ist-'  + f.id);
-    var appVal = (appEl ? appEl.value : null) || window['iapp_' + f.id] || 'MovieReading';
-    var stVal  = (stEl  ? stEl.value  : null) || window['ist_'  + f.id] || 'cartaz';
+    var appVal = importAppMap[f.id] || 'MovieReading';
+    var stVal  = importStMap[f.id]  || 'cartaz';
     var semA11y = (appVal === 'Sem Acessibilidade');
     return {
-      id:          'f_' + f.id,
-      titulo:      f.title,
-      url_key:     f.urlKey,
-      ingresso_url:'https://www.ingresso.com/filme/' + f.urlKey,
-      app:         semA11y ? null : appVal,
-      status:      stVal,
-      a11y:        semA11y ? {ad:false,lse:false,libras:false} : {ad:true,lse:true,libras:true},
-      created_at:  new Date().toISOString(),
-      updated_at:  new Date().toISOString(),
+      id:           'f_' + f.id,
+      titulo:       f.title,
+      url_key:      f.urlKey,
+      ingresso_url: 'https://www.ingresso.com/filme/' + f.urlKey,
+      app:          semA11y ? null : appVal,
+      status:       stVal,
+      a11y:         semA11y ? {ad:false,lse:false,libras:false} : {ad:true,lse:true,libras:true},
+      created_at:   new Date().toISOString(),
+      updated_at:   new Date().toISOString(),
     };
   });
 
-  // Upsert in batch — onConflict=url_key means existing films are skipped
   supaFetch('/filmes?on_conflict=url_key', {
     method: 'POST',
     headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal' },
     body: JSON.stringify(payloads)
   })
   .then(function(r) {
-    if (!r.ok) return r.text().then(function(t){ throw new Error(t); });
+    if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
     return r.text();
   })
   .then(function() {
@@ -1699,9 +1681,9 @@ function importSalvar() {
     loadFilmes();
     document.getElementById('import-save-result').innerHTML =
       '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px 18px;text-align:center;">' +
-      '<div style="font-size:20px;margin-bottom:6px;">✓</div>' +
+      '<div style="font-size:20px;margin-bottom:6px;">&#10003;</div>' +
       '<div style="font-size:14px;font-weight:600;color:#166534;margin-bottom:4px;">' + payloads.length + ' filmes cadastrados!</div>' +
-      '<div style="font-size:13px;color:#4ade80aa;color:#15803d;">Pôsteres e dados serão buscados automaticamente pelo TMDb.</div>' +
+      '<div style="font-size:13px;color:#15803d;">P\u00f4steres e dados ser\u00e3o buscados automaticamente pelo TMDb.</div>' +
       '</div>';
     showToast(payloads.length + ' filmes importados!', 'success');
   })
@@ -1712,8 +1694,8 @@ function importSalvar() {
   });
 }
 
-function escHtml(s) {
-  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function importEsc(s) {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 // ── FIM IMPORTADOR ────────────────────────────────────────────────────────────
 
