@@ -13,8 +13,41 @@ export default async function handler(request) {
   let target;
 
   if (type === 'nowplaying') {
-    // Lista todos os filmes em cartaz da parceria (usado pelo importador do admin)
-    target = `${BASE}/films?partnership=${PART}&types=nowplaying`;
+    // Busca filmes em cartaz direto da página pública da Ingresso
+    // e extrai os urlKeys do HTML (usado pelo importador do admin)
+    target = null;
+    try {
+      const pageResp = await fetch('https://www.ingresso.com/filmes/em-cartaz', {
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+          'Referer': 'https://www.ingresso.com/',
+        }
+      });
+      const html = await pageResp.text();
+      // Extract urlKeys from href="/filme/URLKEY" patterns
+      const matches = [...html.matchAll(/href="\/filme\/([a-z0-9\-]+)"/g)];
+      const seen = new Set();
+      const films = [];
+      for (const m of matches) {
+        const urlKey = m[1];
+        if (!seen.has(urlKey) && urlKey.length > 2) {
+          seen.add(urlKey);
+          // Extract title from nearby text — look for the urlKey converted to title
+          const title = urlKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          films.push({ id: urlKey, urlKey, title });
+        }
+      }
+      return new Response(JSON.stringify(films), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
+    }
   } else if (urlKey) {
     // Step 1: get eventId from url-key (exact endpoint from PingPlay code)
     target = `${BASE}/events/url-key/${urlKey}/partnership/${PART}`;
