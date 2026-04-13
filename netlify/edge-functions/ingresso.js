@@ -13,7 +13,7 @@ export default async function handler(request) {
   let target;
 
   if (type === 'nowplaying') {
-    // List all now-playing films for the partnership (used by admin importer)
+    // Lista todos os filmes em cartaz da parceria (usado pelo importador do admin)
     target = `${BASE}/films?partnership=${PART}&types=nowplaying`;
   } else if (urlKey) {
     // Step 1: get eventId from url-key (exact endpoint from PingPlay code)
