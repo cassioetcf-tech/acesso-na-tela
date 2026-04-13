@@ -891,10 +891,7 @@ body.film-loading #film-body-content { display: none !important; }
         <span class="achip ac-lse">LSE — Legenda p/ surdos</span>
         <span class="achip ac-lib">LIBRAS — Janela de Sinais</span>
       </div>
-      <div class="fp-ctas">
-        <button class="btn-prim" type="button" aria-label="Abrir no MovieReading">Abrir no MovieReading</button>
-        <button class="btn-sec" type="button" onclick="document.getElementById('bloco-sessoes').scrollIntoView({behavior:'smooth'})">Ver sessões</button>
-      </div>
+
     </div>
   </div>
 </section>
@@ -908,7 +905,7 @@ body.film-loading #film-body-content { display: none !important; }
 
       <!-- TRAILER -->
       <div class="block">
-        <div class="block-label">Trailer oficial</div>
+        <div class="block-label">Trailer acessível</div>
         <div class="trailer-wrap">
           <div class="trailer-thumb" id="trailer-thumb"
                role="button" tabindex="0"
@@ -923,7 +920,28 @@ body.film-loading #film-body-content { display: none !important; }
             </div>
           </div>
           <iframe id="trailer-iframe" class="trailer-iframe"
-            title="Trailer oficial de Divertida Mente 2"
+            title="Trailer acessível de Divertida Mente 2"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen></iframe>
+        </div>
+      </div>
+
+      <!-- VÍDEO SINOPSE ACESSÍVEL -->
+      <div class="block" id="bloco-sinopse-video" style="display:none;">
+        <div class="block-label">Vídeo da sinopse acessível</div>
+        <div class="trailer-wrap">
+          <div class="trailer-thumb" id="sinopse-thumb"
+               role="button" tabindex="0"
+               aria-label="Reproduzir vídeo da sinopse acessível"
+               onclick="playSinopseVideo()"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();playSinopseVideo()}">
+            <img id="sinopse-video-img" src="" alt="" />
+            <div class="trailer-play" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+            </div>
+          </div>
+          <iframe id="sinopse-video-iframe" class="trailer-iframe"
+            title="Vídeo da sinopse acessível"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen></iframe>
         </div>
@@ -1057,6 +1075,19 @@ function toggleA11y(type, btn) {
     }
   } else if (type === 'fonte') {
     document.body.style.fontSize = !on ? '17px' : '';
+  }
+}
+
+// ── SINOPSE VIDEO ────────────────────────────────────────────────────────────
+function playSinopseVideo() {
+  var thumb  = document.getElementById('sinopse-thumb');
+  var iframe = document.getElementById('sinopse-video-iframe');
+  if (!thumb || !iframe) return;
+  var src = iframe.getAttribute('data-src');
+  if (src) {
+    iframe.src = src + '?autoplay=1&rel=0';
+    iframe.style.display = 'block';
+    thumb.style.display  = 'none';
   }
 }
 
@@ -1504,6 +1535,14 @@ window.addEventListener('load', function() {
 // ── APP STORE LINKS ───────────────────────────────────────────────────────────
 var APP_LINKS = {"MovieReading": {"ios": "https://apps.apple.com/it/app/moviereading/id460349347", "android": "https://play.google.com/store/apps/details?id=com.unimaccess.umaclient"}, "MLOAD": {"ios": "https://apps.apple.com/br/app/mload/id6444372728", "android": "https://play.google.com/store/apps/details?id=com.stenomobi.mobiload"}, "GRETA": {"ios": "https://apps.apple.com/br/app/greta/id793892423", "android": "https://play.google.com/store/apps/details?id=de.debesefilm.greta&hl=en-US"}, "PingPlay": {"ios": "https://apps.apple.com/us/app/pingplay/id1592113008", "android": "https://play.google.com/store/apps/details?id=com.etc.pingplay&pli=1"}};
 
+// Logos dos apps em base64 (mesmos do index.html)
+var APP_LOGOS = {
+  'MovieReading': { cls: 'app-logo-mr', label: 'MovieReading' },
+  'MLOAD':        { cls: 'app-logo-ml', label: 'MLOAD' },
+  'GRETA':        { cls: 'app-logo-greta', label: 'GRETA' },
+  'PingPlay':     { cls: 'app-logo-pp', label: 'PingPlay' }
+};
+
 function updateAppLinks(appName) {
   var links = APP_LINKS[appName];
   if (!links) return;
@@ -1511,9 +1550,29 @@ function updateAppLinks(appName) {
   var android = document.getElementById('app-android-link');
   if (ios) ios.href = links.ios;
   if (android) android.href = links.android;
-  // Update aria labels
   if (ios) ios.setAttribute('aria-label', 'Baixar ' + appName + ' na App Store');
   if (android) android.setAttribute('aria-label', 'Baixar ' + appName + ' no Google Play');
+
+  // Atualizar logo e classe CSS do ícone
+  var logoInfo = APP_LOGOS[appName];
+  var adIco = document.querySelector('.ad-ico');
+  if (adIco && logoInfo) {
+    // Remove classes de logo antigas
+    adIco.classList.remove('app-logo-mr', 'app-logo-ml', 'app-logo-greta', 'app-logo-pp');
+    adIco.classList.add(logoInfo.cls);
+    adIco.setAttribute('aria-label', logoInfo.label);
+    // Atualiza a imagem do logo
+    var img = adIco.querySelector('img');
+    if (img) {
+      img.alt = logoInfo.label;
+      // Busca a imagem correta pelo data-app nos cards do index se disponível,
+      // ou usa um placeholder enquanto a imagem não é carregada dinamicamente
+      img.setAttribute('data-app', appName);
+    }
+  }
+  // Atualizar nome na caixa de destaque
+  var adName = document.getElementById('app-dest-title');
+  if (adName) adName.textContent = appName;
 }
 
 var fontLevel = 0;
