@@ -932,6 +932,25 @@
       </div>
     </div>
 
+    <!-- LIMPEZA TMDb -->
+    <div class="auto-panel" id="tmdb-cleanup-panel" style="margin-bottom:16px;">
+      <div class="auto-panel-header" style="margin-bottom:0;">
+        <div class="auto-panel-left">
+          <div class="auto-icon">🧹</div>
+          <div>
+            <div class="auto-title">Limpeza de filmes sem match no TMDb</div>
+            <div class="auto-sub">Identifica e remove filmes cadastrados que não têm correspondência confiável no TMDb</div>
+          </div>
+        </div>
+        <div class="auto-right">
+          <button class="btn-auto" id="btn-tmdb-scan" onclick="runTmdbCleanup()" style="background:#dc2626;">
+            🔍 Verificar agora
+          </button>
+        </div>
+      </div>
+      <div id="tmdb-cleanup-result" style="margin-top:0;"></div>
+    </div>
+
     <!-- TOOLBAR -->
     <div class="toolbar">
       <div class="toolbar-title">Filmes cadastrados</div>
@@ -1658,13 +1677,77 @@ function importIrConfirmar() {
   importShowStep('confirmar');
 }
 
-function importSalvar() {
+async function importSalvar() {
   var btn = document.getElementById('btn-import-salvar');
-  btn.textContent = 'Cadastrando...';
+  var resultEl = document.getElementById('import-save-result');
+  btn.textContent = 'Validando no TMDb...';
   btn.disabled = true;
+  resultEl.innerHTML = '';
 
   var sel = importFilmes.filter(function(f) { return importSel[f.id]; });
-  var payloads = sel.map(function(f) {
+
+  // ── Validação TMDb: busca cada filme e verifica match confiável ──
+  var aprovados = [];
+  var rejeitados = [];
+
+  resultEl.innerHTML = '<div style="font-size:13px;color:#64748b;padding:8px 0;">🔍 Verificando ' + sel.length + ' filmes no TMDb...</div>';
+
+  for (var i = 0; i < sel.length; i++) {
+    var f = sel[i];
+    btn.textContent = 'Validando ' + (i+1) + '/' + sel.length + '...';
+    try {
+      var res = await fetch(
+        'https://api.themoviedb.org/3/search/movie?query=' + encodeURIComponent(f.title) + '&language=pt-BR&region=BR',
+        { headers: { 'Authorization': 'Bearer ' + TMDB_TOKEN, 'accept': 'application/json' } }
+      );
+      var data = await res.json();
+      var results = data.results || [];
+
+      // Encontra o melhor match: mesmo título (case insensitive) ou original_title
+      var titleNorm = f.title.toLowerCase().trim();
+      var match = results.find(function(r) {
+        return (r.title || '').toLowerCase().trim() === titleNorm ||
+               (r.original_title || '').toLowerCase().trim() === titleNorm;
+      });
+
+      // Fallback: aceita o primeiro resultado SE popularity > 1 e tem pôster
+      if (!match && results[0] && results[0].popularity > 1 && results[0].poster_path) {
+        match = results[0];
+      }
+
+      if (match) {
+        aprovados.push({ f: f, tmdb: match });
+      } else {
+        rejeitados.push(f);
+      }
+    } catch(e) {
+      rejeitados.push(f);
+    }
+  }
+
+  // Mostra resumo da validação antes de salvar
+  var resumoHtml = '';
+  if (rejeitados.length > 0) {
+    resumoHtml += '<div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:12px 14px;margin-bottom:10px;">' +
+      '<div style="font-size:13px;font-weight:700;color:#854d0e;margin-bottom:6px;">⚠️ ' + rejeitados.length + ' filme(s) sem match no TMDb — não serão cadastrados:</div>' +
+      '<ul style="margin:0;padding-left:18px;font-size:12px;color:#92400e;">' +
+      rejeitados.map(function(f){ return '<li>' + importEsc(f.title) + ' <span style="font-family:monospace;opacity:.7">(' + f.urlKey + ')</span></li>'; }).join('') +
+      '</ul></div>';
+  }
+
+  if (aprovados.length === 0) {
+    btn.textContent = 'Cadastrar no Supabase';
+    btn.disabled = false;
+    resultEl.innerHTML = resumoHtml + '<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:12px;font-size:13px;color:#991b1b;">Nenhum filme aprovado para cadastro.</div>';
+    return;
+  }
+
+  resumoHtml += '<div style="font-size:13px;color:#64748b;padding:4px 0 10px;">✅ ' + aprovados.length + ' filme(s) aprovados. Salvando...</div>';
+  resultEl.innerHTML = resumoHtml;
+
+  // ── Salva somente os aprovados ──
+  var payloads = aprovados.map(function(item) {
+    var f = item.f; var tmdb = item.tmdb;
     var appVal = importAppMap[f.id] || 'MovieReading';
     var stVal  = importStMap[f.id]  || 'cartaz';
     var semA11y = (appVal === 'Sem Acessibilidade');
@@ -1676,39 +1759,37 @@ function importSalvar() {
       app:          semA11y ? null : appVal,
       status:       stVal,
       a11y:         semA11y ? {ad:false,lse:false,libras:false} : {ad:true,lse:true,libras:true},
+      tmdb_id:      tmdb.id,
+      tmdb_data:    tmdb,
       created_at:   new Date().toISOString(),
       updated_at:   new Date().toISOString(),
     };
   });
 
-  supaFetch('/filmes', {
-    method: 'POST',
-    headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal', 'Content-Type': 'application/json' },
-    body: JSON.stringify(payloads)
-  })
-  .then(function(r) {
-    return r.text().then(function(t) {
-      if (!r.ok) throw new Error(t);
-      return t;
+  try {
+    var r = await supaFetch('/filmes', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal', 'Content-Type': 'application/json' },
+      body: JSON.stringify(payloads)
     });
-  })
-  .then(function() {
+    var t = await r.text();
+    if (!r.ok) throw new Error(t);
+
     btn.textContent = 'Cadastrar no Supabase';
     btn.disabled = false;
     loadFilmes();
-    document.getElementById('import-save-result').innerHTML =
+    resultEl.innerHTML = resumoHtml +
       '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px 18px;text-align:center;">' +
-      '<div style="font-size:20px;margin-bottom:6px;">&#10003;</div>' +
+      '<div style="font-size:20px;margin-bottom:6px;">✓</div>' +
       '<div style="font-size:14px;font-weight:600;color:#166534;margin-bottom:4px;">' + payloads.length + ' filmes cadastrados!</div>' +
-      '<div style="font-size:13px;color:#15803d;">P\u00f4steres e dados ser\u00e3o buscados automaticamente pelo TMDb.</div>' +
+      (rejeitados.length ? '<div style="font-size:12px;color:#6b7280;">' + rejeitados.length + ' ignorados por não terem match no TMDb.</div>' : '') +
       '</div>';
     showToast(payloads.length + ' filmes importados!', 'success');
-  })
-  .catch(function(e) {
+  } catch(e) {
     btn.textContent = 'Cadastrar no Supabase';
     btn.disabled = false;
     showToast('Erro ao salvar: ' + e.message, 'error');
-  });
+  }
 }
 
 function importFiltrarSessoes() {
@@ -1867,29 +1948,29 @@ async function checkFilmHasSessions(urlKey) {
     dates.push(d.toISOString().slice(0, 10));
   }
 
-  // Check top 5 cities to not depend only on SP
-  var citiesToCheck = ['1', '2', '3', '4', '5'];
-
   try {
     // First get eventId from urlKey
     var eventData = await ingressoFetch('urlKey=' + encodeURIComponent(urlKey));
     var eventId = eventData && eventData.id ? eventData.id : null;
     if (!eventId) return false;
 
-    // Check each city x date — strict: only trust explicit theaters/sessions arrays
-    for (var c = 0; c < citiesToCheck.length; c++) {
-      for (var j = 0; j < dates.length; j++) {
-        try {
-          var sessions = await ingressoFetch(
-            'eventId=' + eventId + '&city=' + citiesToCheck[c] + '&date=' + dates[j]
-          );
-          if (Array.isArray(sessions) && sessions.length > 0) return true;
-          if (sessions && Array.isArray(sessions.theaters) && sessions.theaters.length > 0) return true;
-          if (sessions && Array.isArray(sessions.sessions) && sessions.sessions.length > 0) return true;
-          // NOTE: Object.values fallback removido — causava falso positivo
-        } catch(e) {
-          // Esta cidade/data pode não ter dados — continuar
+    // Try São Paulo (city 1) for at least one date
+    for (var j = 0; j < dates.length; j++) {
+      try {
+        var sessions = await ingressoFetch(
+          'eventId=' + eventId + '&city=1&date=' + dates[j]
+        );
+        // Sessions exist if we get an array with at least one item with theaters
+        if (Array.isArray(sessions) && sessions.length > 0) return true;
+        if (sessions && sessions.theaters && sessions.theaters.length > 0) return true;
+        if (sessions && sessions.sessions && sessions.sessions.length > 0) return true;
+        // Also check if the response is an object with data
+        if (sessions && typeof sessions === 'object' && !Array.isArray(sessions)) {
+          var vals = Object.values(sessions);
+          if (vals.some(function(v){ return Array.isArray(v) && v.length > 0; })) return true;
         }
+      } catch(e) {
+        // This date might not have data — continue
       }
     }
     return false;
@@ -1897,6 +1978,98 @@ async function checkFilmHasSessions(urlKey) {
     // If urlKey not found on Ingresso, no sessions
     return false;
   }
+}
+
+async function runTmdbCleanup() {
+  var btn = document.getElementById('btn-tmdb-scan');
+  var resultEl = document.getElementById('tmdb-cleanup-result');
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+  resultEl.innerHTML = '<div style="padding:12px;font-size:13px;color:#64748b;">Verificando filmes no TMDb...</div>';
+
+  var semMatch = [];
+  var total = filmes.length;
+
+  for (var i = 0; i < filmes.length; i++) {
+    var f = filmes[i];
+    btn.textContent = 'Verificando ' + (i+1) + '/' + total + '...';
+
+    if (f.tmdb_id) continue; // ja tem ID, OK
+
+    try {
+      var res = await fetch(
+        'https://api.themoviedb.org/3/search/movie?query=' + encodeURIComponent(f.titulo) + '&language=pt-BR&region=BR',
+        { headers: { 'Authorization': 'Bearer ' + TMDB_TOKEN, 'accept': 'application/json' } }
+      );
+      var data = await res.json();
+      var results = data.results || [];
+      var titleNorm = (f.titulo || '').toLowerCase().trim();
+      var match = results.find(function(r) {
+        return (r.title || '').toLowerCase().trim() === titleNorm ||
+               (r.original_title || '').toLowerCase().trim() === titleNorm;
+      });
+      if (!match && results[0] && results[0].popularity > 1 && results[0].poster_path) match = results[0];
+      if (!match) semMatch.push(f);
+    } catch(e) {
+      semMatch.push(f);
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🔍 Verificar agora';
+
+  if (semMatch.length === 0) {
+    resultEl.innerHTML = '<div style="padding:12px 14px;background:#f0fdf4;border-top:1px solid #bbf7d0;font-size:13px;color:#166534;">✅ Todos os ' + total + ' filmes têm correspondência no TMDb.</div>';
+    return;
+  }
+
+  var listHtml = semMatch.map(function(f) {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">' +
+      '<div><div style="font-size:13px;font-weight:600;color:#1e293b;">' + esc(f.titulo) + '</div>' +
+      '<div style="font-size:11px;font-family:monospace;color:#94a3b8;">' + (f.url_key||f.id) + ' · ' + (f.status||'') + '</div></div>' +
+      '<button onclick="excluirFilmeSemTmdb('' + f.id + '', this)" style="font-size:12px;padding:5px 12px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-family:inherit;">Excluir</button>' +
+    '</div>';
+  }).join('');
+
+  var allIds = JSON.stringify(semMatch.map(function(f){ return f.id; }));
+
+  resultEl.innerHTML =
+    '<div style="padding:14px 16px;border-top:1px solid #e2e8f0;">' +
+    '<div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:12px;">⚠️ ' + semMatch.length + ' filme(s) sem match no TMDb:</div>' +
+    '<div style="max-height:280px;overflow-y:auto;">' + listHtml + '</div>' +
+    '<div style="margin-top:12px;display:flex;justify-content:flex-end;">' +
+    '<button onclick="excluirTodosSemTmdb(' + allIds + ', this)" style="font-size:13px;font-weight:700;padding:8px 18px;background:#dc2626;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;">Excluir todos (' + semMatch.length + ')</button>' +
+    '</div></div>';
+}
+
+async function excluirFilmeSemTmdb(id, btn) {
+  if (!confirm('Excluir este filme do Supabase?')) return;
+  btn.disabled = true; btn.textContent = 'Excluindo...';
+  try {
+    var r = await supaFetch('/filmes?id=eq.' + id, { method: 'DELETE' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    btn.closest('div').parentElement.remove();
+    filmes = filmes.filter(function(f){ return f.id !== id; });
+    renderFilmes();
+    showToast('Filme removido.', 'success');
+  } catch(e) { btn.disabled = false; btn.textContent = 'Excluir'; showToast('Erro: ' + e.message, 'error'); }
+}
+
+async function excluirTodosSemTmdb(ids, btn) {
+  if (!confirm('Excluir ' + ids.length + ' filmes sem match no TMDb? Esta ação não pode ser desfeita.')) return;
+  btn.disabled = true; btn.textContent = 'Excluindo...';
+  var erros = 0;
+  for (var i = 0; i < ids.length; i++) {
+    try {
+      var r = await supaFetch('/filmes?id=eq.' + ids[i], { method: 'DELETE' });
+      if (!r.ok) erros++; else filmes = filmes.filter(function(f){ return f.id !== ids[i]; });
+    } catch(e) { erros++; }
+  }
+  renderFilmes();
+  document.getElementById('tmdb-cleanup-result').innerHTML =
+    '<div style="padding:12px 14px;background:#f0fdf4;border-top:1px solid #bbf7d0;font-size:13px;color:#166534;">' +
+    (ids.length - erros) + ' filmes excluídos.' + (erros ? ' ' + erros + ' com erro.' : '') + '</div>';
+  showToast((ids.length - erros) + ' filmes removidos.', 'success');
 }
 
 async function runSync() {
