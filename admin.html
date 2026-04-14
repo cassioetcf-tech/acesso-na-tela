@@ -1015,9 +1015,18 @@
             <span></span><span>Filme</span><span>Aplicativo</span><span>Status</span>
           </div>
           <div id="import-film-list" style="display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto;margin-bottom:16px;"></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #e2e8f0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #e2e8f0;flex-wrap:wrap;gap:8px;">
             <span style="font-size:13px;color:#64748b;">Selecionados: <strong id="import-sel-count" style="color:#1e293b;">0</strong></span>
-            <button class="btn btn-primary" onclick="importIrConfirmar()">Revisar importa&#231;&#227;o &#8594;</button>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <button class="btn btn-outline" id="btn-filtrar-sessoes" onclick="importFiltrarSessoes()" style="font-size:12px;">&#9654; Filtrar com sess&#245;es Ingresso</button>
+              <button class="btn btn-primary" onclick="importIrConfirmar()">Revisar importa&#231;&#227;o &#8594;</button>
+            </div>
+          </div>
+          <div id="import-filtro-progress" style="display:none;margin-top:12px;">
+            <div style="font-size:12px;color:#64748b;margin-bottom:6px;" id="import-filtro-label">Verificando...</div>
+            <div style="background:#e2e8f0;border-radius:20px;height:6px;overflow:hidden;">
+              <div id="import-filtro-bar" style="background:#D4500F;height:6px;width:0%;transition:width .3s;border-radius:20px;"></div>
+            </div>
           </div>
         </div>
         <!-- Step 3 -->
@@ -1137,14 +1146,15 @@ var SUPA_URL = 'https://gpwmmvaetokgrzekepbk.supabase.co';
 var SUPA_KEY = 'sb_publishable_lbKSyHwh8nNINEef-0Hi5Q_oPF5qt-P';
 
 function supaFetch(path, opts) {
-  return fetch(SUPA_URL + '/rest/v1' + path, Object.assign({
-    headers: {
-      'apikey': SUPA_KEY,
-      'Authorization': 'Bearer ' + SUPA_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-    }
-  }, opts || {}));
+  opts = opts || {};
+  var headers = Object.assign({
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + SUPA_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+  }, opts.headers || {});
+  var fetchOpts = Object.assign({}, opts, { headers: headers });
+  return fetch(SUPA_URL + '/rest/v1' + path, fetchOpts);
 }
 
 // ── DATA ────────────────────────────────────────────────────────────────────
@@ -1697,6 +1707,81 @@ function importSalvar() {
     btn.disabled = false;
     showToast('Erro ao salvar: ' + e.message, 'error');
   });
+}
+
+function importFiltrarSessoes() {
+  var btn = document.getElementById('btn-filtrar-sessoes');
+  var progress = document.getElementById('import-filtro-progress');
+  var bar = document.getElementById('import-filtro-bar');
+  var label = document.getElementById('import-filtro-label');
+
+  var toCheck = importFilmes.filter(function(f) { return importSel[f.id]; });
+  if (!toCheck.length) { showToast('Nenhum filme selecionado.', 'error'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+  progress.style.display = 'block';
+  bar.style.width = '0%';
+
+  var total = toCheck.length;
+  var done = 0;
+  var semSessao = [];
+
+  // Verifica em lotes de 5 em paralelo
+  var BATCH = 5;
+
+  function runBatch(start) {
+    var batch = toCheck.slice(start, start + BATCH);
+    if (!batch.length) {
+      // Concluído — remove filmes sem sessão
+      semSessao.forEach(function(id) { importSel[id] = false; });
+      btn.disabled = false;
+      btn.textContent = '\u25b6 Filtrar com sess\u00f5es Ingresso';
+      progress.style.display = 'none';
+      var removidos = semSessao.length;
+      var restantes = toCheck.length - removidos;
+      importRenderList();
+      showToast(restantes + ' filmes com sess\u00f5es. ' + removidos + ' sem sess\u00e3o removidos.', 'success');
+      return;
+    }
+
+    var promises = batch.map(function(f) {
+      return fetch('/api/ingresso?urlKey=' + encodeURIComponent(f.urlKey))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          // Se não retornou eventId válido, sem sessão
+          var eventId = data && data.id ? data.id : null;
+          if (!eventId) { semSessao.push(f.id); return; }
+          // Verifica sessões hoje em qualquer cidade do Brasil (primeiras 5 em paralelo)
+          var today = new Date().toISOString().slice(0,10);
+          var cities = ['1','2','3','4','5','6','7','8','9','10'];
+          return Promise.all(cities.map(function(cityId) {
+            return fetch('/api/ingresso?eventId=' + eventId + '&city=' + cityId + '&date=' + today)
+              .then(function(r) { return r.json(); })
+              .then(function(sessions) {
+                return Array.isArray(sessions)
+                  ? sessions.length > 0
+                  : !!(sessions && sessions.theaters && sessions.theaters.length > 0);
+              })
+              .catch(function() { return false; });
+          })).then(function(results) {
+            var hasSessions = results.some(function(r) { return r; });
+            if (!hasSessions) semSessao.push(f.id);
+          });
+        })
+        .catch(function() { /* mantém o filme em caso de erro de rede */ })
+        .finally(function() {
+          done++;
+          var pct = Math.round((done / total) * 100);
+          bar.style.width = pct + '%';
+          label.textContent = 'Verificando ' + done + ' de ' + total + ' filmes...';
+        });
+    });
+
+    Promise.all(promises).then(function() { runBatch(start + BATCH); });
+  }
+
+  runBatch(0);
 }
 
 function importEsc(s) {
