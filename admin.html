@@ -2050,7 +2050,7 @@ async function excluirFilmeSemTmdb(id, btn) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     btn.closest('div').parentElement.remove();
     filmes = filmes.filter(function(f){ return f.id !== id; });
-    renderFilmes();
+    renderTable();
     showToast('Filme removido.', 'success');
   } catch(e) { btn.disabled = false; btn.textContent = 'Excluir'; showToast('Erro: ' + e.message, 'error'); }
 }
@@ -2065,7 +2065,7 @@ async function excluirTodosSemTmdb(ids, btn) {
       if (!r.ok) erros++; else filmes = filmes.filter(function(f){ return f.id !== ids[i]; });
     } catch(e) { erros++; }
   }
-  renderFilmes();
+  renderTable();
   document.getElementById('tmdb-cleanup-result').innerHTML =
     '<div style="padding:12px 14px;background:#f0fdf4;border-top:1px solid #bbf7d0;font-size:13px;color:#166534;">' +
     (ids.length - erros) + ' filmes excluídos.' + (erros ? ' ' + erros + ' com erro.' : '') + '</div>';
