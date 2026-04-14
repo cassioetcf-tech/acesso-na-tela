@@ -177,36 +177,19 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
 #busca-catalogo::placeholder { color: var(--ink3); }
 
 .plat-label { font-size: 12px; font-weight: 600; color: var(--ink3); white-space: nowrap; }
-
-/* ── PLATFORM DROPDOWN ── */
-.plat-select-wrap { position: relative; min-width: 220px; }
-.plat-select-wrap::after {
-  content: '';
-  position: absolute; right: 12px; top: 50%;
-  transform: translateY(-50%);
-  width: 0; height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid var(--ink3);
-  pointer-events: none;
+.plat-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; flex: 1; }
+.chip-plat {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px;
+  border: 1.5px solid var(--bdr2); background: var(--bg);
+  font-size: 12px; font-weight: 600; color: var(--ink2);
+  cursor: pointer; font-family: inherit; transition: all .12s;
+  white-space: nowrap;
 }
-#plat-select {
-  width: 100%;
-  padding: 8px 36px 8px 12px;
-  border: 1.5px solid var(--bdr2);
-  border-radius: var(--r-sm);
-  background: var(--bg);
-  font-family: inherit; font-size: 13px; font-weight: 600;
-  color: var(--ink2); cursor: pointer;
-  appearance: none; -webkit-appearance: none;
-  outline: none; transition: border .15s;
-}
-#plat-select:focus { border-color: var(--laranja); outline: 3px solid var(--laranja); outline-offset: 2px; }
-#plat-select option { font-weight: 500; }
-
-/* keep chip classes so JS doesn't break — hidden */
-.plat-chips { display: none; }
-.chip-plat { display: none; }
+.chip-plat img { width: 16px; height: 16px; border-radius: 3px; object-fit: cover; }
+.chip-plat:hover { border-color: var(--laranja); color: var(--laranja); }
+.chip-plat.ativo { background: var(--laranja-cl); border-color: var(--laranja); color: var(--laranja); }
+.chip-plat:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
 
 .resultado-count { font-size: 12px; color: var(--ink3); white-space: nowrap; margin-left: auto; }
 
@@ -383,14 +366,8 @@ footer strong { color: var(--ink2); font-weight: 700; }
         autocomplete="off"
       />
     </div>
-    <span class="plat-label" id="plat-label">Plataforma:</span>
-    <div class="plat-select-wrap">
-      <select id="plat-select" aria-labelledby="plat-label" aria-label="Filtrar por plataforma de streaming">
-        <option value="todas">Todas as plataformas</option>
-      </select>
-    </div>
-    <!-- chips hidden but kept for JS compatibility -->
-    <div class="plat-chips" id="chips-plataformas" aria-hidden="true" style="display:none">
+    <span class="plat-label" aria-hidden="true">Plataforma:</span>
+    <div class="plat-chips" id="chips-plataformas" role="group" aria-label="Filtrar por plataforma de streaming">
       <button class="chip-plat ativo" data-plataforma="todas" aria-pressed="true">Todas</button>
     </div>
     <span class="resultado-count" id="resultado-count" aria-live="polite" aria-atomic="true"></span>
@@ -564,7 +541,7 @@ async function enriquecerFilme(filme) {
   }
 }
 
-// ── CHIPS / SELECT DE PLATAFORMAS ────────────────────────────────────────────
+// ── CHIPS DE PLATAFORMAS ──────────────────────────────────────────────────────
 function construirChips() {
   var mapa = {};
   todosFilmes.forEach(function(f) {
@@ -574,25 +551,44 @@ function construirChips() {
       }
     });
   });
-
-  // Populate the <select> dropdown
-  var sel = document.getElementById('plat-select');
-  if (sel) {
-    // Remove previous options except "Todas"
-    while (sel.options.length > 1) sel.remove(1);
-    // Sort alphabetically
-    var plats = Object.values(mapa).sort(function(a, b) { return a.nome.localeCompare(b.nome, 'pt-BR'); });
-    plats.forEach(function(plat) {
-      var opt = document.createElement('option');
-      opt.value = plat.id;
-      opt.textContent = plat.nome;
-      sel.appendChild(opt);
-    });
-  }
+  var wrap = document.getElementById('chips-plataformas');
+  Array.from(wrap.querySelectorAll('[data-plataforma]:not([data-plataforma="todas"])')).forEach(function(el){ el.remove(); });
+  Object.values(mapa).forEach(function(plat) {
+    var btn = document.createElement('button');
+    btn.className = 'chip-plat';
+    btn.dataset.plataforma = plat.id;
+    btn.setAttribute('aria-pressed', 'false');
+    btn.addEventListener('click', (function(b, id){ return function(){ filtrarPlataforma(b, id); }; })(btn, plat.id));
+    if (plat.logo) {
+      var img = document.createElement('img');
+      img.src = TMDB_LOGO + plat.logo;
+      img.alt = ''; img.width = 16; img.height = 16;
+      btn.appendChild(img);
+    }
+    btn.appendChild(document.createTextNode(plat.nome));
+    wrap.appendChild(btn);
+  });
 }
 
-// ── FILTRO PLATAFORMA (via select) ───────────────────────────────────────────
+// ── FILTRO PLATAFORMA ─────────────────────────────────────────────────────────
+function filtrarPlataforma(btn, id) {
+  plataformaAtiva = id;
+  document.querySelectorAll('.chip-plat').forEach(function(b) {
+    b.classList.remove('ativo'); b.setAttribute('aria-pressed', 'false');
+  });
+  btn.classList.add('ativo'); btn.setAttribute('aria-pressed', 'true');
+  renderGrid(filtrarFilmes());
+}
+
+// ── FILTRO BUSCA ──────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
+  var busca = document.getElementById('busca-catalogo');
+  if (busca) {
+    busca.addEventListener('input', function() {
+      buscaAtiva = this.value.toLowerCase().trim();
+      renderGrid(filtrarFilmes());
+    });
+  }
   var sel = document.getElementById('plat-select');
   if (sel) {
     sel.addEventListener('change', function() {
@@ -600,19 +596,6 @@ document.addEventListener('DOMContentLoaded', function() {
       renderGrid(filtrarFilmes());
     });
   }
-});
-
-function filtrarPlataforma(btn, id) {
-  plataformaAtiva = id;
-  var sel = document.getElementById('plat-select');
-  if (sel) sel.value = id;
-  renderGrid(filtrarFilmes());
-}
-
-// ── FILTRO BUSCA ──────────────────────────────────────────────────────────────
-document.getElementById('busca-catalogo').addEventListener('input', function() {
-  buscaAtiva = this.value.toLowerCase().trim();
-  renderGrid(filtrarFilmes());
 });
 
 function filtrarFilmes() {

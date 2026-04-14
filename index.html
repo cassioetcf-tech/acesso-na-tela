@@ -1361,6 +1361,30 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
 })();
 
 
+// ── BUSCA (home) ─────────────────────────────────────────────────────────────
+function doSearch(val) {
+  var q = (val || '').toLowerCase().trim();
+  var liveRegion = document.getElementById('live-region');
+
+  // Search across both grids
+  var cards = document.querySelectorAll('#grid-cartaz .film-card-link, .coming-grid .film-card-link');
+  var visible = 0;
+
+  cards.forEach(function(card) {
+    var text = card.textContent.toLowerCase();
+    var show = !q || text.includes(q);
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+
+  // Announce result to screen readers
+  if (liveRegion) {
+    liveRegion.textContent = q
+      ? visible + ' filme' + (visible !== 1 ? 's' : '') + ' encontrado' + (visible !== 1 ? 's' : '') + ' para "' + val + '"'
+      : '';
+  }
+}
+
 // ── CATÁLOGO (Supabase) ───────────────────────────────────────────────────────
 (function() {
   var SUPA_URL  = 'https://gpwmmvaetokgrzekepbk.supabase.co';
@@ -1464,7 +1488,7 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
     var grid = document.getElementById('grid-cartaz') || document.querySelector('.films-grid[role="list"]');
     if (!grid) return;
 
-    fetch(SUPA_URL+'/rest/v1/filmes?or=(status.ilike.cartaz,status.ilike.breve)&order=created_at.desc&limit=100', {
+    fetch(SUPA_URL+'/rest/v1/filmes?status=in.(cartaz,breve)&order=status.asc,created_at.desc&limit=20', {
       headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
     })
     .then(function(r){return r.json();})
@@ -1474,12 +1498,12 @@ document.querySelectorAll('[tabindex="0"]').forEach(function(el){
         return loadTmdb(filme).then(function(tmdb) { return {filme:filme,tmdb:tmdb}; });
       });
       Promise.all(promises).then(function(results) {
-        var cartaz = results.filter(function(i){ return (i.filme.status||'').toLowerCase() === 'cartaz'; });
-        var breve  = results.filter(function(i){ return (i.filme.status||'').toLowerCase() === 'breve'; });
+        var cartaz = results.filter(function(i){ return i.filme.status === 'cartaz'; });
+        var breve  = results.filter(function(i){ return i.filme.status === 'breve'; });
 
         // Render Em cartaz — substitui skeletons pelo conteúdo real
         grid.innerHTML = '';
-        cartaz.forEach(function(item) { grid.appendChild(buildCard(item.filme, item.tmdb)); });
+        cartaz.slice(0,8).forEach(function(item) { grid.appendChild(buildCard(item.filme, item.tmdb)); });
 
         // Render Em breve
         var breveSection = document.querySelector('.coming-grid[aria-labelledby="h-breve"]') || document.querySelector('.coming-grid');
