@@ -1681,14 +1681,16 @@ function importSalvar() {
     };
   });
 
-  supaFetch('/filmes?on_conflict=url_key', {
+  supaFetch('/filmes', {
     method: 'POST',
-    headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal' },
+    headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal', 'Content-Type': 'application/json' },
     body: JSON.stringify(payloads)
   })
   .then(function(r) {
-    if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
-    return r.text();
+    return r.text().then(function(t) {
+      if (!r.ok) throw new Error(t);
+      return t;
+    });
   })
   .then(function() {
     btn.textContent = 'Cadastrar no Supabase';
