@@ -2027,7 +2027,7 @@ async function runTmdbCleanup() {
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">' +
       '<div><div style="font-size:13px;font-weight:600;color:#1e293b;">' + esc(f.titulo) + '</div>' +
       '<div style="font-size:11px;font-family:monospace;color:#94a3b8;">' + (f.url_key||f.id) + ' · ' + (f.status||'') + '</div></div>' +
-      '<button onclick="excluirFilmeSemTmdb('' + f.id + '', this)" style="font-size:12px;padding:5px 12px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-family:inherit;">Excluir</button>' +
+      '<button onclick="excluirFilmeSemTmdb(\'' + f.id + '\', this)" style="font-size:12px;padding:5px 12px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-family:inherit;">Excluir</button>' +
     '</div>';
   }).join('');
 
