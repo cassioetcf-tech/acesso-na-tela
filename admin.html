@@ -1867,29 +1867,29 @@ async function checkFilmHasSessions(urlKey) {
     dates.push(d.toISOString().slice(0, 10));
   }
 
+  // Check top 5 cities to not depend only on SP
+  var citiesToCheck = ['1', '2', '3', '4', '5'];
+
   try {
     // First get eventId from urlKey
     var eventData = await ingressoFetch('urlKey=' + encodeURIComponent(urlKey));
     var eventId = eventData && eventData.id ? eventData.id : null;
     if (!eventId) return false;
 
-    // Try São Paulo (city 1) for at least one date
-    for (var j = 0; j < dates.length; j++) {
-      try {
-        var sessions = await ingressoFetch(
-          'eventId=' + eventId + '&city=1&date=' + dates[j]
-        );
-        // Sessions exist if we get an array with at least one item with theaters
-        if (Array.isArray(sessions) && sessions.length > 0) return true;
-        if (sessions && sessions.theaters && sessions.theaters.length > 0) return true;
-        if (sessions && sessions.sessions && sessions.sessions.length > 0) return true;
-        // Also check if the response is an object with data
-        if (sessions && typeof sessions === 'object' && !Array.isArray(sessions)) {
-          var vals = Object.values(sessions);
-          if (vals.some(function(v){ return Array.isArray(v) && v.length > 0; })) return true;
+    // Check each city x date — strict: only trust explicit theaters/sessions arrays
+    for (var c = 0; c < citiesToCheck.length; c++) {
+      for (var j = 0; j < dates.length; j++) {
+        try {
+          var sessions = await ingressoFetch(
+            'eventId=' + eventId + '&city=' + citiesToCheck[c] + '&date=' + dates[j]
+          );
+          if (Array.isArray(sessions) && sessions.length > 0) return true;
+          if (sessions && Array.isArray(sessions.theaters) && sessions.theaters.length > 0) return true;
+          if (sessions && Array.isArray(sessions.sessions) && sessions.sessions.length > 0) return true;
+          // NOTE: Object.values fallback removido — causava falso positivo
+        } catch(e) {
+          // Esta cidade/data pode não ter dados — continuar
         }
-      } catch(e) {
-        // This date might not have data — continue
       }
     }
     return false;
