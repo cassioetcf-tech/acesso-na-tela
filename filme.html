@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filme — Acesso na Tela</title>
+  <meta name="description" content="Informações de acessibilidade, sessões e streaming deste filme.">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/a11y.css">
+  <link rel="stylesheet" href="/css/pages/filme.css">
+</head>
+<body class="film-loading">
+  <a href="#main-content" class="skip-link">Ir para o conteúdo [1]</a>
+  <a href="#header-mount" class="skip-link">Ir para o menu [2]</a>
+
+  <div id="a11y-bar-mount"></div>
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
+
+  <div class="shell">
+    <div id="header-mount"></div>
+
+    <main id="main-content" tabindex="-1">
+
+      <!-- SKELETON (visible during film-loading) -->
+      <div class="fp-skeleton" aria-hidden="true">
+        <div class="fp-sk-hero">
+          <div class="fp-sk-poster"></div>
+          <div class="fp-sk-info">
+            <div class="sk-line" style="width:60%;height:32px;margin-bottom:16px;"></div>
+            <div class="sk-line" style="width:40%;height:16px;margin-bottom:8px;"></div>
+            <div class="sk-line" style="width:50%;height:16px;margin-bottom:24px;"></div>
+            <div class="sk-line" style="width:30%;height:40px;border-radius:8px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILM CONTENT (hidden until JS populates) -->
+      <div id="film-body-content">
+
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a href="index.html">Início</a>
+          <span aria-hidden="true">›</span>
+          <span id="bc-film" aria-current="page">Carregando...</span>
+        </nav>
+
+        <section class="fp-hero" aria-labelledby="fp-h1">
+          <div class="fp-hero-inner">
+            <div class="fp-poster-box" id="fp-poster-box">
+              <!-- Poster injected by filme.js -->
+            </div>
+            <div class="fp-info">
+              <div class="fp-meta-pills" id="fp-meta-pills">
+                <!-- Ano · Duração · Gênero -->
+              </div>
+              <h1 class="fp-title" id="fp-h1"></h1>
+              <div class="fp-a11y-chips" id="fp-a11y-chips">
+                <!-- AD / LSE / LIBRAS badges -->
+              </div>
+              <div class="fp-ctas" id="fp-ctas">
+                <!-- App CTA + Ingresso button -->
+              </div>
+              <div class="fp-sinopse-short" id="fp-sinopse-short">
+                <!-- Short overview -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="fp-body">
+          <div class="fp-col-main">
+
+            <!-- TRAILER -->
+            <div class="fp-section" id="trailer-section" style="display:none;">
+              <h2 class="fp-section-title">Trailer</h2>
+              <div class="trailer-wrap" id="trailer-wrap">
+                <div class="trailer-thumb" id="trailer-thumb" role="button" tabindex="0" aria-label="Reproduzir trailer">
+                  <!-- Thumbnail + play icon injected by filme.js -->
+                </div>
+                <div class="trailer-frame" id="trailer-frame" style="display:none;">
+                  <!-- iframe injected on play -->
+                </div>
+              </div>
+            </div>
+
+            <!-- SINOPSE -->
+            <div class="fp-section" id="sinopse-section" style="display:none;">
+              <h2 class="fp-section-title">Sinopse</h2>
+              <p class="fp-sinopse" id="fp-sinopse"></p>
+            </div>
+
+            <!-- SESSÕES -->
+            <div class="fp-section" id="sessoes-section">
+              <h2 class="fp-section-title">Sessões acessíveis</h2>
+              <div class="sessoes-loading" id="sessoes-loading" aria-live="polite">
+                <div class="sk-line" style="width:50%;height:14px;margin-bottom:8px;"></div>
+                <div class="sk-line" style="width:70%;height:14px;margin-bottom:8px;"></div>
+                <div class="sk-line" style="width:40%;height:14px;"></div>
+              </div>
+              <div id="sessoes-content" style="display:none;"></div>
+              <div id="sessoes-empty" style="display:none;">
+                <p class="fp-empty-msg">Nenhuma sessão acessível encontrada no momento.</p>
+              </div>
+            </div>
+
+            <!-- STREAMING -->
+            <div class="fp-section" id="streaming-section" style="display:none;">
+              <h2 class="fp-section-title">Disponível no streaming</h2>
+              <div class="streaming-grid" id="streaming-grid"></div>
+            </div>
+
+            <!-- COMENTÁRIOS -->
+            <div class="fp-section" id="comentarios-section">
+              <h2 class="fp-section-title">Comentários da comunidade</h2>
+              <div class="comment-form" id="comment-form">
+                <label for="comment-nome" class="sr-only">Seu nome</label>
+                <input type="text" id="comment-nome" class="comment-input" placeholder="Seu nome" autocomplete="given-name">
+                <label for="comment-texto" class="sr-only">Comentário</label>
+                <textarea id="comment-texto" class="comment-textarea" placeholder="Compartilhe sua experiência de acessibilidade neste filme..." rows="3"></textarea>
+                <button class="btn btn-primary" onclick="submitComentario()" id="btn-comentar">Publicar</button>
+              </div>
+              <div id="comentarios-list" aria-live="polite" aria-label="Lista de comentários">
+                <!-- Comments injected by filme.js -->
+              </div>
+            </div>
+
+          </div><!-- /.fp-col-main -->
+
+          <aside class="fp-col-side" aria-label="Informações adicionais">
+
+            <!-- APP DESTAQUE -->
+            <div class="app-destaque" id="app-destaque" style="display:none;">
+              <div class="app-destaque-title">Aplicativo necessário</div>
+              <div class="app-destaque-body" id="app-destaque-body">
+                <!-- App card injected by filme.js -->
+              </div>
+            </div>
+
+            <!-- FICHA TÉCNICA -->
+            <div class="fp-ficha" id="fp-ficha" style="display:none;">
+              <div class="fp-ficha-title">Ficha técnica</div>
+              <div class="fp-ficha-body" id="fp-ficha-body">
+                <!-- Director, cast injected by filme.js -->
+              </div>
+            </div>
+
+          </aside>
+        </div><!-- /.fp-body -->
+
+      </div><!-- /#film-body-content -->
+
+      <!-- ERROR STATE -->
+      <div id="film-error" style="display:none;">
+        <div class="fp-error-wrap">
+          <div style="font-size:48px;margin-bottom:16px;">🎬</div>
+          <h1>Filme não encontrado</h1>
+          <p>Não foi possível carregar as informações deste filme.</p>
+          <a href="index.html" class="btn btn-primary">← Voltar ao início</a>
+        </div>
+      </div>
+
+    </main>
+
+    <div id="footer-mount"></div>
+  </div><!-- /.shell -->
+
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/a11y.js"></script>
+  <script src="/js/api/supabase.js"></script>
+  <script src="/js/api/tmdb.js"></script>
+  <script src="/js/api/ingresso.js"></script>
+  <script src="/js/components/header.js"></script>
+  <script src="/js/components/footer.js"></script>
+  <script src="/js/components/film-card.js"></script>
+  <script src="/js/pages/filme.js"></script>
+</body>
+</html>

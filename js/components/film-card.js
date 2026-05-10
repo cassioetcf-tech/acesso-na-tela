@@ -67,7 +67,7 @@ function buildCard(filme, tmdb) {
   var meta   = _buildMeta(tmdb);
   var app    = _pickApp(filme.a11y, filme.app);
   var href   = filme.url_key
-    ? 'acesso-na-tela-filme.html?urlKey=' + encodeURIComponent(filme.url_key)
+    ? 'filme.html?urlKey=' + encodeURIComponent(filme.url_key)
     : '#';
 
   var a = document.createElement('a');
@@ -108,7 +108,7 @@ function buildBreveCard(filme, tmdb) {
     ? new Date(tmdb.release_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
     : 'Em breve';
   var href = filme.url_key
-    ? 'acesso-na-tela-filme.html?urlKey=' + encodeURIComponent(filme.url_key)
+    ? 'filme.html?urlKey=' + encodeURIComponent(filme.url_key)
     : '#';
 
   var a = document.createElement('a');

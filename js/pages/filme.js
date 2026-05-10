@@ -1,5 +1,5 @@
 // ── PÁGINA DE DETALHE DO FILME ────────────────────────────────────────────────
-// Lógica da página acesso-na-tela-filme.html
+// Lógica da página filme.html
 // Depende de: js/api/supabase.js, js/api/tmdb.js, js/api/ingresso.js,
 //             js/utils.js (escHtml, today)
 

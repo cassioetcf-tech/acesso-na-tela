@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell([System.IO.Directory]::GetFileSystemEntries(*))",
+      "PowerShell([System.IO.File]::ReadAllLines(*))",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Write-Host *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(cat *)"
+    ]
+  }
+}

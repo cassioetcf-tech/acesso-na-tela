@@ -1,483 +1,158 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aplicativos — Acesso na Tela</title>
-<meta name="description" content="Baixe os aplicativos para acessar audiodescrição, legenda para surdos e Libras nos filmes. MovieReading, MLOAD, GRETA e PingPlay." />
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap');
-
-:root {
-  --laranja:      #D4500F;
-  --laranja-esc:  #A83D0A;
-  --laranja-cl:   #FDF0EA;
-  --laranja-bdr:  #E8845A;
-  --ink:   #1A1A1A;
-  --ink2:  #444444;
-  --ink3:  #777777;
-  --bg:    #FFFFFF;
-  --bg2:   #F7F6F3;
-  --bg3:   #EDEBE6;
-  --bdr:   rgba(0,0,0,0.11);
-  --bdr2:  rgba(0,0,0,0.20);
-  --r:     14px;
-  --r-sm:  8px;
-  --r-lg:  20px;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 15px;
-  color: var(--ink);
-  background: var(--bg3);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-
-.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
-
-*:focus-visible { outline: 3px solid var(--laranja); outline-offset: 3px; border-radius: 4px; }
-
-.shell { max-width: 1000px; margin: 0 auto; background: var(--bg); min-height: 100vh; }
-
-/* ── A11Y BAR ── */
-.a11y-bar {
-  background: #1A1A1A;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 6px 20px;
-  font-size: 13px;
-  position: relative;
-  z-index: 50;
-}
-.a11y-skip-links { display: flex; gap: 16px; }
-.a11y-skip-btn {
-  color: #ccc;
-  text-decoration: none;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background .15s, color .15s;
-  white-space: nowrap;
-}
-.a11y-skip-btn:hover, .a11y-skip-btn:focus {
-  background: var(--laranja); color: #fff;
-  outline: 2px solid #fff; outline-offset: 1px;
-}
-.a11y-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.a11y-label { color: #aaa; font-size: 12px; white-space: nowrap; }
-.a11y-font-btn {
-  background: transparent; border: 1.5px solid #555; color: #fff;
-  padding: 3px 10px; border-radius: 4px; font-size: 13px; font-weight: 700;
-  cursor: pointer; transition: all .15s; font-family: inherit;
-}
-.a11y-font-btn:hover, .a11y-font-btn:focus-visible { border-color: var(--laranja); color: var(--laranja); }
-.a11y-contrast-wrap { position: relative; }
-.a11y-contrast-btn {
-  background: transparent; border: 1.5px solid #555; color: #fff;
-  padding: 4px 12px; border-radius: 4px; font-size: 12px;
-  cursor: pointer; transition: all .15s; font-family: inherit; white-space: nowrap;
-}
-.a11y-contrast-btn:hover, .a11y-contrast-btn:focus-visible { border-color: var(--laranja); color: var(--laranja); }
-.a11y-contrast-menu {
-  position: absolute; top: calc(100% + 6px); left: 0;
-  background: #2A2A2A; border: 1px solid #444; border-radius: 8px;
-  min-width: 180px; z-index: 200; overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0,0,0,.4);
-}
-.a11y-contrast-menu[hidden] { display: none; }
-.a11y-contrast-menu button {
-  display: block; width: 100%; background: transparent; border: none;
-  color: #fff; padding: 10px 16px; text-align: left; font-size: 13px;
-  cursor: pointer; font-family: inherit; transition: background .15s;
-}
-.a11y-contrast-menu button:hover,
-.a11y-contrast-menu button:focus-visible { background: var(--laranja); outline: none; }
-
-/* ── CONTRAST + FONT MODES ── */
-body.contrast-high    { filter: contrast(1.5) brightness(1.1); }
-body.contrast-inverted { filter: invert(1) hue-rotate(180deg); }
-body.contrast-grayscale { filter: grayscale(1); }
-:root { --fscale: 1; }
-body.font-lg { --fscale: 1.13; }
-body.font-xl { --fscale: 1.25; }
-body.font-lg *, body.font-xl * { font-size: calc(1em * var(--fscale)) !important; line-height: 1.5 !important; }
-
-/* ── HEADER ── */
-header {
-  background: #FFFFFF;
-  border-bottom: 2px solid var(--bg3);
-  padding: 0 28px;
-  height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky; top: 0; z-index: 100;
-}
-.logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
-.logo img { height: 44px; width: auto; display: block; }
-nav { display: flex; gap: 2px; }
-nav a {
-  color: var(--ink2);
-  font-size: 13px; font-weight: 600;
-  padding: 8px 13px; border-radius: var(--r-sm);
-  text-decoration: none; cursor: pointer;
-  transition: background .12s; letter-spacing: 0.1px;
-}
-nav a:hover { background: var(--laranja-cl); color: var(--laranja); }
-nav a.active { background: var(--laranja-cl); color: var(--laranja); font-weight: 700; }
-nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
-
-/* ── HERO ── */
-.apps-hero {
-  background: var(--laranja);
-  padding: 48px 28px 44px;
-}
-.apps-hero h1 {
-  font-family: 'Inter', sans-serif;
-  font-size: clamp(24px, 4vw, 36px);
-  font-weight: 800; color: #fff;
-  line-height: 1.1; letter-spacing: -0.5px;
-  margin-bottom: 10px;
-}
-.apps-hero h1 em { color: #FFE5B0; font-style: italic; font-family: 'Fraunces', serif; font-weight: 500; }
-.apps-hero p { font-size: 15px; color: rgba(255,255,255,0.85); line-height: 1.65; max-width: 560px; }
-
-/* ── MAIN ── */
-.apps-main {
-  padding: 32px 28px 64px;
-}
-
-/* ── APP GRID ── */
-.apps-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-  gap: 16px;
-}
-
-/* ── APP CARD ── */
-.app-card {
-  background: var(--bg);
-  border: 1.5px solid var(--bdr);
-  border-radius: var(--r);
-  padding: 20px;
-  transition: border-color .15s, box-shadow .15s;
-}
-.app-card:hover {
-  border-color: var(--laranja-bdr);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-}
-
-.app-card__header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
-}
-
-.app-ico {
-  width: 52px; height: 52px;
-  border-radius: 12px;
-  flex-shrink: 0;
-  overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-}
-.app-logo-img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
-.app-logo-greta { background: #FFD700 !important; }
-.app-logo-mr    { background: #fff !important; border: 1.5px solid var(--bdr); }
-.app-logo-pp    { background: #fff !important; border: 1px solid var(--bdr); }
-.app-logo-ml    { background: #fff !important; border: 1px solid var(--bdr); }
-
-.app-name {
-  font-size: 17px; font-weight: 700; color: var(--ink);
-  letter-spacing: -0.2px;
-}
-
-/* ── STORE BUTTONS ── */
-.app-card__links {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.app-store-btns {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.app-store-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: #1A1A1A;
-  color: #fff;
-  border-radius: 8px;
-  padding: 8px 14px;
-  text-decoration: none;
-  transition: background .15s, transform .1s;
-  min-width: 140px;
-}
-.app-store-btn:hover { background: #333; transform: translateY(-1px); }
-.app-store-btn:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
-.app-store-btn svg { flex-shrink: 0; }
-.app-store-btn span { display: flex; flex-direction: column; line-height: 1.2; }
-.app-store-btn small { font-size: 10px; font-weight: 400; color: rgba(255,255,255,0.7); }
-.app-store-btn strong { font-size: 13px; font-weight: 600; }
-
-/* ── CONTACT LINKS ── */
-.app-contact {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.app-contact-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ink3);
-  text-decoration: none;
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1.5px solid var(--bdr);
-  background: var(--bg2);
-  transition: all .12s;
-  white-space: nowrap;
-}
-.app-contact-link:hover { border-color: var(--laranja); color: var(--laranja); background: var(--laranja-cl); }
-.app-contact-link:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
-.app-contact-link svg { flex-shrink: 0; }
-
-/* ── FOOTER ── */
-footer { background: var(--bg2); border-top: 1px solid var(--bdr); padding: 22px 28px; text-align: center; font-size: 12px; color: var(--ink3); }
-footer a { color: var(--laranja); text-decoration: none; font-weight: 600; }
-footer a:hover { text-decoration: underline; }
-footer strong { color: var(--ink2); font-weight: 700; }
-.foot-row + .foot-row { margin-top: 5px; }
-
-/* ── RESPONSIVE ── */
-@media (max-width: 640px) {
-  .apps-hero { padding: 32px 16px 28px; }
-  .apps-main { padding: 20px 16px 48px; }
-  .apps-grid { grid-template-columns: 1fr; gap: 12px; }
-  .app-store-btns { flex-direction: column; }
-  .app-store-btn { min-width: unset; }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplicativos — Acesso na Tela</title>
+  <meta name="description" content="Conheça os aplicativos de acessibilidade para cinema e streaming: MovieReading, MLOAD, GRETA e PingPlay.">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/a11y.css">
+  <link rel="stylesheet" href="/css/pages/aplicativos.css">
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Ir para o conteúdo [1]</a>
+  <a href="#header-mount" class="skip-link">Ir para o menu [2]</a>
 
-<!-- A11Y BAR -->
-<div class="a11y-bar" role="toolbar" aria-label="Ferramentas de acessibilidade">
-  <div class="a11y-skip-links">
-    <a href="#main-content" class="a11y-skip-btn">Ir para o conteúdo [1]</a>
-    <a href="#nav-main" class="a11y-skip-btn">Ir para o menu [2]</a>
-  </div>
-  <div class="a11y-controls">
-    <span class="a11y-label">Tamanho do texto:</span>
-    <button class="a11y-font-btn" onclick="changeFontSize('increase')" aria-label="Aumentar fonte">A+</button>
-    <button class="a11y-font-btn" onclick="changeFontSize('decrease')" aria-label="Diminuir fonte">A-</button>
-    <div class="a11y-contrast-wrap">
-      <button class="a11y-contrast-btn" onclick="toggleContrastMenu(this)" aria-haspopup="true" aria-expanded="false" aria-label="Opções de contraste">
-        ◑ Contraste
-      </button>
-      <div class="a11y-contrast-menu" id="contrast-menu" role="menu" hidden>
-        <button role="menuitem" onclick="setContrast('default')">Cores originais</button>
-        <button role="menuitem" onclick="setContrast('high')">Alto contraste</button>
-        <button role="menuitem" onclick="setContrast('inverted')">Cor invertida</button>
-        <button role="menuitem" onclick="setContrast('grayscale')">Escala de cinza</button>
+  <div id="a11y-bar-mount"></div>
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
+
+  <div class="shell">
+    <div id="header-mount"></div>
+
+    <main id="main-content" tabindex="-1">
+
+      <section class="apps-hero" aria-labelledby="apps-h1">
+        <h1 id="apps-h1">Aplicativos de <em>acessibilidade</em></h1>
+        <p>Baixe o aplicativo antes de ir ao cinema. O download do recurso de acessibilidade precisa estar concluído para o sincronismo funcionar. Para suporte, fale diretamente com o fornecedor do aplicativo.</p>
+      </section>
+
+      <div class="apps-main">
+        <div class="apps-grid" role="list" aria-label="Aplicativos de acessibilidade">
+
+          <div class="app-card" role="listitem">
+            <div class="app-card__header">
+              <div class="app-ico app-logo-mr" aria-label="Logo MovieReading">
+                <img src="/assets/app-moviereading.png" alt="MovieReading" class="app-logo-img" loading="lazy">
+              </div>
+              <h2 class="app-name">MovieReading</h2>
+            </div>
+            <div class="app-card__links">
+              <div class="app-store-btns">
+                <a href="https://apps.apple.com/it/app/moviereading/id460349347" class="app-store-btn" target="_blank" rel="noopener" aria-label="MovieReading na App Store">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                  <span><small>Baixar na</small><strong>App Store</strong></span>
+                </a>
+                <a href="https://play.google.com/store/apps/details?id=com.unimaccess.umaclient" class="app-store-btn" target="_blank" rel="noopener" aria-label="MovieReading no Google Play">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48A5.84 5.84 0 0 0 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.3 1.3C7.14 3.07 6 4.99 6 7h12c0-2.01-1.14-3.93-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/></svg>
+                  <span><small>Disponível no</small><strong>Google Play</strong></span>
+                </a>
+              </div>
+              <div class="app-contact">
+                <a href="https://moviereadingbrasil.com.br/" class="app-contact-link" target="_blank" rel="noopener">moviereadingbrasil.com.br</a>
+                <a href="https://www.instagram.com/moviereadingbrasil/" class="app-contact-link" target="_blank" rel="noopener">@moviereadingbrasil</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="app-card" role="listitem">
+            <div class="app-card__header">
+              <div class="app-ico app-logo-ml" aria-label="Logo MLOAD">
+                <img src="/assets/app-mload.png" alt="MLOAD" class="app-logo-img" loading="lazy">
+              </div>
+              <h2 class="app-name">MLOAD</h2>
+            </div>
+            <div class="app-card__links">
+              <div class="app-store-btns">
+                <a href="https://apps.apple.com/br/app/mload/id6444372728" class="app-store-btn" target="_blank" rel="noopener" aria-label="MLOAD na App Store">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                  <span><small>Baixar na</small><strong>App Store</strong></span>
+                </a>
+                <a href="https://play.google.com/store/apps/details?id=com.stenomobi.mobiload" class="app-store-btn" target="_blank" rel="noopener" aria-label="MLOAD no Google Play">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48A5.84 5.84 0 0 0 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.3 1.3C7.14 3.07 6 4.99 6 7h12c0-2.01-1.14-3.93-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/></svg>
+                  <span><small>Disponível no</small><strong>Google Play</strong></span>
+                </a>
+              </div>
+              <div class="app-contact">
+                <a href="https://gomav.co/m-load/" class="app-contact-link" target="_blank" rel="noopener">gomav.co/m-load</a>
+                <a href="https://www.instagram.com/mloadapp/" class="app-contact-link" target="_blank" rel="noopener">@mloadapp</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="app-card" role="listitem">
+            <div class="app-card__header">
+              <div class="app-ico app-logo-greta" aria-label="Logo GRETA">
+                <img src="/assets/app-greta.png" alt="GRETA" class="app-logo-img" loading="lazy">
+              </div>
+              <h2 class="app-name">GRETA</h2>
+            </div>
+            <div class="app-card__links">
+              <div class="app-store-btns">
+                <a href="https://apps.apple.com/br/app/greta/id793892423" class="app-store-btn" target="_blank" rel="noopener" aria-label="GRETA na App Store">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                  <span><small>Baixar na</small><strong>App Store</strong></span>
+                </a>
+                <a href="https://play.google.com/store/apps/details?id=de.debesefilm.greta" class="app-store-btn" target="_blank" rel="noopener" aria-label="GRETA no Google Play">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48A5.84 5.84 0 0 0 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.3 1.3C7.14 3.07 6 4.99 6 7h12c0-2.01-1.14-3.93-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/></svg>
+                  <span><small>Disponível no</small><strong>Google Play</strong></span>
+                </a>
+              </div>
+              <div class="app-contact">
+                <a href="https://www.gretaundstarks.de/starks/GretaEStarks" class="app-contact-link" target="_blank" rel="noopener">gretaundstarks.de</a>
+                <a href="https://www.instagram.com/greta_starks/" class="app-contact-link" target="_blank" rel="noopener">@greta_starks</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="app-card" role="listitem">
+            <div class="app-card__header">
+              <div class="app-ico app-logo-pp" aria-label="Logo PingPlay">
+                <img src="/assets/app-pingplay.png" alt="PingPlay" class="app-logo-img" loading="lazy">
+              </div>
+              <h2 class="app-name">PingPlay</h2>
+            </div>
+            <div class="app-card__links">
+              <div class="app-store-btns">
+                <a href="https://apps.apple.com/us/app/pingplay/id1592113008" class="app-store-btn" target="_blank" rel="noopener" aria-label="PingPlay na App Store">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                  <span><small>Baixar na</small><strong>App Store</strong></span>
+                </a>
+                <a href="https://play.google.com/store/apps/details?id=com.etc.pingplay" class="app-store-btn" target="_blank" rel="noopener" aria-label="PingPlay no Google Play">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48A5.84 5.84 0 0 0 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.3 1.3C7.14 3.07 6 4.99 6 7h12c0-2.01-1.14-3.93-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/></svg>
+                  <span><small>Disponível no</small><strong>Google Play</strong></span>
+                </a>
+              </div>
+              <div class="app-contact">
+                <a href="https://pingplay.com.br/" class="app-contact-link" target="_blank" rel="noopener">pingplay.com.br</a>
+                <a href="https://www.instagram.com/ping.play/" class="app-contact-link" target="_blank" rel="noopener">@ping.play</a>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
-    </div>
+
+    </main>
+
+    <div id="footer-mount"></div>
   </div>
-</div>
 
-<div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
-
-<div class="shell">
-
-<!-- HEADER -->
-<header role="banner">
-  <a class="logo" href="index.html" aria-label="Acesso na Tela — página inicial">
-    <img src="assets/logo.png" alt="Acesso na Tela" />
-  </a>
-  <nav id="nav-main" role="navigation" aria-label="Navegação principal">
-    <a href="index.html#h-cartaz">Em cartaz</a>
-    <a href="index.html#h-breve">Em breve</a>
-    <a href="catalogo.html">Catálogo</a>
-    <a href="aplicativos.html" class="active" aria-current="page">Aplicativos</a>
-    <a href="faq.html">FAQ</a>
-  </nav>
-</header>
-
-<!-- HERO -->
-<section class="apps-hero" aria-labelledby="apps-h1">
-  <h1 id="apps-h1">Aplicativos de <em>acessibilidade</em></h1>
-  <p>Baixe o aplicativo antes de ir ao cinema. Lembre-se que o download do recurso de acessibilidade precisa estar concluído para o sincronismo com o filme nos cinemas ou nas plataformas de streaming.
-  Para mais informações fale diretamente com o fornecedor do aplicativo.</p>
-</section>
-
-<!-- GRID DE APPS -->
-<main id="main-content" class="apps-main" tabindex="-1">
-  <div class="apps-grid" role="list" aria-label="Aplicativos de acessibilidade">
-<div class="app-card" role="listitem">
-          <div class="app-card__header">
-            <div class="app-ico app-logo-mr" aria-label="Logo MovieReading">
-              <img src="assets/app-moviereading.png" alt="MovieReading" class="app-logo-img" />
-            </div>
-            <h2 class="app-name">MovieReading</h2>
-          </div>
-          <div class="app-card__links">
-            <div class="app-store-btns">
-              <a href="https://apps.apple.com/it/app/moviereading/id460349347" class="app-store-btn" target="_blank" rel="noopener" aria-label="MovieReading na App Store">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                <span><small>Baixar na</small><strong>App Store</strong></span>
-              </a>
-              <a href="https://play.google.com/store/apps/details?id=com.unimaccess.umaclient" class="app-store-btn" target="_blank" rel="noopener" aria-label="MovieReading no Google Play">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48A5.84 5.84 0 0 0 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.3 1.3C7.14 3.07 6 4.99 6 7h12c0-2.01-1.14-3.93-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/></svg>
-                <span><small>Disponível no</small><strong>Google Play</strong></span>
-              </a>
-            </div>
-            <div class="app-contact">
-              <a href="https://moviereadingbrasil.com.br/" class="app-contact-link" target="_blank" rel="noopener"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> moviereadingbrasil.com.br</a>
-              <a href="/cdn-cgi/l/email-protection#c4a7abaab0a5b0ab84a9abb2ada1b6a1a5a0adaaa3a6b6a5b7ada8eaa7aba9eaa6b6" class="app-contact-link"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> <span class="__cf_email__" data-cfemail="d4b7bbbaa0b5a0bb94b9bba2bdb1a6b1b5b0bdbab3b6a6b5a7bdb8fab7bbb9fab6a6">[email&#160;protected]</span></a>
-              <a href="https://www.instagram.com/moviereadingbrasil/" class="app-contact-link" target="_blank" rel="noopener"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> @moviereadingbrasil</a>
-            </div>
-          </div>
-        </div>
-<div class="app-card" role="listitem">
-          <div class="app-card__header">
-            <div class="app-ico app-logo-ml" aria-label="Logo MLOAD">
-              <img src="assets/app-mload.png" alt="MLOAD" class="app-logo-img" />
-            </div>
-            <h2 class="app-name">MLOAD</h2>
-          </div>
-          <div class="app-card__links">
-            <div class="app-store-btns">
-              <a href="https://apps.apple.com/br/app/mload/id6444372728" class="app-store-btn" target="_blank" rel="noopener" aria-label="MLOAD na App Store">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                <span><small>Baixar na</small><strong>App Store</strong></span>
-              </a>
-              <a href="https://play.google.com/store/apps/details?id=com.stenomobi.mobiload" class="app-store-btn" target="_blank" rel="noopener" aria-label="MLOAD no Google Play">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48A5.84 5.84 0 0 0 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.3 1.3C7.14 3.07 6 4.99 6 7h12c0-2.01-1.14-3.93-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/></svg>
-                <span><small>Disponível no</small><strong>Google Play</strong></span>
-              </a>
-            </div>
-            <div class="app-contact">
-              <a href="https://gomav.co/m-load/" class="app-contact-link" target="_blank" rel="noopener"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> gomav.co/m-load</a>
-              <a href="/cdn-cgi/l/email-protection#94f9f5e2d4f3fbf9f5e2baf7fb" class="app-contact-link"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> <span class="__cf_email__" data-cfemail="563b37201631393b3720783539">[email&#160;protected]</span></a>
-              <a href="https://www.instagram.com/mloadapp/" class="app-contact-link" target="_blank" rel="noopener"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> @mloadapp</a>
-            </div>
-          </div>
-        </div>
-<div class="app-card" role="listitem">
-          <div class="app-card__header">
-            <div class="app-ico app-logo-greta" aria-label="Logo GRETA">
-              <img src="assets/app-greta.png" alt="GRETA" class="app-logo-img" />
-            </div>
-            <h2 class="app-name">GRETA</h2>
-          </div>
-          <div class="app-card__links">
-            <div class="app-store-btns">
-              <a href="https://apps.apple.com/br/app/greta/id793892423" class="app-store-btn" target="_blank" rel="noopener" aria-label="GRETA na App Store">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                <span><small>Baixar na</small><strong>App Store</strong></span>
-              </a>
-              <a href="https://play.google.com/store/apps/details?id=de.debesefilm.greta&hl=en-US" class="app-store-btn" target="_blank" rel="noopener" aria-label="GRETA no Google Play">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48A5.84 5.84 0 0 0 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.3 1.3C7.14 3.07 6 4.99 6 7h12c0-2.01-1.14-3.93-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/></svg>
-                <span><small>Disponível no</small><strong>Google Play</strong></span>
-              </a>
-            </div>
-            <div class="app-contact">
-              <a href="https://www.gretaundstarks.de/starks/GretaEStarks" class="app-contact-link" target="_blank" rel="noopener"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> www.gretaundstarks.de/starks/GretaEStarks</a>
-              
-              <a href="https://www.instagram.com/greta_starks/" class="app-contact-link" target="_blank" rel="noopener"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> @greta_starks</a>
-            </div>
-          </div>
-        </div>
-<div class="app-card" role="listitem">
-          <div class="app-card__header">
-            <div class="app-ico app-logo-pp" aria-label="Logo PingPlay">
-              <img src="assets/app-pingplay.png" alt="PingPlay" class="app-logo-img" />
-            </div>
-            <h2 class="app-name">PingPlay</h2>
-          </div>
-          <div class="app-card__links">
-            <div class="app-store-btns">
-              <a href="https://apps.apple.com/us/app/pingplay/id1592113008" class="app-store-btn" target="_blank" rel="noopener" aria-label="PingPlay na App Store">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                <span><small>Baixar na</small><strong>App Store</strong></span>
-              </a>
-              <a href="https://play.google.com/store/apps/details?id=com.etc.pingplay&pli=1" class="app-store-btn" target="_blank" rel="noopener" aria-label="PingPlay no Google Play">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48A5.84 5.84 0 0 0 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.3 1.3C7.14 3.07 6 4.99 6 7h12c0-2.01-1.14-3.93-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/></svg>
-                <span><small>Disponível no</small><strong>Google Play</strong></span>
-              </a>
-            </div>
-            <div class="app-contact">
-              <a href="https://pingplay.com.br/" class="app-contact-link" target="_blank" rel="noopener"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> pingplay.com.br</a>
-              <a href="/cdn-cgi/l/email-protection#61020e0f1500150e2104150207080d0c04124f020e0c4f0313" class="app-contact-link"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> <span class="__cf_email__" data-cfemail="294a46475d485d46694c5d4a4f4045444c5a074a4644074b5b">[email&#160;protected]</span></a>
-              <a href="https://www.instagram.com/ping.play/" class="app-contact-link" target="_blank" rel="noopener"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> @ping.play</a>
-            </div>
-          </div>
-        </div>
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
   </div>
-</main>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
 
-<!-- FOOTER -->
-<footer role="contentinfo">
-  <p class="foot-row" style="margin-bottom:14px;"><img src="assets/logo.png" alt="Acesso na Tela" style="height:36px;width:auto;opacity:0.85;" /></p>
-  <p class="foot-row"><a href="#">Política de Privacidade</a> &nbsp;·&nbsp; <a href="#">Acessibilidade</a> &nbsp;·&nbsp; <a href="#">Fale Conosco</a></p>
-  <p class="foot-row" style="font-size:11px;margin-top:5px;">VLibras · WCAG 2.2 AA · ABNT NBR 17225</p>
-</footer>
-
-</div><!-- /.shell -->
-
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// ── A11Y: FONTE ────────────────────────────────────────────────────────────
-var fontLevel = 0;
-function changeFontSize(dir) {
-  if (dir === 'increase' && fontLevel < 2) fontLevel++;
-  if (dir === 'decrease' && fontLevel > 0) fontLevel--;
-  document.body.classList.remove('font-lg', 'font-xl');
-  if (fontLevel === 1) document.body.classList.add('font-lg');
-  if (fontLevel === 2) document.body.classList.add('font-xl');
-  try { localStorage.setItem('ant_font', fontLevel); } catch(e) {}
-}
-
-// ── A11Y: CONTRASTE ────────────────────────────────────────────────────────
-function setContrast(mode) {
-  document.body.classList.remove('contrast-high', 'contrast-inverted', 'contrast-grayscale');
-  if (mode !== 'default') document.body.classList.add('contrast-' + mode);
-  try { localStorage.setItem('ant_contrast', mode); } catch(e) {}
-  var menu = document.getElementById('contrast-menu');
-  if (menu) menu.hidden = true;
-  var btn = document.querySelector('.a11y-contrast-btn');
-  if (btn) btn.setAttribute('aria-expanded', 'false');
-}
-function toggleContrastMenu(btn) {
-  var menu = document.getElementById('contrast-menu');
-  if (!menu) return;
-  var isOpen = !menu.hidden;
-  menu.hidden = isOpen;
-  btn.setAttribute('aria-expanded', String(!isOpen));
-  if (!isOpen) { var first = menu.querySelector('button'); if (first) first.focus(); }
-}
-
-// ── RESTAURAR PREFERÊNCIAS ─────────────────────────────────────────────────
-(function() {
-  try {
-    var f = parseInt(localStorage.getItem('ant_font') || '0');
-    fontLevel = f;
-    document.body.classList.remove('font-lg', 'font-xl');
-    if (fontLevel === 1) document.body.classList.add('font-lg');
-    if (fo
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/a11y.js"></script>
+  <script src="/js/components/header.js"></script>
+  <script src="/js/components/footer.js"></script>
+</body>
+</html>
