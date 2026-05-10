@@ -83,40 +83,42 @@ function doSearch(val) {
 }
 
 /**
- * Inicializa o formulário de newsletter.
+ * Chamado via onsubmit="submitNewsletter(event)" no index.html.
+ * POSTa os dados no Supabase (tabela newsletter_subscribers).
  */
-function initNewsletter() {
-  var form = document.getElementById('newsletter-form') ||
-             document.querySelector('.newsletter-form');
-  if (!form) return;
+async function submitNewsletter(event) {
+  event.preventDefault();
+  var form = event.target;
 
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var emailEl = form.querySelector('input[type="email"]');
-    var email   = emailEl ? emailEl.value.trim() : '';
-    if (!email) return;
+  var nome  = (document.getElementById('nl-nome')  || {}).value || '';
+  var email = (document.getElementById('nl-email') || {}).value || '';
+  if (!email.trim()) return;
 
-    var msg = form.querySelector('.newsletter-msg') ||
-              form.querySelector('[role="status"]');
+  var prefs = Array.from(form.querySelectorAll('input[name="pref"]:checked'))
+                   .map(function (el) { return el.value; });
 
-    // Salva localmente e confirma (integração real pode ser adicionada aqui)
-    try {
-      var subs = JSON.parse(localStorage.getItem('ant_newsletter') || '[]');
-      if (!subs.includes(email)) {
-        subs.push(email);
-        localStorage.setItem('ant_newsletter', JSON.stringify(subs));
-      }
-    } catch (e) {}
+  var btn = form.querySelector('button[type="submit"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
 
-    if (msg) {
-      msg.textContent = 'Obrigado! Você receberá novidades sobre filmes acessíveis.';
-    }
-    if (emailEl) emailEl.value = '';
-  });
+  try {
+    await supabasePost(
+      'newsletter_subscribers',
+      { nome: nome.trim(), email: email.trim(), prefs: prefs, subscribed_at: new Date().toISOString() },
+      'resolution=ignore-duplicates,return=minimal'
+    );
+    var wrap    = document.getElementById('nl-form-wrap');
+    var success = document.getElementById('nl-success');
+    if (wrap)    wrap.style.display    = 'none';
+    if (success) success.removeAttribute('hidden');
+  } catch (err) {
+    console.error('Erro ao cadastrar newsletter:', err);
+    if (btn) { btn.disabled = false; btn.textContent = 'Quero receber'; }
+    var liveEl = document.getElementById('live-region');
+    if (liveEl) liveEl.textContent = 'Erro ao cadastrar. Tente novamente.';
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', function () {
   loadCatalog();
-  initNewsletter();
 });

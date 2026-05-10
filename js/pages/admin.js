@@ -817,6 +817,73 @@ async function runSync() {
   showToast('Sincronização concluída: ' + changed + ' atualização(ões).', 'success');
 }
 
+// ── Moderação de comentários ──────────────────────────────────────────────────
+
+async function loadComentarios() {
+  var container = document.getElementById('comentarios-admin-list');
+  if (!container) return;
+  container.innerHTML = '<p style="font-size:13px;color:var(--ink3)">Carregando...</p>';
+
+  try {
+    var rows = await supabaseGet(
+      'comentarios',
+      'order=created_at.desc&limit=100'
+    );
+    if (!rows || !rows.length) {
+      container.innerHTML = '<p style="font-size:13px;color:var(--ink3);padding:12px 0;">Nenhum comentário cadastrado.</p>';
+      return;
+    }
+    container.innerHTML = rows.map(function (c) {
+      var aprovadoTag = c.aprovado === true
+        ? '<span style="background:#dcfce7;color:#166534;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">Aprovado</span>'
+        : c.aprovado === false
+        ? '<span style="background:#fee2e2;color:#991b1b;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">Rejeitado</span>'
+        : '<span style="background:#fef9c3;color:#854d0e;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">Pendente</span>';
+
+      return '<div class="comentario-admin-item" id="cmt-' + escHtml(c.id) + '" style="border:1px solid var(--bdr);border-radius:8px;padding:12px 14px;margin-bottom:8px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">' +
+          '<div>' +
+            '<span style="font-weight:600;font-size:13px;">' + escHtml(c.autor || 'Anônimo') + '</span>' +
+            ' <span style="font-size:11px;color:var(--ink3);">· ' + escHtml(c.url_key || '') + '</span>' +
+            ' · ' + aprovadoTag +
+          '</div>' +
+          '<div style="display:flex;gap:6px;">' +
+            (c.aprovado !== true
+              ? '<button class="btn btn-outline" style="font-size:11px;padding:4px 10px;" onclick="aprovarComentario(\'' + escHtml(c.id) + '\')">✓ Aprovar</button>'
+              : '') +
+            '<button class="btn" style="font-size:11px;padding:4px 10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;" onclick="excluirComentario(\'' + escHtml(c.id) + '\')">✕ Excluir</button>' +
+          '</div>' +
+        '</div>' +
+        '<p style="margin:8px 0 0;font-size:13px;color:var(--ink2);line-height:1.5;">' + escHtml(c.texto || '') + '</p>' +
+        '</div>';
+    }).join('');
+  } catch (err) {
+    container.innerHTML = '<p style="font-size:13px;color:#dc2626;padding:12px 0;">Erro ao carregar comentários: ' + escHtml(err.message) + '</p>';
+  }
+}
+
+async function aprovarComentario(id) {
+  try {
+    await supabasePatch('comentarios', 'id=eq.' + encodeURIComponent(id), { aprovado: true });
+    showToast('Comentário aprovado.', 'success');
+    loadComentarios();
+  } catch (err) {
+    showToast('Erro ao aprovar: ' + err.message, 'error');
+  }
+}
+
+async function excluirComentario(id) {
+  if (!confirm('Excluir este comentário? Esta ação é irreversível.')) return;
+  try {
+    await supabaseDelete('comentarios', 'id=eq.' + encodeURIComponent(id));
+    var el = document.getElementById('cmt-' + id);
+    if (el) el.remove();
+    showToast('Comentário excluído.', 'success');
+  } catch (err) {
+    showToast('Erro ao excluir: ' + err.message, 'error');
+  }
+}
+
 // ── Toast ─────────────────────────────────────────────────────────────────────
 function showToast(msg, type) {
   var t = document.getElementById('toast');

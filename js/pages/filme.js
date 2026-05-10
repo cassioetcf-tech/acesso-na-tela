@@ -387,13 +387,15 @@ function _renderSessoes(data, container, a11yFlags) {
  * Carrega comentários do Supabase para um filme e os renderiza.
  */
 async function initComentarios(urlKey) {
-  var container = document.getElementById('comentarios-lista');
+  var container = document.getElementById('comentarios-list');
   if (!container) return;
 
   try {
     var rows = await supabaseGet(
       'comentarios',
-      'url_key=eq.' + encodeURIComponent(urlKey) + '&order=created_at.desc&limit=50'
+      'url_key=eq.' + encodeURIComponent(urlKey) +
+      '&or=(aprovado.is.null,aprovado.eq.true)' +
+      '&order=created_at.desc&limit=50'
     );
     _renderComentarios(rows || [], container);
   } catch (err) {
@@ -415,17 +417,35 @@ function _renderComentarios(rows, container) {
 }
 
 /**
- * Envia um novo comentário para o Supabase.
+ * Chamado via onclick="submitComentario()" no filme.html.
+ * Lê urlKey da URL e os campos do formulário no DOM.
  */
-async function submitComentario(urlKey, dados) {
-  var payload = {
-    url_key:    urlKey,
-    autor:      dados.autor || 'Anônimo',
-    texto:      dados.texto || '',
-    created_at: new Date().toISOString(),
-  };
-  await supabasePost('comentarios', payload);
-  await initComentarios(urlKey);
+async function submitComentario() {
+  var urlKey = new URLSearchParams(window.location.search).get('urlKey') || '';
+  var autor  = ((document.getElementById('comment-nome')  || {}).value || '').trim();
+  var texto  = ((document.getElementById('comment-texto') || {}).value || '').trim();
+  if (!texto) return;
+
+  var btn = document.getElementById('btn-comentar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Publicando...'; }
+
+  try {
+    await supabasePost('comentarios', {
+      url_key:    urlKey,
+      autor:      autor || 'Anônimo',
+      texto:      texto,
+      created_at: new Date().toISOString(),
+    });
+    var nomeEl  = document.getElementById('comment-nome');
+    var textoEl = document.getElementById('comment-texto');
+    if (nomeEl)  nomeEl.value  = '';
+    if (textoEl) textoEl.value = '';
+    await initComentarios(urlKey);
+  } catch (err) {
+    console.error('Erro ao enviar comentário:', err);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Publicar'; }
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -447,17 +467,4 @@ window.addEventListener('load', function () {
 
   loadFilme(urlKey);
   initComentarios(urlKey);
-
-  // Formulário de comentário
-  var form = document.getElementById('form-comentario');
-  if (form) {
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var autor = (document.getElementById('c-autor') || {}).value || 'Anônimo';
-      var texto = (document.getElementById('c-texto') || {}).value || '';
-      if (!texto.trim()) return;
-      submitComentario(urlKey, { autor: autor, texto: texto });
-      form.reset();
-    });
-  }
 });
