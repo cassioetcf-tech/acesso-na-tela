@@ -1,0 +1,216 @@
+/* ═══════════════════════════════════════
+   FILME PAGE — ACESSO NA TELA
+   fp-hero, fp-body, blocks, app-destaque,
+   sessões, horários, streaming, comentários,
+   sidebar, trailer, vlibras panel,
+   skeleton do filme, cinema list
+═══════════════════════════════════════ */
+
+/* ── FILM PAGE HERO ── */
+.fp-hero { background: var(--laranja); padding: 34px 28px 38px; }
+.fp-inner { display: flex; gap: 24px; align-items: flex-end; }
+.fp-poster {
+  width: 112px; flex-shrink: 0; aspect-ratio: 2/3;
+  border-radius: var(--r-sm); border: 3px solid rgba(255,255,255,0.22);
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 9px;
+}
+.fp-poster-title { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; color: #fff; line-height: 1.2; }
+.fp-info { flex: 1; padding-bottom: 4px; }
+.fp-h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(22px, 3.5vw, 34px);
+  font-weight: 800; color: #fff; line-height: 1.05;
+  margin-bottom: 6px; letter-spacing: -0.5px;
+}
+.fp-orig { font-size: 12px; color: rgba(255,255,255,0.5); font-style: normal; margin-bottom: 14px; font-weight: 500; }
+
+/* Meta pills */
+.meta-pills { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+.mpill { font-size: 11px; color: rgba(255,255,255,0.8); background: rgba(0,0,0,0.2); border-radius: 20px; padding: 4px 11px; font-weight: 600; }
+.mpill-r { background: #1A1A1A; color: #fff; font-weight: 700; }
+
+/* A11y chips (hero) */
+.a11y-chips { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 22px; }
+.achip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 0.2px; }
+.ac-ad  { background: var(--ad); color: #fff; }
+.ac-lse { background: var(--lse); color: #fff; }
+.ac-lib { background: var(--lib); color: #fff; }
+
+/* CTA buttons */
+.fp-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-prim {
+  background: #fff; color: var(--laranja-esc);
+  border: none; border-radius: var(--r-sm);
+  padding: 12px 24px; font-size: 14px; font-weight: 800;
+  cursor: pointer; font-family: inherit; letter-spacing: 0.1px;
+}
+.btn-prim:hover { background: #FDF0EA; }
+.btn-prim:focus-visible { outline: 3px solid #FFD600; }
+.btn-sec {
+  background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.9);
+  border: 2px solid rgba(255,255,255,0.38); border-radius: var(--r-sm);
+  padding: 12px 24px; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+}
+.btn-sec:hover { background: rgba(255,255,255,0.24); }
+.btn-sec:focus-visible { outline: 3px solid #FFD600; }
+
+/* ── FILM PAGE BODY ── */
+.fp-body { display: grid; grid-template-columns: minmax(0,1fr) 264px; gap: 24px; padding: 28px 28px 60px; }
+@media (max-width: 680px) { .fp-body { grid-template-columns: 1fr; } }
+
+/* Sinopse text */
+.sinopse { font-size: 14px; line-height: 1.75; color: var(--ink2); }
+.sinopse + .sinopse { margin-top: 10px; }
+
+/* ── APP DESTAQUE ── */
+.app-destaque { background: var(--laranja-cl); border: 2px solid var(--laranja-bdr); border-radius: var(--r); padding: 18px 20px; margin-bottom: 16px; }
+.ad-header { display: flex; align-items: center; gap: 13px; margin-bottom: 13px; }
+.ad-ico { width: 42px; height: 42px; border-radius: var(--r-sm); background: #fff; border: 2px solid var(--laranja-bdr); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.ad-name { font-size: 15px; font-weight: 800; color: var(--laranja-esc); }
+.ad-sub { font-size: 11px; color: var(--laranja); margin-top: 1px; font-weight: 600; }
+.recursos-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.rtag { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 6px; letter-spacing: .3px; }
+.rt-ad  { background: var(--ad); color: #fff; }
+.rt-lse { background: var(--lse); color: #fff; }
+.rt-lib { background: var(--lib); color: #fff; }
+.rt-ao  { background: #2C2C2C; color: #fff; }
+.btn-abrir {
+  display: block; width: 100%;
+  background: var(--laranja); color: #fff; border: none;
+  border-radius: var(--r-sm); padding: 12px;
+  font-size: 14px; font-weight: 800; cursor: pointer;
+  text-align: center; font-family: inherit; letter-spacing: 0.1px;
+}
+.btn-abrir:hover { background: var(--laranja-esc); }
+
+/* ── SESSÕES ── */
+.cidade-row { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
+.sel { flex: 1; background: var(--bg); border: 1.5px solid var(--bdr); border-radius: var(--r-sm); padding: 10px 13px; font-size: 14px; color: var(--ink); font-family: inherit; font-weight: 500; }
+.sel:focus { outline: 3px solid var(--laranja); }
+.cinema-block { background: var(--bg); border: 1.5px solid var(--bdr); border-radius: var(--r); padding: 16px 18px; margin-bottom: 12px; }
+.cinema-name { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+.cinema-end { font-size: 12px; color: var(--ink3); margin-bottom: 13px; font-weight: 400; }
+.horarios { display: flex; gap: 8px; flex-wrap: wrap; }
+.hora-btn {
+  background: var(--bg2); border: 1.5px solid var(--bdr);
+  border-radius: var(--r-sm); padding: 8px 13px;
+  font-size: 13px; font-weight: 600; color: var(--ink);
+  cursor: pointer; font-family: inherit; transition: all .12s;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.hora-btn:hover { background: var(--laranja-cl); border-color: var(--laranja-bdr); color: var(--laranja-esc); }
+.hora-tipo { font-size: 10px; font-weight: 800; color: var(--laranja); }
+.hora-btn.esgotado { opacity: .3; cursor: default; text-decoration: line-through; }
+.hora-btn.esgotado .hora-tipo { color: var(--ink3); }
+
+/* ── STREAMING ── */
+.str-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+.str-card { background: var(--bg); border: 1.5px solid var(--bdr); border-radius: var(--r); padding: 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.str-ico { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; }
+.str-name { font-size: 12px; font-weight: 700; color: var(--ink); }
+.str-ok { font-size: 11px; color: var(--ad); font-weight: 700; }
+.str-no { font-size: 11px; color: var(--ink3); }
+
+/* ── COMMENTS ── */
+.comment-form label { display: block; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 7px; }
+.comment-ta { width: 100%; background: var(--bg2); border: 1.5px solid var(--bdr); border-radius: var(--r-sm); padding: 11px 13px; font-size: 13px; font-family: inherit; color: var(--ink); resize: vertical; min-height: 82px; }
+.comment-ta:focus { outline: 3px solid var(--laranja); }
+.comment-send { display: block; width: 100%; margin-top: 9px; background: var(--laranja-cl); color: var(--laranja-esc); border: 2px solid var(--laranja-bdr); border-radius: var(--r-sm); padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.comment-send:hover { background: #FAD5C0; }
+.comments-list { margin-top: 16px; }
+.comment { padding: 11px 0; border-bottom: 1px solid var(--bdr); }
+.comment:last-child { border-bottom: none; }
+.cu { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.ct { font-size: 13px; color: var(--ink2); line-height: 1.55; }
+.ctime { font-size: 11px; color: var(--ink3); margin-top: 4px; font-weight: 500; }
+
+/* ── SIDEBAR ── */
+.sb-card { background: var(--bg); border: 1.5px solid var(--bdr); border-radius: var(--r); padding: 16px 18px; margin-bottom: 14px; }
+.sb-title { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 800; color: var(--ink); margin-bottom: 13px; letter-spacing: -0.2px; }
+.info-row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--bdr); font-size: 13px; }
+.info-row:last-child { border-bottom: none; }
+.ir-l { color: var(--ink3); font-weight: 500; }
+.ir-v { font-weight: 700; color: var(--ink); text-align: right; }
+.ir-v.verde { color: var(--ad); }
+.aviso { background: #EBF3FF; border: 1.5px solid #6AABF0; border-radius: var(--r-sm); padding: 11px 14px; font-size: 12px; color: #003A82; line-height: 1.55; margin-bottom: 14px; font-weight: 500; }
+
+/* ── TRAILER ── */
+.trailer-wrap {
+  width: 100%; aspect-ratio: 16/9;
+  border-radius: var(--r); overflow: hidden;
+  background: #000; margin-bottom: 0;
+  position: relative;
+}
+.trailer-thumb {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative;
+  background: #111;
+}
+.trailer-thumb img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+.trailer-play {
+  position: absolute;
+  width: 70px; height: 70px;
+  background: var(--laranja);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .15s, background .15s;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+.trailer-play svg { margin-left: 5px; }
+.trailer-thumb:hover .trailer-play { transform: scale(1.1); background: var(--laranja-esc); }
+.trailer-thumb:focus-visible { outline: 3px solid var(--laranja); outline-offset: 3px; }
+.trailer-iframe { display: none; width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0; }
+
+/* ── VLIBRAS PANEL ── */
+.vl-widget { display: none; background: rgba(0,0,0,0.6); padding: 24px; border-bottom: 3px solid var(--laranja); }
+.vl-widget.open { display: block; }
+.vl-box { background: #1a1a1a; border-radius: var(--r); padding: 20px; max-width: 330px; margin: 0 auto; }
+.vl-title { font-size: 15px; font-weight: 700; color: #FFD600; margin-bottom: 3px; }
+.vl-sub { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 14px; }
+.vl-avatar { width: 100%; aspect-ratio: 4/3; background: #111; border-radius: var(--r-sm); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; }
+.vl-fig { width: 55px; height: 75px; background: #333; border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%; }
+.vl-status { font-size: 11px; color: rgba(255,255,255,0.4); }
+.vl-text { font-size: 13px; color: rgba(255,255,255,0.82); background: #222; border-radius: 6px; padding: 11px; line-height: 1.55; margin-bottom: 12px; }
+.vl-close { width: 100%; background: rgba(255,255,255,0.1); color: #fff; border: none; border-radius: var(--r-sm); padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.vl-close:hover { background: rgba(255,255,255,0.18); }
+
+/* ── SKELETON DO FILME ── */
+.sk-body-film { padding: 28px 28px 60px; display: grid; grid-template-columns: minmax(0,1fr) 264px; gap: 24px; }
+@media (max-width: 680px) { .sk-body-film { grid-template-columns: 1fr; } }
+.sk-label {
+  height: 10px; width: 80px;
+  border-radius: 4px; margin-bottom: 12px;
+  background: linear-gradient(90deg, var(--bdr) 25%, var(--laranja-cl) 50%, var(--bdr) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.sk-block-title {
+  height: 18px; width: 60%;
+  border-radius: 4px; margin-bottom: 14px;
+  background: linear-gradient(90deg, var(--bdr) 25%, var(--laranja-cl) 50%, var(--bdr) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.sk-para {
+  height: 12px; border-radius: 4px; margin-bottom: 8px;
+  background: linear-gradient(90deg, var(--bdr) 25%, var(--laranja-cl) 50%, var(--bdr) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── CINEMA LIST ── */
+.page-inner { padding: 36px 28px 60px; }
+.page-h1 { font-family: 'Inter', sans-serif; font-size: 28px; font-weight: 800; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.5px; }
+.page-sub { font-size: 14px; color: var(--ink2); line-height: 1.65; margin-bottom: 28px; font-weight: 400; }
+.cinema-list { display: flex; flex-direction: column; gap: 12px; }
+.cinema-row { background: var(--bg); border: 1.5px solid var(--bdr); border-radius: var(--r); padding: 18px 20px; display: flex; gap: 14px; align-items: flex-start; }
+.cinema-row:hover { border-color: var(--laranja); }
+.cinema-info { flex: 1; }
+.cinema-list-name { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+.cinema-list-end { font-size: 12px; color: var(--ink3); margin-bottom: 11px; font-weight: 400; }
