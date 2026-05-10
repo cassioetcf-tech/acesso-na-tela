@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap');
+
+:root {
+  --laranja:      #D4500F;
+  --laranja-esc:  #A83D0A;
+  --laranja-cl:   #FDF0EA;
+  --laranja-bdr:  #E8845A;
+  --ink:   #1A1A1A;
+  --ink2:  #444444;
+  --ink3:  #777777;
+  --bg:    #FFFFFF;
+  --bg2:   #F7F6F3;
+  --bg3:   #EDEBE6;
+  --ad:    #005C2E;
+  --lse:   #003D8F;
+  --lib:   #3D0070;
+  --bdr:   rgba(0,0,0,0.11);
+  --bdr2:  rgba(0,0,0,0.20);
+  --r:     14px;
+  --r-sm:  8px;
+  --r-lg:  20px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--bg3);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+
+.shell {
+  max-width: 1000px;
+  margin: 0 auto;
+  background: var(--bg);
+  min-height: 100vh;
+}
