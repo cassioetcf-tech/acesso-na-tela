@@ -3,11 +3,10 @@
 // Depende de: js/a11y.js (changeFontSize, setContrast, toggleContrastMenu, toggleVLibras)
 
 var _NAV_LINKS = [
-  { key: 'home',        href: 'index.html',        label: 'Em cartaz'   },
-  { key: 'breve',       href: 'index.html#h-breve', label: 'Em breve'    },
-  { key: 'catalogo',    href: 'catalogo.html',     label: 'Catálogo'    },
-  { key: 'aplicativos', href: 'aplicativos.html',  label: 'Aplicativos' },
-  { key: 'faq',         href: 'faq.html',          label: 'FAQ'         },
+  { key: 'home',        href: 'index.html',       label: 'Início'      },
+  { key: 'catalogo',    href: 'catalogo.html',    label: 'Catálogo'    },
+  { key: 'aplicativos', href: 'aplicativos.html', label: 'Aplicativos' },
+  { key: 'faq',         href: 'faq.html',         label: 'FAQ'         },
 ];
 
 function renderHeader(activePage) {

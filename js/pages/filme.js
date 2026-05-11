@@ -28,10 +28,8 @@ function _dismissLoading() {
   if (_loadingDismissed) return;
   _loadingDismissed = true;
   document.body.classList.remove('film-loading');
-  var sk1 = document.getElementById('sk-film-hero');
-  var sk2 = document.getElementById('sk-film-body');
-  if (sk1) { sk1.classList.remove('active'); sk1.style.display = 'none'; }
-  if (sk2) { sk2.classList.remove('active'); sk2.style.display = 'none'; }
+  var sk = document.querySelector('.fp-skeleton');
+  if (sk) sk.style.display = 'none';
 }
 
 // Safety timeout — exibe conteúdo mesmo se a API falhar silenciosamente
@@ -79,7 +77,7 @@ function _renderTmdb(d, wp) {
   var dateStr = d.release_date
     ? new Date(d.release_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
     : '';
-  var pills = document.querySelector('.meta-pills');
+  var pills = document.getElementById('fp-meta-pills');
   if (pills) {
     pills.innerHTML = '';
     [genre ? genre.name : null, runtime, dateStr].forEach(function (t) {
@@ -92,19 +90,18 @@ function _renderTmdb(d, wp) {
   }
 
   // Sinopse
-  _set('fp-sinopse1', d.overview || 'Sinopse não disponível em português.');
-  _set('fp-sinopse2',
-    certLabel === 'Livre'
-      ? 'Adequada para toda a família. Sem cenas de violência ou conteúdo sensível.'
-      : 'Classificação indicativa: ' + certLabel + '. Verifique o conteúdo antes de levar crianças.'
-  );
+  var sinopseEl = document.getElementById('fp-sinopse');
+  if (sinopseEl) sinopseEl.textContent = d.overview || 'Sinopse não disponível em português.';
+  var sinopseSection = document.getElementById('sinopse-section');
+  if (sinopseSection) sinopseSection.style.display = '';
 
   // Ficha técnica
   var dir = '';
   ((d.credits || {}).crew || []).forEach(function (c) { if (c.job === 'Director') dir = c.name; });
-  var fichaEl = document.getElementById('fp-ficha');
+  var fichaEl     = document.getElementById('fp-ficha');
+  var fichaBodyEl = document.getElementById('fp-ficha-body');
   var filmeStatus = window._filmeStatus || 'cartaz';
-  if (fichaEl) {
+  if (fichaBodyEl) {
     var rows = [
       ['Direção',       dir || '—'],
       ['Produção',      co ? co.name : '—'],
@@ -113,18 +110,17 @@ function _renderTmdb(d, wp) {
       ['Classificação', certLabel],
       ['Lançamento',    dateStr || '—'],
       ['Status',
-        filmeStatus === 'breve'   ? '<span class="verde">Em breve</span>' :
-        filmeStatus === 'catalogo' ? 'Catálogo' :
-                                    '<span class="verde">Em cartaz</span>'],
+        filmeStatus === 'catalogo' ? 'Catálogo' : '<span class="verde">Em cartaz</span>'],
     ];
-    fichaEl.innerHTML = rows.map(function (row) {
+    fichaBodyEl.innerHTML = rows.map(function (row) {
       return '<div class="info-row"><span class="ir-l">' + row[0] + '</span>' +
              '<span class="ir-v">' + row[1] + '</span></div>';
     }).join('');
+    if (fichaEl) fichaEl.style.display = '';
   }
 
   // Streaming
-  var sgEl = document.getElementById('fp-streaming');
+  var sgEl = document.getElementById('streaming-grid');
   if (sgEl && wp) {
     var seen = {};
     var html = '';
@@ -146,6 +142,8 @@ function _renderTmdb(d, wp) {
     });
     sgEl.innerHTML = html ||
       '<p style="font-size:13px;color:var(--ink3);grid-column:1/-1;">Não disponível no streaming no Brasil ainda.</p>';
+    var streamSection = document.getElementById('streaming-section');
+    if (streamSection) streamSection.style.display = '';
   }
 
   // Trailer thumbnail
@@ -153,11 +151,18 @@ function _renderTmdb(d, wp) {
   var tr   = vids.find(function (v) { return v.type === 'Trailer' && v.site === 'YouTube'; });
   if (!tr) tr = vids.find(function (v) { return v.site === 'YouTube'; });
   if (tr) {
-    var img = document.getElementById('trailer-img');
-    if (img) { img.src = 'https://img.youtube.com/vi/' + tr.key + '/hqdefault.jpg'; img.alt = 'Trailer de ' + title; }
-    var trailerThumb = document.getElementById('trailer-thumb');
-    if (trailerThumb) trailerThumb.style.display = '';
     _trailerKey = tr.key;
+    var trailerThumb = document.getElementById('trailer-thumb');
+    if (trailerThumb) {
+      trailerThumb.innerHTML =
+        '<img src="https://img.youtube.com/vi/' + tr.key + '/hqdefault.jpg" ' +
+             'alt="Trailer de ' + escHtml(title) + '" ' +
+             'style="width:100%;height:100%;object-fit:cover;display:block;">' +
+        '<div class="trailer-play-btn" aria-hidden="true">▶</div>';
+      trailerThumb.onclick = playTrailer;
+    }
+    var trailerSection = document.getElementById('trailer-section');
+    if (trailerSection) trailerSection.style.display = '';
   }
 
   _dismissLoading();
@@ -177,9 +182,15 @@ async function loadFilme(urlKey) {
     if (f) {
       window._filmeStatus = f.status || 'cartaz';
       if (f.app) {
-        _set('app-dest-title', f.app);
-        _set('ad-sub', 'Aplicativo gratuito · iOS e Android');
-        if (typeof updateAppLinks === 'function') updateAppLinks(f.app);
+        var destEl   = document.getElementById('app-destaque');
+        var destBody = document.getElementById('app-destaque-body');
+        if (destBody) {
+          destBody.innerHTML =
+            '<div style="font-weight:700;font-size:15px;margin-bottom:4px;">' + escHtml(f.app) + '</div>' +
+            '<div style="font-size:13px;color:var(--ink3);margin-bottom:12px;">Aplicativo gratuito · iOS e Android</div>' +
+            '<a href="aplicativos.html" class="btn btn-outline" style="display:inline-block;">Ver aplicativos →</a>';
+        }
+        if (destEl) destEl.style.display = '';
       }
 
       // 2. TMDb: preferir tmdb_id salvo; fallback = busca por título via Ingresso
@@ -218,12 +229,14 @@ async function loadFilme(urlKey) {
 function playTrailer() {
   var key = _trailerKey;
   if (!key) return;
-  var thumb  = document.getElementById('trailer-thumb');
-  var iframe = document.getElementById('trailer-iframe');
-  if (thumb)  thumb.style.display  = 'none';
-  if (iframe) {
-    iframe.src          = 'https://www.youtube-nocookie.com/embed/' + key + '?autoplay=1&rel=0&modestbranding=1';
-    iframe.style.display = 'block';
+  var thumb = document.getElementById('trailer-thumb');
+  var frame = document.getElementById('trailer-frame');
+  if (thumb) thumb.style.display = 'none';
+  if (frame) {
+    frame.innerHTML = '<iframe width="100%" height="100%" ' +
+      'src="https://www.youtube-nocookie.com/embed/' + key + '?autoplay=1&rel=0&modestbranding=1" ' +
+      'frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
+    frame.style.display = 'block';
   }
 }
 
@@ -246,16 +259,19 @@ function playSinopseVideo() {
  * Carrega sessões do Ingresso para um eventId e cidade.
  */
 function loadSessoes(eventId, cityId) {
-  var wrap = document.querySelector('.sessoes-wrap') || document.querySelector('.cinema-list-wrap');
-  if (!wrap) return;
+  var content  = document.getElementById('sessoes-content');
+  var loading  = document.getElementById('sessoes-loading');
+  if (!content) return;
 
   cityId = cityId || '1';
+  if (loading) loading.style.display = 'none';
+  content.style.display = '';
 
   // Monta controles de cidade/data se ainda não existirem
-  _buildSessoesControls(wrap, eventId, cityId);
+  _buildSessoesControls(content, eventId, cityId);
 
   // Carrega sessões para hoje
-  _fetchAndRenderSessoes(eventId, cityId, today(), wrap);
+  _fetchAndRenderSessoes(eventId, cityId, today(), content);
 }
 
 var _CITIES = [
@@ -448,6 +464,25 @@ async function submitComentario() {
   }
 }
 
+async function _loadSessoesForFilme(urlKey) {
+  try {
+    var eventData = await getEventId(urlKey);
+    if (eventData && eventData.id) {
+      loadSessoes(eventData.id, '1');
+    } else {
+      var loading = document.getElementById('sessoes-loading');
+      var empty   = document.getElementById('sessoes-empty');
+      if (loading) loading.style.display = 'none';
+      if (empty)   empty.style.display   = '';
+    }
+  } catch (e) {
+    var loading = document.getElementById('sessoes-loading');
+    var empty   = document.getElementById('sessoes-empty');
+    if (loading) loading.style.display = 'none';
+    if (empty)   empty.style.display   = '';
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 window.addEventListener('load', function () {
   renderHeader('filme');
@@ -455,12 +490,6 @@ window.addEventListener('load', function () {
 
   var params = new URLSearchParams(window.location.search);
   var urlKey = params.get('urlKey') || '';
-
-  // Skeletons
-  var sk1 = document.getElementById('sk-film-hero');
-  var sk2 = document.getElementById('sk-film-body');
-  if (sk1) sk1.classList.add('active');
-  if (sk2) sk2.classList.add('active');
 
   if (!urlKey) {
     _set('fp-h1', 'Filme não encontrado');
@@ -470,4 +499,5 @@ window.addEventListener('load', function () {
 
   loadFilme(urlKey);
   initComentarios(urlKey);
+  _loadSessoesForFilme(urlKey);
 });

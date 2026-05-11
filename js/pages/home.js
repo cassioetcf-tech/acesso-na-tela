@@ -65,7 +65,7 @@ async function loadCatalog() {
   try {
     var filmes = await supabaseGet(
       'filmes',
-      'or=(status.ilike.cartaz,status.ilike.breve)&tmdb_id=not.is.null&order=created_at.desc&limit=100'
+      'status=ilike.cartaz&tmdb_id=not.is.null&order=created_at.desc&limit=100'
     );
 
     if (!Array.isArray(filmes) || filmes.length === 0) return;
@@ -88,7 +88,6 @@ async function loadCatalog() {
     var enriched = await enrichedPromise;
 
     var cartaz = enriched.filter(function (i) { return (i.filme.status || '').toLowerCase() === 'cartaz'; });
-    var breve  = enriched.filter(function (i) { return (i.filme.status || '').toLowerCase() === 'breve'; });
 
     // Ordenar "Em cartaz" conforme Ingresso.com
     cartaz = _sortByIngressoOrder(cartaz, orderMap);
@@ -98,16 +97,6 @@ async function loadCatalog() {
     cartaz.forEach(function (item) {
       gridCartaz.appendChild(buildCard(item.filme, item.tmdb));
     });
-
-    // Renderizar "Em breve"
-    var gridBreve = document.querySelector('.coming-grid[aria-labelledby="h-breve"]') ||
-                    document.querySelector('.coming-grid');
-    if (gridBreve && breve.length) {
-      gridBreve.innerHTML = '';
-      breve.forEach(function (item) {
-        gridBreve.appendChild(buildBreveCard(item.filme, item.tmdb));
-      });
-    }
   } catch (err) {
     console.error('Erro ao carregar catálogo da home:', err);
   }
