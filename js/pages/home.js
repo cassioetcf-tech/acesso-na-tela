@@ -14,7 +14,7 @@ async function loadCatalog() {
   try {
     var filmes = await supabaseGet(
       'filmes',
-      'or=(status.ilike.cartaz,status.ilike.breve)&order=created_at.desc&limit=100'
+      'or=(status.ilike.cartaz,status.ilike.breve)&tmdb_id=not.is.null&order=created_at.desc&limit=100'
     );
 
     if (!Array.isArray(filmes) || filmes.length === 0) return;

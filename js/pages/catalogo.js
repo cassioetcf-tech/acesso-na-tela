@@ -14,7 +14,7 @@ async function carregarCatalogo() {
   try {
     var resp = await supabaseGet(
       'filmes',
-      'status=ilike.catalogo&order=created_at.desc'
+      'status=ilike.catalogo&tmdb_id=not.is.null&order=created_at.desc'
     );
 
     if (!resp || resp.length === 0) {
