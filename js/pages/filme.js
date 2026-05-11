@@ -54,11 +54,11 @@ function _renderTmdb(d, wp) {
 
   // Pôster
   if (d.poster_path) {
-    var pb = document.getElementById('fp-poster-box');
-    if (pb) {
-      pb.style.backgroundImage    = 'url(' + CONFIG.TMDB_IMG + d.poster_path + ')';
-      pb.style.backgroundSize     = 'cover';
-      pb.style.backgroundPosition = 'center top';
+    var posterImg = document.getElementById('fp-poster-img');
+    if (posterImg) {
+      posterImg.src   = CONFIG.TMDB_IMG + d.poster_path;
+      posterImg.alt   = 'Pôster de ' + title;
+      posterImg.style.display = 'block';
     }
   }
 
@@ -158,7 +158,9 @@ function _renderTmdb(d, wp) {
         '<img src="https://img.youtube.com/vi/' + tr.key + '/hqdefault.jpg" ' +
              'alt="Trailer de ' + escHtml(title) + '" ' +
              'style="width:100%;height:100%;object-fit:cover;display:block;">' +
-        '<div class="trailer-play-btn" aria-hidden="true">▶</div>';
+        '<div class="trailer-play" aria-hidden="true">' +
+          '<svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>' +
+        '</div>';
       trailerThumb.onclick = playTrailer;
     }
     var trailerSection = document.getElementById('trailer-section');
@@ -181,14 +183,34 @@ async function loadFilme(urlKey) {
     var f = rows && rows[0];
     if (f) {
       window._filmeStatus = f.status || 'cartaz';
+
+      // Chips AD / LSE / LIBRAS
+      var chipsEl = document.getElementById('fp-a11y-chips');
+      if (chipsEl) {
+        var chipsHtml = '';
+        if (f.ad)     chipsHtml += '<span class="achip ac-ad">AD — Audiodescrição</span>';
+        if (f.lse)    chipsHtml += '<span class="achip ac-lse">LSE — Legenda p/ surdos</span>';
+        if (f.libras) chipsHtml += '<span class="achip ac-lib">LIBRAS — Janela de Sinais</span>';
+        chipsEl.innerHTML = chipsHtml;
+      }
+
+      // Botão comprar ingresso
+      var ctasEl = document.getElementById('fp-ctas');
+      if (ctasEl && f.url_key) {
+        ctasEl.innerHTML =
+          '<a href="https://www.ingresso.com/filme/' + escHtml(f.url_key) + '" ' +
+             'target="_blank" rel="noopener" class="btn-prim">Comprar ingresso</a>';
+      }
+
+      // App destaque na sidebar
       if (f.app) {
         var destEl   = document.getElementById('app-destaque');
         var destBody = document.getElementById('app-destaque-body');
         if (destBody) {
           destBody.innerHTML =
-            '<div style="font-weight:700;font-size:15px;margin-bottom:4px;">' + escHtml(f.app) + '</div>' +
-            '<div style="font-size:13px;color:var(--ink3);margin-bottom:12px;">Aplicativo gratuito · iOS e Android</div>' +
-            '<a href="aplicativos.html" class="btn btn-outline" style="display:inline-block;">Ver aplicativos →</a>';
+            '<div class="ad-name">' + escHtml(f.app) + '</div>' +
+            '<div class="ad-sub">Aplicativo gratuito · iOS e Android</div>' +
+            '<a href="aplicativos.html" class="btn-abrir" style="margin-top:12px;display:block;text-decoration:none;">Ver aplicativos →</a>';
         }
         if (destEl) destEl.style.display = '';
       }
