@@ -66,7 +66,7 @@ async function loadFilmes() {
   tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>Carregando...</p></div></td></tr>';
 
   try {
-    var data = await supabaseGet('filmes', 'order=created_at.desc');
+    var data = await supabaseGet('filmes', 'order=created_at.desc&limit=500');
     _filmes = Array.isArray(data) ? data : [];
   } catch (e) {
     console.error('Supabase load error:', e);
@@ -75,7 +75,106 @@ async function loadFilmes() {
   }
 
   renderTable();
+  renderTriagem();
   updateStats();
+}
+
+// ── Fila de triagem ───────────────────────────────────────────────────────────
+
+function _getAppStatusAdmin(f) {
+  if (f.app_status) return f.app_status;
+  if (f.app) return 'confirmado';
+  var a = f.a11y || {};
+  if (a.ad === false && a.lse === false && a.libras === false) return 'sem_acessibilidade';
+  return 'pendente';
+}
+
+function renderTriagem() {
+  var panel = document.getElementById('triage-panel');
+  var list  = document.getElementById('triage-list');
+  var badge = document.getElementById('triage-count');
+  if (!panel || !list) return;
+
+  var pendentes = _filmes.filter(function (f) { return _getAppStatusAdmin(f) === 'pendente'; });
+
+  if (badge) badge.textContent = pendentes.length;
+
+  if (!pendentes.length) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  panel.style.display = '';
+
+  list.innerHTML = pendentes.map(function (f) {
+    var tmdb   = f.tmdb_data || {};
+    var poster = tmdb.poster_path ? 'https://image.tmdb.org/t/p/w92' + tmdb.poster_path : '';
+    var title  = (tmdb.title || f.titulo || '').slice(0, 40);
+    var year   = (tmdb.release_date || '').slice(0, 4);
+    var meta   = year ? year : '';
+
+    return '<div class="triage-item" id="tri-' + escHtml(f.id) + '">' +
+      (poster
+        ? '<img class="triage-poster" src="' + poster + '" alt="">'
+        : '<div class="triage-poster triage-poster-ph">' + escHtml(title.slice(0,2).toUpperCase()) + '</div>'
+      ) +
+      '<div class="triage-info">' +
+        '<div class="triage-title">' + escHtml(title) + '</div>' +
+        (meta ? '<div class="triage-meta">' + escHtml(meta) + '</div>' : '') +
+      '</div>' +
+      '<div class="triage-btns">' +
+        '<button class="triage-btn triage-mr"  onclick="triageFilme(\'' + f.id + '\',\'MovieReading\')">MovieReading</button>' +
+        '<button class="triage-btn triage-ml"  onclick="triageFilme(\'' + f.id + '\',\'MLOAD\')">MLOAD</button>' +
+        '<button class="triage-btn triage-gr"  onclick="triageFilme(\'' + f.id + '\',\'GRETA\')">GRETA</button>' +
+        '<button class="triage-btn triage-pp"  onclick="triageFilme(\'' + f.id + '\',\'PingPlay\')">PingPlay</button>' +
+        '<button class="triage-btn triage-sem" onclick="triageFilme(\'' + f.id + '\',null)">Sem acessibilidade</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function triageFilme(id, app) {
+  var itemEl = document.getElementById('tri-' + id);
+  if (itemEl) itemEl.style.opacity = '0.4';
+
+  var appStatus = app ? 'confirmado' : 'sem_acessibilidade';
+  var a11yVal   = app
+    ? { ad: true, lse: true, libras: true }
+    : { ad: false, lse: false, libras: false };
+
+  try {
+    await supabasePatch('filmes', 'id=eq.' + id, {
+      app:        app,
+      app_status: appStatus,
+      a11y:       a11yVal,
+      updated_at: new Date().toISOString(),
+    });
+
+    // Atualiza cache local
+    var idx = _filmes.findIndex(function (x) { return x.id === id; });
+    if (idx > -1) {
+      _filmes[idx].app        = app;
+      _filmes[idx].app_status = appStatus;
+      _filmes[idx].a11y       = a11yVal;
+    }
+
+    if (itemEl) itemEl.remove();
+    renderTable();
+    updateStats();
+
+    var pendentes = _filmes.filter(function (f) { return _getAppStatusAdmin(f) === 'pendente'; });
+    var badge = document.getElementById('triage-count');
+    if (badge) badge.textContent = pendentes.length;
+    if (!pendentes.length) {
+      var panel = document.getElementById('triage-panel');
+      if (panel) panel.style.display = 'none';
+    }
+
+    showToast(app ? 'App salvo: ' + app : 'Sem acessibilidade confirmada.', 'success');
+  } catch (e) {
+    if (itemEl) itemEl.style.opacity = '1';
+    showToast('Erro ao salvar: ' + e.message, 'error');
+  }
 }
 
 function updateStats() {

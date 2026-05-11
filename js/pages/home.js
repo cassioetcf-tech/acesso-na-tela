@@ -1,141 +1,177 @@
 // ── HOME PAGE ─────────────────────────────────────────────────────────────────
-// Lógica específica da página inicial (index.html).
 // Depende de: js/api/supabase.js, js/api/tmdb.js, js/components/film-card.js,
-//             js/utils.js (escHtml, today)
+//             js/utils.js (escHtml)
 
-/**
- * Busca a ordem de exibição da Ingresso.com (via AdoroCinema scraper, cache 1h).
- * Retorna um Map de urlKey → posição (0 = primeiro da lista).
- */
+var _allCards      = []; // { el, acessivel: bool }
+var _filtroAtivo   = 'todos'; // 'todos' | 'acessivel'
+
+// ── Filtro ────────────────────────────────────────────────────────────────────
+
+function setFiltroHome(val, btnEl) {
+  _filtroAtivo = val;
+  document.querySelectorAll('.home-filter-tab').forEach(function (t) {
+    t.classList.toggle('active', t === btnEl);
+  });
+  _applyFilter();
+}
+
+function _applyFilter() {
+  var grid     = document.getElementById('grid-cartaz');
+  var visiveis = 0;
+
+  _allCards.forEach(function (item) {
+    var mostrar = _filtroAtivo === 'todos' || item.acessivel;
+    item.el.style.display = mostrar ? '' : 'none';
+    if (mostrar) visiveis++;
+  });
+
+  // Atualiza legenda de acessibilidade
+  var leg = document.getElementById('legend-a11y');
+  if (leg) leg.style.display = _filtroAtivo === 'acessivel' ? '' : 'none';
+
+  // Empty state
+  var empty = document.getElementById('grid-empty');
+  if (empty) empty.style.display = (!visiveis && _allCards.length) ? '' : 'none';
+}
+
+// ── Ordenação ─────────────────────────────────────────────────────────────────
+
+function _getAppStatus(filme) {
+  if (filme.app_status) return filme.app_status;
+  // Retrocompatibilidade com registros antigos sem app_status
+  if (filme.app) return 'confirmado';
+  var a = filme.a11y || {};
+  if (a.ad === false && a.lse === false && a.libras === false) return 'sem_acessibilidade';
+  return 'pendente';
+}
+
+function _statusOrder(filme) {
+  var s = _getAppStatus(filme);
+  if (s === 'confirmado') return 0;
+  if (s === 'pendente')   return 1;
+  return 2; // sem_acessibilidade
+}
+
 async function _fetchIngressoOrder() {
   var CACHE_KEY = 'ant_ingresso_order';
-  var CACHE_TTL = 60 * 60 * 1000; // 1 hora
-
+  var CACHE_TTL = 60 * 60 * 1000;
   try {
     var cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
     if (cached && Date.now() < cached.exp) return cached.map;
   } catch (e) {}
-
   try {
     var r    = await fetch('/api/ingresso?type=nowplaying');
     var list = await r.json();
     if (!Array.isArray(list)) return {};
-
     var map = {};
-    list.forEach(function (item, i) {
-      if (item.urlKey) map[item.urlKey] = i;
-    });
-
-    try {
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ map: map, exp: Date.now() + CACHE_TTL }));
-    } catch (e) {}
-
+    list.forEach(function (item, i) { if (item.urlKey) map[item.urlKey] = i; });
+    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ map: map, exp: Date.now() + CACHE_TTL })); } catch (e) {}
     return map;
-  } catch (e) {
-    return {};
-  }
+  } catch (e) { return {}; }
 }
 
-/**
- * Ordena filmes "cartaz" conforme a posição na Ingresso.com.
- * Filmes sem correspondência ficam no final, mantendo ordem original entre si.
- */
-function _sortByIngressoOrder(filmes, orderMap) {
-  return filmes.slice().sort(function (a, b) {
-    var posA = orderMap[a.filme.url_key];
-    var posB = orderMap[b.filme.url_key];
-    var hasA = posA !== undefined;
-    var hasB = posB !== undefined;
-    if (hasA && hasB) return posA - posB;
-    if (hasA) return -1;
-    if (hasB) return 1;
-    return 0;
-  });
-}
+// ── Carregamento ──────────────────────────────────────────────────────────────
 
-/**
- * Busca filmes do Supabase (status=cartaz e status=breve) e renderiza as grades.
- * Os filmes "Em cartaz" seguem a ordem da Ingresso.com.
- */
 async function loadCatalog() {
-  var gridCartaz = document.getElementById('grid-cartaz') ||
-                   document.querySelector('.films-grid[role="list"]');
-  if (!gridCartaz) return;
+  var grid = document.getElementById('grid-cartaz');
+  if (!grid) return;
 
   try {
+    // Busca TODOS os filmes em cartaz — sem filtro de tmdb_id
     var filmes = await supabaseGet(
       'filmes',
-      'status=ilike.cartaz&tmdb_id=not.is.null&order=created_at.desc&limit=100'
+      'status=ilike.cartaz&order=created_at.desc&limit=200'
     );
 
-    if (!Array.isArray(filmes) || filmes.length === 0) return;
+    if (!Array.isArray(filmes) || filmes.length === 0) {
+      grid.innerHTML = '<p style="color:var(--ink3);font-size:14px;padding:24px 0;">Nenhum filme em cartaz no momento.</p>';
+      return;
+    }
 
-    // Busca ordem da Ingresso.com em paralelo com o enriquecimento TMDb
-    var enrichedPromise = Promise.all(filmes.map(async function (filme) {
+    // Enriquece com TMDb em paralelo
+    var enriched = await Promise.all(filmes.map(async function (filme) {
       var tmdb = null;
       try {
-        if (filme.tmdb_id) {
+        if (filme.tmdb_data) {
+          tmdb = filme.tmdb_data; // já temos os dados cacheados no Supabase
+        } else if (filme.tmdb_id) {
           tmdb = await getMovie(filme.tmdb_id);
-        } else if (filme.titulo) {
-          var results = await searchMovie(filme.titulo);
-          if (results[0]) tmdb = results[0];
         }
+        // Não faz nova busca TMDb aqui — o sync-status cuida disso
       } catch (e) {}
       return { filme: filme, tmdb: tmdb };
     }));
 
+    // Ordena: acessíveis primeiro, depois pendentes, depois sem acessibilidade
+    // Dentro de cada grupo, segue ordem da Ingresso.com
     var orderMap = await _fetchIngressoOrder();
-    var enriched = await enrichedPromise;
 
-    var cartaz = enriched.filter(function (i) { return (i.filme.status || '').toLowerCase() === 'cartaz'; });
-
-    // Ordenar "Em cartaz" conforme Ingresso.com
-    cartaz = _sortByIngressoOrder(cartaz, orderMap);
-
-    // Renderizar "Em cartaz"
-    gridCartaz.innerHTML = '';
-    cartaz.forEach(function (item) {
-      gridCartaz.appendChild(buildCard(item.filme, item.tmdb));
+    enriched.sort(function (a, b) {
+      var oa = _statusOrder(a.filme);
+      var ob = _statusOrder(b.filme);
+      if (oa !== ob) return oa - ob;
+      // Mesmo grupo: segue ordem Ingresso
+      var ia = orderMap[a.filme.url_key];
+      var ib = orderMap[b.filme.url_key];
+      if (ia !== undefined && ib !== undefined) return ia - ib;
+      if (ia !== undefined) return -1;
+      if (ib !== undefined) return 1;
+      return 0;
     });
+
+    // Renderiza
+    grid.innerHTML = '';
+    _allCards = [];
+
+    enriched.forEach(function (item) {
+      var el        = buildCard(item.filme, item.tmdb);
+      var acessivel = _getAppStatus(item.filme) === 'confirmado';
+      _allCards.push({ el: el, acessivel: acessivel });
+      grid.appendChild(el);
+    });
+
+    // Empty state placeholder
+    var emptyEl = document.createElement('p');
+    emptyEl.id = 'grid-empty';
+    emptyEl.style.cssText = 'display:none;color:var(--ink3);font-size:14px;padding:24px 0;grid-column:1/-1;';
+    emptyEl.textContent = 'Nenhum filme com acessibilidade confirmada no momento.';
+    grid.appendChild(emptyEl);
+
+    _applyFilter();
+
   } catch (err) {
-    console.error('Erro ao carregar catálogo da home:', err);
+    console.error('Erro ao carregar catálogo:', err);
   }
 }
 
-/**
- * Filtra os cards visíveis em ambas as grades pelo texto digitado.
- * Anuncia o resultado para leitores de tela via aria-live.
- */
+// ── Busca ─────────────────────────────────────────────────────────────────────
+
 function doSearch(val) {
-  var q = (val || '').toLowerCase().trim();
+  var q          = (val || '').toLowerCase().trim();
   var liveRegion = document.getElementById('live-region');
+  var visible    = 0;
 
-  var cards = document.querySelectorAll('#grid-cartaz .film-card-link, .coming-grid .film-card-link');
-  var visible = 0;
-
-  cards.forEach(function (card) {
-    var text = card.textContent.toLowerCase();
+  _allCards.forEach(function (item) {
+    var text = item.el.textContent.toLowerCase();
     var show = !q || text.includes(q);
-    card.style.display = show ? '' : 'none';
+    // Respeita também o filtro de acessibilidade
+    if (show && _filtroAtivo === 'acessivel' && !item.acessivel) show = false;
+    item.el.style.display = show ? '' : 'none';
     if (show) visible++;
   });
 
   if (liveRegion) {
     liveRegion.textContent = q
-      ? visible + ' filme' + (visible !== 1 ? 's' : '') +
-        ' encontrado' + (visible !== 1 ? 's' : '') + ' para "' + val + '"'
+      ? visible + ' filme' + (visible !== 1 ? 's' : '') + ' encontrado' + (visible !== 1 ? 's' : '') + ' para "' + val + '"'
       : '';
   }
 }
 
-/**
- * Chamado via onsubmit="submitNewsletter(event)" no index.html.
- * POSTa os dados no Supabase (tabela newsletter_subscribers).
- */
+// ── Newsletter ────────────────────────────────────────────────────────────────
+
 async function submitNewsletter(event) {
   event.preventDefault();
-  var form = event.target;
-
+  var form  = event.target;
   var nome  = (document.getElementById('nl-nome')  || {}).value || '';
   var email = (document.getElementById('nl-email') || {}).value || '';
   if (!email.trim()) return;
@@ -157,14 +193,13 @@ async function submitNewsletter(event) {
     if (wrap)    wrap.style.display    = 'none';
     if (success) success.removeAttribute('hidden');
   } catch (err) {
-    console.error('Erro ao cadastrar newsletter:', err);
+    console.error('Erro newsletter:', err);
     if (btn) { btn.disabled = false; btn.textContent = 'Quero receber'; }
-    var liveEl = document.getElementById('live-region');
-    if (liveEl) liveEl.textContent = 'Erro ao cadastrar. Tente novamente.';
   }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+
 window.addEventListener('DOMContentLoaded', function () {
   renderHeader('home');
   renderFooter();

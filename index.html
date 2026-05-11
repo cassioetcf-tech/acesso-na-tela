@@ -46,11 +46,17 @@
 
       <div class="main-wrap">
 
-        <div class="sec-head">
-          <h2 class="sec-title" id="h-cartaz">Em cartaz com acessibilidade</h2>
+        <div class="sec-head" style="flex-wrap:wrap;gap:12px;align-items:center;">
+          <h2 class="sec-title" id="h-cartaz">Em cartaz</h2>
+          <div class="home-filter-tabs" role="tablist" aria-label="Filtrar filmes">
+            <button class="home-filter-tab active" role="tab" aria-selected="true"
+                    onclick="setFiltroHome('todos', this)">Todos</button>
+            <button class="home-filter-tab" role="tab" aria-selected="false"
+                    onclick="setFiltroHome('acessivel', this)">Com acessibilidade</button>
+          </div>
         </div>
 
-        <div class="legend" role="list" aria-label="Legenda de recursos">
+        <div class="legend" id="legend-a11y" role="list" aria-label="Legenda de recursos" style="display:none;">
           <div class="leg-item" role="listitem"><div class="leg-dot dot-ad" aria-hidden="true"></div>AD — Audiodescrição</div>
           <div class="leg-item" role="listitem"><div class="leg-dot dot-lse" aria-hidden="true"></div>LSE — Legenda p/ surdos</div>
           <div class="leg-item" role="listitem"><div class="leg-dot dot-lib" aria-hidden="true"></div>LIBRAS</div>
