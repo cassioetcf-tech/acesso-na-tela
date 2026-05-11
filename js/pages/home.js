@@ -120,5 +120,7 @@ async function submitNewsletter(event) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', function () {
+  renderHeader('home');
+  renderFooter();
   loadCatalog();
 });

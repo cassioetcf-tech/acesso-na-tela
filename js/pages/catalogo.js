@@ -221,6 +221,8 @@ function renderVazio(titulo, desc) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
+  renderHeader('catalogo');
+  renderFooter();
   carregarCatalogo();
 
   var busca = document.getElementById('busca-catalogo');

@@ -3,6 +3,8 @@
 // Depende de: nada
 
 document.addEventListener('DOMContentLoaded', function () {
+  renderHeader('faq');
+  renderFooter();
   document.querySelectorAll('.faq-question').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var expanded = btn.getAttribute('aria-expanded') === 'true';

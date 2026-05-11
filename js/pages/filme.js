@@ -450,6 +450,9 @@ async function submitComentario() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 window.addEventListener('load', function () {
+  renderHeader('filme');
+  renderFooter();
+
   var params = new URLSearchParams(window.location.search);
   var urlKey = params.get('urlKey') || '';
 
