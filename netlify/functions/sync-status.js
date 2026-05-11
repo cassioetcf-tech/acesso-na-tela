@@ -180,10 +180,25 @@ exports.handler = async function () {
     const keysExistentes  = new Set(existentes.map(f => f.url_key).filter(Boolean));
     const tmdbsExistentes = new Set(existentes.map(f => String(f.tmdb_id)).filter(Boolean));
 
+    let ingressoVerified = 0;
+    let ingressoSkipped  = 0;
+
     for (const film of nowPlayingFilms) {
       // Pula se já existe pelo urlKey ou pelo tmdb_id
       if (keysExistentes.has(film.urlKey) || tmdbsExistentes.has(String(film.tmdb_id))) continue;
       if (!film.title) continue;
+
+      // ── Verifica se o filme existe no Ingresso.com ─────────────────────────
+      // Só importa filmes que o Ingresso reconhece via url-key.
+      // Isso garante que só entram filmes realmente em cartaz no Brasil segundo
+      // o Ingresso (evita divergências com a lista TMDb).
+      const eventId = await getEventId(film.urlKey);
+      if (!eventId) {
+        log.push(`SKIP  ${film.title} — urlKey "${film.urlKey}" não encontrado na Ingresso`);
+        ingressoSkipped++;
+        continue;
+      }
+      ingressoVerified++;
 
       try {
         const novoFilme = {
@@ -196,19 +211,21 @@ exports.handler = async function () {
           app:          null,
           a11y:         { ad: false, lse: false, libras: false },
           tmdb_id:      film.tmdb_id,
-          tmdb_data:    film.tmdb_data, // já vem do now_playing, sem chamada extra
+          tmdb_data:    film.tmdb_data,
           created_at:   now,
           updated_at:   now,
         };
 
         await supaInsert(novoFilme);
-        log.push(`NEW   ${film.title} (TMDb: ${film.tmdb_id})`);
+        log.push(`NEW   ${film.title} (TMDb: ${film.tmdb_id}, Ingresso: ${eventId})`);
         created++;
       } catch (e) {
         log.push(`ERR   ${film.title} — ${e.message}`);
         errors++;
       }
     }
+
+    log.push(`[sync] Ingresso check: ${ingressoVerified} verificados, ${ingressoSkipped} ignorados (sem urlKey no Ingresso)`);
   }
 
   log.push(`[sync] Fase 1 concluída: ${created} filme(s) novo(s)`);

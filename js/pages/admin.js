@@ -15,11 +15,12 @@ var _previewTimer  = null;
 var _semA11yActive = false;
 
 // Importador
-var _importFilmes    = [];
-var _importSel       = {};
-var _importFiltroVal = '';
-var _importAppMap    = {};
-var _importStMap     = {};
+var _importFilmes      = [];
+var _importSel         = {};
+var _importFiltroVal   = '';
+var _importAppMap      = {};
+var _importStMap       = {};
+var _importIngressoMap = {}; // urlKey → eventId (null = não encontrado)
 
 // Sync log
 var _syncLog = [];
@@ -496,7 +497,7 @@ function importShowStep(step) {
 async function importBuscar() {
   var btn      = document.getElementById('btn-import-buscar');
   var resultEl = document.getElementById('import-buscar-result');
-  btn.textContent = 'Buscando...';
+  btn.textContent = 'Buscando no TMDb...';
   btn.disabled    = true;
   resultEl.textContent = '';
 
@@ -511,7 +512,7 @@ async function importBuscar() {
     _importFilmes = lista
       .map(function (f) {
         return {
-          id:     f.id || f.adoroId || f.urlKey,
+          id:     f.id || f.urlKey,
           title:  f.title || '',
           urlKey: f.urlKey || '',
           exists: cadastrados.includes(f.urlKey),
@@ -519,19 +520,54 @@ async function importBuscar() {
       })
       .filter(function (f) { return f.title && f.urlKey; });
 
-    _importSel    = {};
-    _importAppMap = {};
-    _importStMap  = {};
+    _importSel         = {};
+    _importAppMap      = {};
+    _importStMap       = {};
+    _importIngressoMap = {};
+
     _importFilmes.forEach(function (f) {
-      _importSel[f.id]    = !f.exists;
-      _importAppMap[f.id] = 'Sem Acessibilidade'; // padrão: sem app, editar depois
+      _importSel[f.id]    = false; // começa desmarcado — será marcado após verificação
+      _importAppMap[f.id] = 'Sem Acessibilidade';
       _importStMap[f.id]  = 'cartaz';
     });
 
+    // ── Verificação contra Ingresso.com ────────────────────────────────────────
+    // Chama getEventId em lotes paralelos para confirmar quais filmes existem
+    // no Ingresso via url-key. Só pré-seleciona os confirmados.
+    resultEl.innerHTML = '<span style="color:#64748b;font-size:13px;">&#9651; Verificando ' + _importFilmes.length + ' filmes no Ingresso.com...</span>';
+    importRenderList(); // mostra a lista enquanto verifica
+
+    var BATCH = 8; // chamadas paralelas por vez
+    var verified = 0;
+    var total    = _importFilmes.length;
+
+    for (var i = 0; i < total; i += BATCH) {
+      btn.textContent = 'Ingresso ' + Math.min(i + BATCH, total) + '/' + total + '...';
+      var batch   = _importFilmes.slice(i, i + BATCH);
+      var results = await Promise.all(batch.map(function (f) {
+        return getEventId(f.urlKey)
+          .then(function (d) { return (d && d.id) ? d.id : null; })
+          .catch(function ()  { return null; });
+      }));
+      batch.forEach(function (f, j) {
+        _importIngressoMap[f.id] = results[j]; // eventId ou null
+        if (results[j] && !f.exists) {
+          _importSel[f.id] = true; // pré-seleciona filmes novos confirmados no Ingresso
+          verified++;
+        }
+      });
+      importRenderList(); // atualiza badges em tempo real
+    }
+
     btn.textContent = 'Buscar filmes em cartaz';
     btn.disabled    = false;
-    resultEl.innerHTML = '&#10003; ' + _importFilmes.length + ' filmes encontrados. ' +
-      '<a href="#" style="color:#D4500F;font-weight:600;text-decoration:none;" onclick="importShowStep(\'selecionar\');return false;">Selecionar &#8594;</a>';
+
+    var notFound = total - verified - _importFilmes.filter(function(f){ return f.exists; }).length;
+    resultEl.innerHTML =
+      '&#10003; <strong>' + verified + '</strong> filme(s) confirmados no Ingresso' +
+      (notFound > 0 ? ' · <span style="color:#94a3b8">' + notFound + ' não encontrados (desmarcados)</span>' : '') +
+      ' &nbsp;<a href="#" style="color:#D4500F;font-weight:600;text-decoration:none;" onclick="importShowStep(\'selecionar\');return false;">Ver lista &#8594;</a>';
+
     importShowStep('selecionar');
     importRenderList();
   } catch (e) {
@@ -564,10 +600,22 @@ function importRenderList() {
 
     html += '<div style="display:grid;grid-template-columns:20px 1fr 160px 120px;gap:12px;align-items:center;padding:10px 14px;background:#fff;border:1px solid ' + (checked ? '#D4500F' : '#e2e8f0') + ';border-radius:10px;">';
     html += '<input type="checkbox"' + (checked ? ' checked' : '') + ' style="accent-color:#D4500F;width:15px;height:15px;cursor:pointer;" onchange="importToggle(\'' + f.id + '\',this.checked)">';
+    var ingId    = _importIngressoMap[f.id]; // undefined = ainda verificando, null = não encontrado, string = ok
+    var ingBadge = '';
+    if (ingId === undefined) {
+      ingBadge = '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#f1f5f9;color:#94a3b8;display:inline-block;margin-top:2px;">&#8230; verificando</span>';
+    } else if (ingId) {
+      ingBadge = '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#dcfce7;color:#166534;display:inline-block;margin-top:2px;">&#10003; Ingresso</span>';
+    } else {
+      ingBadge = '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#f1f5f9;color:#94a3b8;display:inline-block;margin-top:2px;">&#215; Não no Ingresso</span>';
+    }
     html += '<div>';
     html += '<div style="font-size:13px;font-weight:600;color:#1e293b;">' + escHtml(f.title) + '</div>';
     html += '<div style="font-size:11px;color:#94a3b8;font-family:monospace;">' + escHtml(f.urlKey) + '</div>';
-    if (f.exists) html += '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#f1f5f9;color:#64748b;display:inline-block;margin-top:2px;">Já cadastrado</span>';
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;">';
+    if (f.exists) html += '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#f1f5f9;color:#64748b;display:inline-block;">Já cadastrado</span>';
+    html += ingBadge;
+    html += '</div>';
     html += '</div>';
     html += '<select style="font-size:12px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:8px;width:100%;" onchange="_importAppMap[\'' + f.id + '\']=this.value">' + appOpts + '</select>';
     html += '<select style="font-size:12px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:8px;width:100%;" onchange="_importStMap[\'' + f.id + '\']=this.value">' + stOpts + '</select>';
@@ -586,7 +634,17 @@ function importToggle(id, val) {
 }
 
 function importSelecionarTodos(val) {
-  _importFilmes.forEach(function (f) { _importSel[f.id] = val; });
+  _importFilmes.forEach(function (f) {
+    // "Selecionar todos" respeita o filtro: se desmarcando, desmarca tudo;
+    // se marcando, só marca os confirmados no Ingresso (ou todos se ainda verificando)
+    if (!val) {
+      _importSel[f.id] = false;
+    } else {
+      var ingId = _importIngressoMap[f.id];
+      // marca se: ingresso confirmou (ingId truthy) OU ainda não verificou (undefined)
+      _importSel[f.id] = ingId !== null;
+    }
+  });
   importRenderList();
 }
 
