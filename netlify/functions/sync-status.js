@@ -1,14 +1,14 @@
 // ── sync-status v2 — Discovery + Sync Engine ─────────────────────────────────
 // Netlify Scheduled Function: roda diariamente às 6h UTC (netlify.toml)
 //
-// O que faz:
-//   FASE 1 — Discovery: busca todos os filmes em cartaz no Ingresso.com
-//            → filmes novos são criados no Supabase com app_status='pendente'
-//            → metadados (poster, sinopse, trailer) buscados automaticamente no TMDb
-//   FASE 2 — Sync de status: para cada filme no Supabase (cartaz/breve)
-//            → verifica sessões nos próximos 7 dias
-//            → sem sessões → move para CATALOGO
-//            → breve com sessões → move para CARTAZ
+// FASE 1 — Discovery via TMDb /movie/now_playing?region=BR
+//   → todos os filmes em cartaz no Brasil, com metadados completos (poster, sinopse…)
+//   → filmes novos criados no Supabase com app_status='pendente'
+//   → urlKey derivado do título em português (padrão Ingresso.com)
+//
+// FASE 2 — Sync de status via Ingresso.com sessions
+//   → sem sessões nos próximos 7 dias → move para CATALOGO
+//   → breve com sessões → move para CARTAZ
 
 const SUPA_URL    = process.env.SUPA_URL  || 'https://gpwmmvaetokgrzekepbk.supabase.co';
 const SUPA_KEY    = process.env.SUPA_KEY  || 'sb_publishable_lbKSyHwh8nNINEef-0Hi5Q_oPF5qt-P';
@@ -18,15 +18,23 @@ const INGRESSO_BASE = 'https://api-content.ingresso.com/v0';
 const INGRESSO_PART = 'locomotivadigital';
 const TMDB_BASE     = 'https://api.themoviedb.org/3';
 
-// Cidades para varrer filmes em cartaz (SP, RJ, BH, Curitiba, Porto Alegre, Fortaleza)
-const INGRESSO_CITIES = ['1011', '9', '1', '2', '5', '3'];
-
 const ING_HEADERS = {
   'Accept': 'application/json',
   'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
   'Origin': 'https://www.ingresso.com',
   'Referer': 'https://www.ingresso.com/',
 };
+
+// Converte título em urlKey no padrão da Ingresso.com (ex: "O Velho Fusca" → "o-velho-fusca")
+function titleToUrlKey(title) {
+  return (title || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
 
@@ -65,62 +73,50 @@ async function supaPatch(id, body) {
 
 // ── TMDb ──────────────────────────────────────────────────────────────────────
 
-async function tmdbSearch(title) {
-  try {
-    const url = `${TMDB_BASE}/search/movie?query=${encodeURIComponent(title)}&language=pt-BR&region=BR`;
-    const r = await fetch(url, {
-      headers: { 'Authorization': `Bearer ${TMDB_TOKEN}`, 'Accept': 'application/json' },
-    });
-    if (!r.ok) return null;
-    const data = await r.json();
-    const results = data.results || [];
-    if (!results.length) return null;
+const TMDB_HEADERS = {
+  'Authorization': `Bearer ${TMDB_TOKEN}`,
+  'Accept': 'application/json',
+};
 
-    // Tenta match exato de título primeiro
-    const norm = title.toLowerCase().trim();
-    const exact = results.find(x =>
-      (x.title || '').toLowerCase().trim() === norm ||
-      (x.original_title || '').toLowerCase().trim() === norm
-    );
-    if (exact) return exact;
-
-    // Melhor resultado: tem poster e popularidade mínima
-    return results.find(x => x.poster_path && x.popularity > 0.5) || results[0] || null;
-  } catch (e) {
-    return null;
-  }
-}
-
-// ── Ingresso.com ──────────────────────────────────────────────────────────────
-
+/**
+ * Busca todos os filmes em cartaz no Brasil via TMDb /movie/now_playing?region=BR.
+ * Retorna array com { tmdb_id, title, urlKey, tmdb_data } — sem chamada extra ao TMDb.
+ */
 async function fetchNowPlaying() {
   const seen  = new Set();
   const films = [];
+  let   page  = 1;
+  let   total = 1;
 
-  const fetches = INGRESSO_CITIES.map(city =>
-    fetch(`${INGRESSO_BASE}/templates/nowplaying/city/${city}/partnership/${INGRESSO_PART}`, {
-      headers: ING_HEADERS,
-    })
-      .then(r => r.ok ? r.json() : [])
-      .catch(() => [])
-  );
+  do {
+    try {
+      const r = await fetch(
+        `${TMDB_BASE}/movie/now_playing?language=pt-BR&region=BR&page=${page}`,
+        { headers: TMDB_HEADERS }
+      );
+      if (!r.ok) { console.error('[discovery] TMDb HTTP', r.status); break; }
 
-  const results = await Promise.all(fetches);
+      const data = await r.json();
+      total = Math.min(data.total_pages || 1, 5); // máximo 5 páginas (~100 filmes)
 
-  for (const data of results) {
-    // A API pode retornar array direto ou objeto com .items / .events
-    const list = Array.isArray(data) ? data : (data.items || data.events || []);
-    for (const ev of list) {
-      const key = ev.urlKey || ev.url_key || '';
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      films.push({
-        ingressoId: ev.id || key,
-        title:      ev.title || ev.originalTitle || '',
-        urlKey:     key,
-      });
+      for (const movie of (data.results || [])) {
+        const title  = movie.title || movie.original_title || '';
+        const urlKey = titleToUrlKey(title);
+        if (!urlKey || seen.has(urlKey)) continue;
+        seen.add(urlKey);
+        films.push({
+          tmdb_id:   movie.id,
+          title,
+          urlKey,
+          tmdb_data: movie, // já temos os dados, sem busca extra
+        });
+      }
+    } catch (e) {
+      console.error('[discovery] erro página', page, e.message);
+      break;
     }
-  }
+    page++;
+  } while (page <= total);
 
   return films;
 }
@@ -161,37 +157,35 @@ exports.handler = async function () {
   let   updated  = 0;
   let   errors   = 0;
 
-  // ── FASE 1: Discovery ──────────────────────────────────────────────────────
-  log.push('[sync] FASE 1 — Discovery de filmes no Ingresso.com');
+  // ── FASE 1: Discovery via TMDb now_playing ────────────────────────────────
+  log.push('[sync] FASE 1 — Discovery via TMDb /movie/now_playing?region=BR');
 
-  let ingressoFilms = [];
+  let nowPlayingFilms = [];
   try {
-    ingressoFilms = await fetchNowPlaying();
-    log.push(`[sync] Ingresso retornou ${ingressoFilms.length} filmes`);
+    nowPlayingFilms = await fetchNowPlaying();
+    log.push(`[sync] TMDb retornou ${nowPlayingFilms.length} filmes em cartaz no Brasil`);
   } catch (e) {
-    log.push(`[sync] ERRO ao buscar Ingresso: ${e.message} — pula fase 1`);
+    log.push(`[sync] ERRO ao buscar TMDb nowplaying: ${e.message} — pula fase 1`);
   }
 
-  if (ingressoFilms.length > 0) {
-    // Busca url_keys já cadastrados no Supabase
+  if (nowPlayingFilms.length > 0) {
+    // Busca url_keys e tmdb_ids já no Supabase
     let existentes = [];
     try {
-      existentes = await supaGet('filmes', 'select=url_key&limit=500');
+      existentes = await supaGet('filmes', 'select=url_key,tmdb_id&limit=500');
     } catch (e) {
-      log.push(`[sync] ERRO ao buscar url_keys existentes: ${e.message}`);
+      log.push(`[sync] ERRO ao buscar filmes existentes: ${e.message}`);
     }
 
-    const keysExistentes = new Set(existentes.map(f => f.url_key).filter(Boolean));
+    const keysExistentes  = new Set(existentes.map(f => f.url_key).filter(Boolean));
+    const tmdbsExistentes = new Set(existentes.map(f => String(f.tmdb_id)).filter(Boolean));
 
-    // Insere apenas os filmes novos
-    for (const film of ingressoFilms) {
-      if (!film.urlKey || keysExistentes.has(film.urlKey)) continue;
-      if (!film.title) { log.push(`SKIP  ${film.urlKey} — sem título`); continue; }
+    for (const film of nowPlayingFilms) {
+      // Pula se já existe pelo urlKey ou pelo tmdb_id
+      if (keysExistentes.has(film.urlKey) || tmdbsExistentes.has(String(film.tmdb_id))) continue;
+      if (!film.title) continue;
 
       try {
-        // Busca dados no TMDb
-        const tmdb = await tmdbSearch(film.title);
-
         const novoFilme = {
           id:           `film_${film.urlKey}`,
           titulo:       film.title,
@@ -201,18 +195,15 @@ exports.handler = async function () {
           app_status:   'pendente',
           app:          null,
           a11y:         { ad: false, lse: false, libras: false },
-          tmdb_id:      tmdb ? tmdb.id   : null,
-          tmdb_data:    tmdb ? tmdb      : null,
+          tmdb_id:      film.tmdb_id,
+          tmdb_data:    film.tmdb_data, // já vem do now_playing, sem chamada extra
           created_at:   now,
           updated_at:   now,
         };
 
         await supaInsert(novoFilme);
-        log.push(`NEW   ${film.title}${tmdb ? ` (TMDb: ${tmdb.id})` : ' (sem TMDb)'}`);
+        log.push(`NEW   ${film.title} (TMDb: ${film.tmdb_id})`);
         created++;
-
-        // Pequena pausa para não sobrecarregar TMDb
-        await new Promise(res => setTimeout(res, 200));
       } catch (e) {
         log.push(`ERR   ${film.title} — ${e.message}`);
         errors++;

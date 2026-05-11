@@ -7,49 +7,61 @@ export default async function handler(request) {
   const urlKey = url.searchParams.get('urlKey') || '';
   const type   = url.searchParams.get('type')   || '';
 
-  const PART = 'locomotivadigital';
-  const BASE = 'https://api-content.ingresso.com/v0';
+  const PART       = 'locomotivadigital';
+  const BASE       = 'https://api-content.ingresso.com/v0';
+  const TMDB_TOKEN = Netlify.env.get('TMDB_TOKEN') ||
+    'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxMzcyNWY2YTUzYzRkNmRlOWIwNmIwZTFjYjllN2Q2NyIsIm5iZiI6MTc3NTc3NDQ0Ny4yMDk5OTk4LCJzdWIiOiI2OWQ4MmFlZjFjNTc0MjQxNWY0NGEyNGUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I';
+
+  // Converte título em urlKey no padrão da Ingresso.com
+  function titleToUrlKey(title) {
+    return (title || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '') // remove acentos
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  }
 
   let target;
 
   if (type === 'nowplaying') {
-    // Busca direta na API da Ingresso.com — lista de filmes em cartaz por cidade
-    // Tenta múltiplas cidades para cobrir todo o Brasil
-    const CITIES = ['1011', '9', '1', '2', '3', '5']; // SP, RJ, BH, Curitiba, Fortaleza, Porto Alegre
-    const ING_HEADERS = {
-      'Accept': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
-      'Origin': 'https://www.ingresso.com',
-      'Referer': 'https://www.ingresso.com/',
-    };
-
+    // Usa TMDb /movie/now_playing?region=BR como fonte de filmes em cartaz no Brasil.
+    // O endpoint de listagem da Ingresso não é público/documentado, então usamos TMDb
+    // que é confiável e já temos credenciais. O urlKey é derivado do título em português.
     try {
       const seen  = new Set();
       const films = [];
 
-      // Busca em paralelo nas principais cidades
-      const fetches = CITIES.map(cityId =>
-        fetch(`${BASE}/templates/nowplaying/city/${cityId}/partnership/${PART}`, { headers: ING_HEADERS })
-          .then(r => r.ok ? r.json() : [])
-          .catch(() => [])
-      );
-      const results = await Promise.all(fetches);
+      // Busca até 5 páginas (~100 filmes) para cobrir todo o Brasil
+      let page = 1;
+      let totalPages = 1;
 
-      for (const data of results) {
-        const list = Array.isArray(data) ? data : (data.items || data.events || []);
-        for (const ev of list) {
-          const key = ev.urlKey || ev.url_key || '';
-          if (!key || seen.has(key)) continue;
-          seen.add(key);
-          films.push({
-            id:     ev.id || key,
-            title:  ev.title || ev.originalTitle || '',
-            urlKey: key,
-          });
+      do {
+        const tmdbUrl = `https://api.themoviedb.org/3/movie/now_playing?language=pt-BR&region=BR&page=${page}`;
+        const r = await fetch(tmdbUrl, {
+          headers: {
+            'Authorization': `Bearer ${TMDB_TOKEN}`,
+            'Accept': 'application/json',
+          },
+        });
+
+        if (!r.ok) break;
+        const data = await r.json();
+        totalPages = Math.min(data.total_pages || 1, 5);
+
+        for (const movie of (data.results || [])) {
+          const title  = movie.title || movie.original_title || '';
+          const urlKey = titleToUrlKey(title);
+          if (!urlKey || seen.has(urlKey)) continue;
+          seen.add(urlKey);
+          films.push({ id: String(movie.id), title, urlKey });
         }
-      }
 
-      console.log('[Ingresso nowplaying] total films:', films.length);
+        page++;
+      } while (page <= totalPages);
+
+      console.log('[nowplaying] TMDb retornou', films.length, 'filmes');
 
       return new Response(JSON.stringify(films), {
         status: 200,
