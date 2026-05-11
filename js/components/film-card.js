@@ -77,11 +77,8 @@ function buildCard(filme, tmdb) {
 
   a.innerHTML =
     '<article class="film-card" role="listitem" aria-label="' + escHtml(title) + '">' +
-      '<div class="poster" style="' +
-        (poster
-          ? 'background-image:url(' + poster + ');background-size:cover;background-position:center top;'
-          : 'background:#1A2E4A;') +
-        '" aria-hidden="true">' +
+      '<div class="poster" aria-hidden="true">' +
+        (poster ? '<img class="poster-img" src="' + poster + '" alt="" loading="lazy">' : '') +
         '<div class="poster-badges">' + _buildBadgesHtml(filme.a11y) + '</div>' +
         '<div class="poster-title">' + escHtml(title) + '</div>' +
       '</div>' +
@@ -118,11 +115,8 @@ function buildBreveCard(filme, tmdb) {
 
   a.innerHTML =
     '<article class="film-card coming-card" role="listitem" aria-label="' + escHtml(title) + '">' +
-      '<div class="poster" style="' +
-        (poster
-          ? 'background-image:url(' + poster + ');background-size:cover;background-position:center top;'
-          : 'background:#1A2E4A;') +
-        '" aria-hidden="true">' +
+      '<div class="poster" aria-hidden="true">' +
+        (poster ? '<img class="poster-img" src="' + poster + '" alt="" loading="lazy">' : '') +
         '<div class="poster-badges">' +
           '<span class="pbadge pb-ad">AD</span>' +
           '<span class="pbadge pb-lse">LSE</span>' +
