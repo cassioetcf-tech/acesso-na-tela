@@ -86,10 +86,26 @@
             </div>
           </div>
 
-          <!-- SINOPSE -->
-          <div class="block" id="sinopse-section" style="display:none;">
-            <div class="block-label">Sinopse</div>
-            <p id="fp-sinopse1" class="sinopse"></p>
+          <!-- SINOPSE ACESSÍVEL (com vídeo quando disponível) -->
+          <div class="block" id="bloco-sinopse-video" style="display:none;">
+            <div class="block-label">Sinopse acessível</div>
+            <div class="trailer-wrap" id="sinopse-video-wrap" style="display:none;">
+              <div class="trailer-thumb" id="sinopse-thumb"
+                   role="button" tabindex="0"
+                   aria-label="Reproduzir vídeo da sinopse acessível"
+                   onclick="playSinopseVideo()"
+                   onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();playSinopseVideo()}">
+                <img id="sinopse-video-img" src="" alt="Miniatura do vídeo da sinopse acessível">
+                <div class="trailer-play" aria-hidden="true">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+                </div>
+              </div>
+              <iframe id="sinopse-video-iframe" class="trailer-iframe"
+                title="Vídeo da sinopse acessível"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen></iframe>
+            </div>
+            <p id="fp-sinopse1" class="sinopse" style="margin-top:14px;"></p>
             <p id="fp-sinopse2" class="sinopse" style="margin-top:10px;"></p>
           </div>
 

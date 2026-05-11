@@ -109,6 +109,17 @@ function _renderSupabaseData(f) {
     recursosEl.innerHTML = rhtml;
   }
 
+  // Vídeo de sinopse acessível
+  var sinopseVideoId = f.sinopse_video_id || f.video_sinopse || f.sinopse_video || null;
+  if (sinopseVideoId) {
+    var svImg = document.getElementById('sinopse-video-img');
+    if (svImg) svImg.src = 'https://img.youtube.com/vi/' + sinopseVideoId + '/hqdefault.jpg';
+    var svIframe = document.getElementById('sinopse-video-iframe');
+    if (svIframe) svIframe.setAttribute('data-src', 'https://www.youtube.com/embed/' + sinopseVideoId);
+    var svWrap = document.getElementById('sinopse-video-wrap');
+    if (svWrap) svWrap.style.display = '';
+  }
+
   // App destaque
   if (f.app) {
     updateAppLinks(f.app);
@@ -178,8 +189,8 @@ function _renderTmdb(d, wp) {
       ? 'Adequada para toda a família. Sem cenas de violência ou conteúdo sensível.'
       : 'Classificação indicativa: ' + certLabel + '. Verifique o conteúdo antes de levar crianças.'
   );
-  var sinopseSection = document.getElementById('sinopse-section');
-  if (sinopseSection) sinopseSection.style.display = '';
+  var sinopseBlock = document.getElementById('bloco-sinopse-video');
+  if (sinopseBlock) sinopseBlock.style.display = '';
 
   // Ficha técnica
   var dir = '';
@@ -303,6 +314,18 @@ function playTrailer() {
   if (iframe) {
     iframe.src = 'https://www.youtube-nocookie.com/embed/' + _trailerKey +
                  '?autoplay=1&rel=0&modestbranding=1';
+  }
+}
+
+function playSinopseVideo() {
+  var thumb  = document.getElementById('sinopse-thumb');
+  var iframe = document.getElementById('sinopse-video-iframe');
+  if (!thumb || !iframe) return;
+  var src = iframe.getAttribute('data-src');
+  if (src) {
+    iframe.src = src + '?autoplay=1&rel=0';
+    iframe.style.display = 'block';
+    thumb.style.display  = 'none';
   }
 }
 
