@@ -90,13 +90,14 @@
           <div class="auto-panel-left">
             <div class="auto-icon">🔄</div>
             <div>
-              <div class="auto-title">Sincronização automática de status</div>
-              <div class="auto-sub">Verifica sessões na Ingresso.com e atualiza status dos filmes automaticamente</div>
+              <div class="auto-title">Automação</div>
+              <div class="auto-sub">Roda diariamente às 6h UTC — ou acione manualmente aqui</div>
             </div>
           </div>
           <div class="auto-right">
-            <button class="btn-toggle-log" id="btn-toggle-log" onclick="toggleLog()" style="display:none;">Ver histórico</button>
-            <button class="btn-auto" id="btn-sync" onclick="runSync()">▶ Sincronizar agora</button>
+            <button class="btn-toggle-log" id="btn-toggle-log" onclick="toggleLog()" style="display:none;">Ver log</button>
+            <button class="btn-auto" id="btn-discovery" onclick="runDiscovery()" style="background:#0369a1;">🔍 Descobrir filmes novos</button>
+            <button class="btn-auto" id="btn-sync" onclick="runSync()">▶ Verificar sessões</button>
           </div>
         </div>
         <div class="auto-progress" id="auto-progress">
@@ -107,7 +108,7 @@
         </div>
         <div class="auto-summary" id="auto-summary"></div>
         <div class="auto-log" id="auto-log">
-          <div class="auto-log-title">Resultado da sincronização</div>
+          <div class="auto-log-title">Log</div>
           <div class="log-list" id="log-list"></div>
         </div>
       </div>
@@ -154,7 +155,6 @@
           <input type="text" class="search-input" placeholder="Buscar filme..."
                  id="search-input" oninput="filterFilmes()">
           <button class="btn btn-add" onclick="openModal()">+ Adicionar filme</button>
-          <button class="btn btn-outline" onclick="openImportPanel()" style="font-size:13px;">↓ Importar da Ingresso</button>
         </div>
       </div>
 
@@ -184,54 +184,6 @@
         </table>
       </div>
 
-      <!-- IMPORT PANEL -->
-      <div id="import-panel" style="display:none;margin-top:24px;">
-        <div class="auto-panel" style="padding:0">
-          <div style="padding:18px 22px 0;display:flex;justify-content:space-between;align-items:center;">
-            <div>
-              <div class="auto-title" style="margin-bottom:3px;">Importar filmes da Ingresso.com</div>
-              <div class="auto-sub">Selecione quais filmes cadastrar em lote no Supabase.</div>
-            </div>
-            <button class="btn btn-outline" onclick="closeImportPanel()" style="font-size:12px;">✕ Fechar</button>
-          </div>
-          <div style="display:flex;gap:0;border-bottom:1px solid #e2e8f0;margin:16px 0 0;padding:0 22px;">
-            <div id="itab-buscar" class="filter-tab active" style="cursor:default">1. Buscar</div>
-            <div id="itab-selecionar" class="filter-tab" style="cursor:default">2. Selecionar</div>
-            <div id="itab-confirmar" class="filter-tab" style="cursor:default">3. Confirmar</div>
-          </div>
-          <div style="padding:18px 22px 22px;">
-            <div id="istep-buscar">
-              <p style="font-size:13px;color:#64748b;margin-bottom:16px;">Clique em "Buscar" para carregar todos os filmes em cartaz via API da Ingresso.com.</p>
-              <button class="btn btn-primary" id="btn-import-buscar" onclick="importBuscar()">Buscar filmes em cartaz</button>
-              <div id="import-buscar-result" style="margin-top:12px;font-size:13px;color:#64748b;"></div>
-            </div>
-            <div id="istep-selecionar" style="display:none;">
-              <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
-                <input type="text" class="search-input" style="flex:1;min-width:180px;" placeholder="Filtrar por título..." oninput="importFiltrar(this.value)" id="import-filtro">
-                <button class="btn btn-outline" style="font-size:12px;" onclick="importSelecionarTodos(true)">Selecionar tudo</button>
-                <button class="btn btn-outline" style="font-size:12px;" onclick="importSelecionarTodos(false)">Limpar</button>
-              </div>
-              <div id="import-film-list" style="display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto;margin-bottom:16px;"></div>
-              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #e2e8f0;flex-wrap:wrap;gap:8px;">
-                <span style="font-size:13px;color:#64748b;">Selecionados: <strong id="import-sel-count" style="color:#1e293b;">0</strong></span>
-                <div style="display:flex;gap:8px;">
-                  <button class="btn btn-outline" id="btn-filtrar-sessoes" onclick="importFiltrarSessoes()" style="font-size:12px;">▶ Filtrar com sessões Ingresso</button>
-                  <button class="btn btn-primary" onclick="importIrConfirmar()">Revisar importação →</button>
-                </div>
-              </div>
-            </div>
-            <div id="istep-confirmar" style="display:none;">
-              <div id="import-confirm-note" style="font-size:13px;background:#f1f5f9;border-radius:8px;padding:10px 14px;margin-bottom:12px;color:#475569;"></div>
-              <div id="import-confirm-list" style="display:flex;flex-direction:column;gap:6px;max-height:380px;overflow-y:auto;margin-bottom:16px;"></div>
-              <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:12px;border-top:1px solid #e2e8f0;">
-                <button class="btn btn-outline" onclick="importShowStep('selecionar')">← Voltar</button>
-                <button class="btn btn-primary" id="btn-import-salvar" onclick="importSalvar()">Cadastrar no Supabase</button>
-              </div>
-              <div id="import-save-result" style="margin-top:12px;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
 
     </div>
   </div>

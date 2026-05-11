@@ -14,13 +14,6 @@ var _currentFilter = 'todos';
 var _previewTimer  = null;
 var _semA11yActive = false;
 
-// Importador
-var _importFilmes      = [];
-var _importSel         = {};
-var _importFiltroVal   = '';
-var _importAppMap      = {};
-var _importStMap       = {};
-var _importIngressoMap = {}; // urlKey → eventId (null = não encontrado)
 
 // Sync log
 var _syncLog = [];
@@ -471,287 +464,155 @@ async function deleteFilme(id) {
   }
 }
 
-// ── Importador da Ingresso ────────────────────────────────────────────────────
-function openImportPanel() {
-  var panel = document.getElementById('import-panel');
-  if (!panel) return;
-  panel.style.display = 'block';
-  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  importShowStep('buscar');
+// ── Descobrir filmes novos (auto-discovery) ───────────────────────────────────
+// Busca filmes no TMDb now_playing?region=BR, verifica cada um no Ingresso.com,
+// e insere automaticamente os confirmados com app_status='pendente'.
+// Sem seleção manual — totalmente automático.
+
+function _titleToUrlKey(title) {
+  return (title || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
 }
 
-function closeImportPanel() {
-  var panel = document.getElementById('import-panel');
-  if (panel) panel.style.display = 'none';
-}
+async function runDiscovery() {
+  var btn      = document.getElementById('btn-discovery');
+  var progress = document.getElementById('auto-progress');
+  var summary  = document.getElementById('auto-summary');
 
-function importShowStep(step) {
-  ['buscar', 'selecionar', 'confirmar'].forEach(function (s) {
-    var el  = document.getElementById('istep-' + s);
-    var tab = document.getElementById('itab-'  + s);
-    if (el)  el.style.display = s === step ? 'block' : 'none';
-    if (tab) tab.classList.toggle('active', s === step);
-  });
-}
+  _syncLog = [];
+  _logOpen = true;
 
-async function importBuscar() {
-  var btn      = document.getElementById('btn-import-buscar');
-  var resultEl = document.getElementById('import-buscar-result');
-  btn.textContent = 'Buscando no TMDb...';
-  btn.disabled    = true;
-  resultEl.textContent = '';
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner"></span> Buscando...';
+  if (progress) progress.classList.add('open');
+  if (summary)  summary.classList.remove('open');
+
+  var logEl  = document.getElementById('auto-log');
+  var header = document.getElementById('auto-header');
+  var togBtn = document.getElementById('btn-toggle-log');
+  if (logEl)  logEl.classList.add('open');
+  if (header) header.classList.add('open');
+  if (togBtn) togBtn.style.display = 'none';
+  renderLog();
+
+  var discovered = 0;
+  var skipped    = 0;
+  var errors     = 0;
 
   try {
+    // ── 1. Busca TMDb now_playing?region=BR ──────────────────────────────────
+    setProgress(5, 'Buscando filmes no TMDb...');
     var data  = await getNowPlaying();
-    if (data && data.error) throw new Error(data.error);
     var lista = Array.isArray(data) ? data : [];
-    if (!lista.length) throw new Error('Nenhum filme encontrado.');
 
-    var cadastrados = _filmes.map(function (f) { return f.url_key; });
+    if (!lista.length) throw new Error('TMDb não retornou filmes.');
+    addLog('ok', '🎬', 'TMDb retornou <strong>' + lista.length + '</strong> filmes em cartaz no Brasil', null, null);
 
-    _importFilmes = lista
-      .map(function (f) {
-        return {
-          id:     f.id || f.urlKey,
-          title:  f.title || '',
-          urlKey: f.urlKey || '',
-          exists: cadastrados.includes(f.urlKey),
-        };
-      })
-      .filter(function (f) { return f.title && f.urlKey; });
-
-    _importSel         = {};
-    _importAppMap      = {};
-    _importStMap       = {};
-    _importIngressoMap = {};
-
-    _importFilmes.forEach(function (f) {
-      _importSel[f.id]    = false; // começa desmarcado — será marcado após verificação
-      _importAppMap[f.id] = 'Sem Acessibilidade';
-      _importStMap[f.id]  = 'cartaz';
+    // ── 2. Filtra novos (não cadastrados ainda) ──────────────────────────────
+    var keysExistentes = new Set(_filmes.map(function (f) { return f.url_key; }).filter(Boolean));
+    var novos = lista.filter(function (f) {
+      return f.urlKey && f.title && !keysExistentes.has(f.urlKey);
     });
 
-    // ── Verificação contra Ingresso.com ────────────────────────────────────────
-    // Chama getEventId em lotes paralelos para confirmar quais filmes existem
-    // no Ingresso via url-key. Só pré-seleciona os confirmados.
-    resultEl.innerHTML = '<span style="color:#64748b;font-size:13px;">&#9651; Verificando ' + _importFilmes.length + ' filmes no Ingresso.com...</span>';
-    importRenderList(); // mostra a lista enquanto verifica
+    if (!novos.length) {
+      addLog('ok', '✓', 'Nenhum filme novo — banco já está atualizado', null, null);
+      setProgress(100, 'Concluído.');
+      if (summary) { summary.classList.add('open'); summary.textContent = 'Nenhum filme novo encontrado.'; }
+      if (progress) progress.classList.remove('open');
+      if (togBtn)   togBtn.style.display = '';
+      btn.disabled  = false;
+      btn.innerHTML = '🔍 Descobrir filmes novos';
+      return;
+    }
 
-    var BATCH = 8; // chamadas paralelas por vez
-    var verified = 0;
-    var total    = _importFilmes.length;
+    addLog('ok', '🆕', '<strong>' + novos.length + '</strong> filme(s) não cadastrado(s) — verificando no Ingresso.com...', null, null);
 
-    for (var i = 0; i < total; i += BATCH) {
-      btn.textContent = 'Ingresso ' + Math.min(i + BATCH, total) + '/' + total + '...';
-      var batch   = _importFilmes.slice(i, i + BATCH);
+    // ── 3. Verifica cada novo filme no Ingresso (lotes de 8) ─────────────────
+    var BATCH = 8;
+    var now   = new Date().toISOString();
+
+    for (var i = 0; i < novos.length; i += BATCH) {
+      var pct   = 10 + Math.round((i / novos.length) * 75);
+      setProgress(pct, 'Ingresso ' + Math.min(i + BATCH, novos.length) + '/' + novos.length + '...');
+
+      var batch   = novos.slice(i, i + BATCH);
       var results = await Promise.all(batch.map(function (f) {
         return getEventId(f.urlKey)
           .then(function (d) { return (d && d.id) ? d.id : null; })
           .catch(function ()  { return null; });
       }));
-      batch.forEach(function (f, j) {
-        _importIngressoMap[f.id] = results[j]; // eventId ou null
-        if (results[j] && !f.exists) {
-          _importSel[f.id] = true; // pré-seleciona filmes novos confirmados no Ingresso
-          verified++;
+
+      for (var j = 0; j < batch.length; j++) {
+        var f       = batch[j];
+        var eventId = results[j];
+
+        if (!eventId) {
+          addLog('skip', '—', escHtml(f.title) + ' <span style="color:#94a3b8;font-size:11px;">não encontrado no Ingresso</span>', null, null);
+          skipped++;
+          continue;
         }
-      });
-      importRenderList(); // atualiza badges em tempo real
-    }
 
-    btn.textContent = 'Buscar filmes em cartaz';
-    btn.disabled    = false;
+        // ── 4. Enriquece com TMDb e salva ────────────────────────────────────
+        var tmdbData = null;
+        try {
+          var tmdbResults = await searchMovie(f.title);
+          var titleNrm    = f.title.toLowerCase().trim();
+          tmdbData = tmdbResults.find(function (r) {
+            return (r.title || '').toLowerCase().trim() === titleNrm ||
+                   (r.original_title || '').toLowerCase().trim() === titleNrm;
+          });
+          if (!tmdbData && tmdbResults[0] && tmdbResults[0].popularity > 1 && tmdbResults[0].poster_path) {
+            tmdbData = tmdbResults[0];
+          }
+        } catch (e) { /* sem TMDb, tudo bem */ }
 
-    var notFound = total - verified - _importFilmes.filter(function(f){ return f.exists; }).length;
-    resultEl.innerHTML =
-      '&#10003; <strong>' + verified + '</strong> filme(s) confirmados no Ingresso' +
-      (notFound > 0 ? ' · <span style="color:#94a3b8">' + notFound + ' não encontrados (desmarcados)</span>' : '') +
-      ' &nbsp;<a href="#" style="color:#D4500F;font-weight:600;text-decoration:none;" onclick="importShowStep(\'selecionar\');return false;">Ver lista &#8594;</a>';
-
-    importShowStep('selecionar');
-    importRenderList();
-  } catch (e) {
-    btn.textContent = 'Buscar filmes em cartaz';
-    btn.disabled    = false;
-    resultEl.textContent = 'Erro: ' + e.message;
-  }
-}
-
-function importRenderList() {
-  var lista = document.getElementById('import-film-list');
-  var total = 0, sel = 0;
-  var html  = '';
-
-  _importFilmes.forEach(function (f) {
-    if (_importFiltroVal && f.title.toLowerCase().indexOf(_importFiltroVal.toLowerCase()) === -1) return;
-    total++;
-    var checked = _importSel[f.id];
-    if (checked) sel++;
-    var appVal = _importAppMap[f.id] || 'MovieReading';
-    var stVal  = _importStMap[f.id]  || 'cartaz';
-
-    var apps    = ['MovieReading', 'MLOAD', 'GRETA', 'PingPlay', 'Sem Acessibilidade'];
-    var appOpts = apps.map(function (a) {
-      return '<option value="' + a + '"' + (appVal === a ? ' selected' : '') + '>' + a + '</option>';
-    }).join('');
-    var stOpts =
-      '<option value="cartaz"' + (stVal === 'cartaz' ? ' selected' : '') + '>Em cartaz</option>' +
-      '<option value="breve"'  + (stVal === 'breve'  ? ' selected' : '') + '>Em breve</option>';
-
-    html += '<div style="display:grid;grid-template-columns:20px 1fr 160px 120px;gap:12px;align-items:center;padding:10px 14px;background:#fff;border:1px solid ' + (checked ? '#D4500F' : '#e2e8f0') + ';border-radius:10px;">';
-    html += '<input type="checkbox"' + (checked ? ' checked' : '') + ' style="accent-color:#D4500F;width:15px;height:15px;cursor:pointer;" onchange="importToggle(\'' + f.id + '\',this.checked)">';
-    var ingId    = _importIngressoMap[f.id]; // undefined = ainda verificando, null = não encontrado, string = ok
-    var ingBadge = '';
-    if (ingId === undefined) {
-      ingBadge = '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#f1f5f9;color:#94a3b8;display:inline-block;margin-top:2px;">&#8230; verificando</span>';
-    } else if (ingId) {
-      ingBadge = '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#dcfce7;color:#166534;display:inline-block;margin-top:2px;">&#10003; Ingresso</span>';
-    } else {
-      ingBadge = '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#f1f5f9;color:#94a3b8;display:inline-block;margin-top:2px;">&#215; Não no Ingresso</span>';
-    }
-    html += '<div>';
-    html += '<div style="font-size:13px;font-weight:600;color:#1e293b;">' + escHtml(f.title) + '</div>';
-    html += '<div style="font-size:11px;color:#94a3b8;font-family:monospace;">' + escHtml(f.urlKey) + '</div>';
-    html += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;">';
-    if (f.exists) html += '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#f1f5f9;color:#64748b;display:inline-block;">Já cadastrado</span>';
-    html += ingBadge;
-    html += '</div>';
-    html += '</div>';
-    html += '<select style="font-size:12px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:8px;width:100%;" onchange="_importAppMap[\'' + f.id + '\']=this.value">' + appOpts + '</select>';
-    html += '<select style="font-size:12px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:8px;width:100%;" onchange="_importStMap[\'' + f.id + '\']=this.value">' + stOpts + '</select>';
-    html += '</div>';
-  });
-
-  if (lista) lista.innerHTML = html || '<p style="font-size:13px;color:#64748b;padding:.5rem 0">Nenhum filme encontrado.</p>';
-  _set('import-count-label', total + ' filmes');
-  _set('import-sel-label',   sel   + ' selecionados');
-  _set('import-sel-count',   sel);
-}
-
-function importToggle(id, val) {
-  _importSel[id] = val;
-  importRenderList();
-}
-
-function importSelecionarTodos(val) {
-  _importFilmes.forEach(function (f) {
-    // "Selecionar todos" respeita o filtro: se desmarcando, desmarca tudo;
-    // se marcando, só marca os confirmados no Ingresso (ou todos se ainda verificando)
-    if (!val) {
-      _importSel[f.id] = false;
-    } else {
-      var ingId = _importIngressoMap[f.id];
-      // marca se: ingresso confirmou (ingId truthy) OU ainda não verificou (undefined)
-      _importSel[f.id] = ingId !== null;
-    }
-  });
-  importRenderList();
-}
-
-function importFiltrar(v) { _importFiltroVal = v; importRenderList(); }
-
-function importIrConfirmar() {
-  var sel = _importFilmes.filter(function (f) { return _importSel[f.id]; });
-  if (!sel.length) { showToast('Selecione ao menos um filme.', 'error'); return; }
-
-  var note = document.getElementById('import-confirm-note');
-  if (note) note.textContent = sel.length + ' filme(s) serão cadastrados no Supabase.';
-
-  var html = '';
-  sel.forEach(function (f) {
-    var appVal = _importAppMap[f.id] || 'MovieReading';
-    var stVal  = _importStMap[f.id]  || 'cartaz';
-    html += '<div style="display:grid;grid-template-columns:1fr 160px 120px;gap:12px;align-items:center;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;">';
-    html += '<div><div style="font-size:13px;font-weight:600;color:#1e293b;">' + escHtml(f.title) + '</div><div style="font-size:11px;color:#94a3b8;font-family:monospace;">' + escHtml(f.urlKey) + '</div></div>';
-    html += '<span style="font-size:12px;color:#475569;">' + escHtml(appVal) + '</span>';
-    html += '<span style="font-size:12px;color:#475569;">' + stVal + '</span>';
-    html += '</div>';
-  });
-  var cl = document.getElementById('import-confirm-list');
-  if (cl) cl.innerHTML = html;
-  var sr = document.getElementById('import-save-result');
-  if (sr) sr.innerHTML = '';
-  importShowStep('confirmar');
-}
-
-async function importSalvar() {
-  var btn      = document.getElementById('btn-import-salvar');
-  var resultEl = document.getElementById('import-save-result');
-  btn.textContent = 'Buscando no TMDb...';
-  btn.disabled    = true;
-  if (resultEl) resultEl.innerHTML = '';
-
-  var sel       = _importFilmes.filter(function (f) { return _importSel[f.id]; });
-  var semTmdb   = []; // filmes sem match — serão importados mesmo assim
-
-  if (resultEl) resultEl.innerHTML = '<div style="font-size:13px;color:#64748b;padding:8px 0;">Buscando dados no TMDb para ' + sel.length + ' filmes...</div>';
-
-  // Enriquecer com TMDb (opcional — importa mesmo sem match)
-  var enriched = [];
-  for (var i = 0; i < sel.length; i++) {
-    var f = sel[i];
-    btn.textContent = 'TMDb ' + (i + 1) + '/' + sel.length + '...';
-    var tmdbMatch = null;
-    try {
-      var results  = await searchMovie(f.title);
-      var titleNrm = f.title.toLowerCase().trim();
-      tmdbMatch = results.find(function (r) {
-        return (r.title || '').toLowerCase().trim() === titleNrm ||
-               (r.original_title || '').toLowerCase().trim() === titleNrm;
-      });
-      if (!tmdbMatch && results[0] && results[0].popularity > 1 && results[0].poster_path) {
-        tmdbMatch = results[0];
+        try {
+          var novoFilme = {
+            id:           'film_' + f.urlKey,
+            titulo:       f.title,
+            url_key:      f.urlKey,
+            ingresso_url: 'https://www.ingresso.com/filme/' + f.urlKey,
+            status:       'CARTAZ',
+            app_status:   'pendente',
+            app:          null,
+            a11y:         { ad: false, lse: false, libras: false },
+            tmdb_id:      tmdbData ? tmdbData.id   : null,
+            tmdb_data:    tmdbData ? tmdbData       : null,
+            created_at:   now,
+            updated_at:   now,
+          };
+          await supabasePost('filmes', novoFilme, 'resolution=ignore-duplicates,return=minimal');
+          addLog('ok', '✓', '<strong>' + escHtml(f.title) + '</strong> adicionado à triagem', 'Novo', 'tag-cartaz');
+          discovered++;
+        } catch (e) {
+          addLog('err', '✕', escHtml(f.title) + ' — erro ao salvar: ' + e.message, null, null);
+          errors++;
+        }
       }
-    } catch (e) { /* sem TMDb, ok */ }
-    if (!tmdbMatch) semTmdb.push(f.title);
-    enriched.push({ f: f, tmdb: tmdbMatch });
-  }
-
-  var payloads = enriched.map(function (item) {
-    var f       = item.f;
-    var tmdb    = item.tmdb;
-    var appVal  = _importAppMap[f.id] || 'Sem Acessibilidade';
-    var stVal   = _importStMap[f.id]  || 'cartaz';
-    var semA11y = !appVal || appVal === 'Sem Acessibilidade';
-    return {
-      id:           'f_' + f.id,
-      titulo:       f.title,
-      url_key:      f.urlKey,
-      ingresso_url: 'https://www.ingresso.com/filme/' + f.urlKey,
-      app:          semA11y ? null : appVal,
-      status:       stVal,
-      a11y:         semA11y ? { ad: false, lse: false, libras: false } : { ad: true, lse: true, libras: true },
-      tmdb_id:      tmdb ? tmdb.id   : null,
-      tmdb_data:    tmdb ? tmdb      : null,
-      created_at:   new Date().toISOString(),
-      updated_at:   new Date().toISOString(),
-    };
-  });
-
-  var avisoHtml = '';
-  if (semTmdb.length > 0) {
-    avisoHtml = '<div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:12px 14px;margin-bottom:10px;">' +
-      '<div style="font-size:13px;font-weight:700;color:#854d0e;margin-bottom:4px;">&#9888; ' + semTmdb.length + ' sem match no TMDb (serão importados sem poster/dados):</div>' +
-      '<div style="font-size:12px;color:#92400e;">' + semTmdb.map(escHtml).join(', ') + '</div>' +
-      '</div>';
-  }
-
-  try {
-    await supabasePost('filmes', payloads, 'resolution=ignore-duplicates,return=minimal');
-    btn.textContent = 'Cadastrar no Supabase';
-    btn.disabled    = false;
-    await loadFilmes();
-    if (resultEl) resultEl.innerHTML = avisoHtml +
-      '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px 18px;text-align:center;">' +
-      '<div style="font-size:14px;font-weight:600;color:#166534;">&#10003; ' + payloads.length + ' filmes cadastrados!</div>' +
-      '<div style="font-size:12px;color:#166534;margin-top:4px;">Edite os filmes no admin para adicionar acessibilidade.</div>' +
-      '</div>';
-    showToast(payloads.length + ' filmes importados!', 'success');
+    }
   } catch (e) {
-    btn.textContent = 'Cadastrar no Supabase';
-    btn.disabled    = false;
-    showToast('Erro ao salvar: ' + e.message, 'error');
+    addLog('err', '✕', 'Erro: ' + e.message, null, null);
+    errors++;
   }
+
+  setProgress(100, 'Concluído.');
+  btn.disabled  = false;
+  btn.innerHTML = '🔍 Descobrir filmes novos';
+  if (progress) progress.classList.remove('open');
+  if (togBtn)   togBtn.style.display = '';
+
+  var summaryText = discovered + ' filme(s) novo(s) adicionado(s)' +
+    (skipped  > 0 ? ' · ' + skipped  + ' não encontrado(s) no Ingresso' : '') +
+    (errors   > 0 ? ' · ' + errors   + ' erro(s)' : '');
+  if (summary) { summary.classList.add('open'); summary.textContent = summaryText; }
+
+  await loadFilmes(); // recarrega tabela e fila de triagem
+  showToast(discovered > 0 ? discovered + ' filme(s) novo(s) na fila de triagem!' : 'Nenhum filme novo.', discovered > 0 ? 'success' : null);
 }
 
 // ── TMDb Cleanup ──────────────────────────────────────────────────────────────
@@ -963,6 +824,7 @@ async function _checkFilmHasSessions(urlKey) {
 
 async function runSync() {
   var btn      = document.getElementById('btn-sync');
+  var btnDisc  = document.getElementById('btn-discovery');
   var progress = document.getElementById('auto-progress');
   var summary  = document.getElementById('auto-summary');
 
@@ -971,6 +833,7 @@ async function runSync() {
 
   btn.disabled  = true;
   btn.innerHTML = '<span class="spinner"></span> Verificando...';
+  if (btnDisc) btnDisc.disabled = true;
   if (progress) progress.classList.add('open');
   if (summary)  summary.classList.remove('open');
   var logEl  = document.getElementById('auto-log');
@@ -1044,14 +907,15 @@ async function runSync() {
 
   setProgress(100, 'Concluído.');
   btn.disabled  = false;
-  btn.innerHTML = '&#9654; Sincronizar agora';
+  btn.innerHTML = '&#9654; Verificar sessões';
+  if (btnDisc) btnDisc.disabled = false;
   if (summary)  { summary.classList.add('open'); summary.textContent = changed + ' alteração(ões) · ' + errors + ' erro(s).'; }
   if (progress) progress.classList.remove('open');
   if (togBtn)   togBtn.style.display = '';
 
   renderTable();
   updateStats();
-  showToast('Sincronização concluída: ' + changed + ' atualização(ões).', 'success');
+  showToast('Verificação concluída: ' + changed + ' atualização(ões).', 'success');
 }
 
 // ── Moderação de comentários ──────────────────────────────────────────────────
