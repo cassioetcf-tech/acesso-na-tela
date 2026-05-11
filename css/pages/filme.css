@@ -63,6 +63,42 @@
 .sinopse { font-size: 14px; line-height: 1.75; color: var(--ink2); }
 .sinopse + .sinopse { margin-top: 10px; }
 
+/* ── BLOCOS DE CONTEÚDO ── */
+.block { background: var(--bg); border: 1.5px solid var(--bdr); border-radius: var(--r); padding: 20px 22px; margin-bottom: 16px; }
+.block-label { font-size: 10px; font-weight: 800; color: var(--laranja); text-transform: uppercase; letter-spacing: .9px; margin-bottom: 8px; }
+.block-title { font-family: 'Inter', sans-serif; font-size: 17px; font-weight: 800; color: var(--ink); margin-bottom: 16px; letter-spacing: -0.3px; }
+
+/* ── SKELETON DO HERO ── */
+.fp-sk-hero { background: var(--laranja); padding: 34px 28px 38px; display: flex; gap: 20px; align-items: flex-end; }
+.fp-sk-poster { width: 112px; flex-shrink: 0; aspect-ratio: 2/3; border-radius: var(--r-sm); background: rgba(255,255,255,0.18); }
+.fp-sk-info { flex: 1; }
+
+/* ── LOADING STATE ── */
+body.film-loading .fp-hero,
+body.film-loading .breadcrumb { display: none; }
+body.film-loading .fp-skeleton { display: block !important; }
+body:not(.film-loading) .fp-skeleton { display: none !important; }
+
+/* ── STORE BUTTONS ── */
+.app-store-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-store {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #1A1A1A; color: #fff; border-radius: 8px;
+  padding: 9px 14px; font-size: 13px; font-weight: 600;
+  text-decoration: none; font-family: inherit;
+  transition: background .12s;
+}
+.btn-store:hover { background: #333; }
+.btn-store:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
+
+/* ── COMMENT INPUT ── */
+.comment-input {
+  width: 100%; background: var(--bg2); border: 1.5px solid var(--bdr);
+  border-radius: var(--r-sm); padding: 10px 13px; font-size: 13px;
+  font-family: inherit; color: var(--ink); margin-bottom: 8px; display: block;
+}
+.comment-input:focus { outline: 3px solid var(--laranja); }
+
 /* ── APP DESTAQUE ── */
 .app-destaque { background: var(--laranja-cl); border: 2px solid var(--laranja-bdr); border-radius: var(--r); padding: 18px 20px; margin-bottom: 16px; }
 .ad-header { display: flex; align-items: center; gap: 13px; margin-bottom: 13px; }

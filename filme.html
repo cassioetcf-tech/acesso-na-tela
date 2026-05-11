@@ -24,144 +24,151 @@
   <div class="shell">
     <div id="header-mount"></div>
 
+    <!-- SKELETON (visível durante o carregamento) -->
+    <div class="fp-skeleton" aria-hidden="true">
+      <div class="fp-sk-hero">
+        <div class="fp-sk-poster"></div>
+        <div class="fp-sk-info">
+          <div class="sk-line" style="width:60%;height:32px;margin-bottom:12px;"></div>
+          <div class="sk-line" style="width:40%;height:14px;margin-bottom:8px;"></div>
+          <div class="sk-line" style="width:55%;height:14px;margin-bottom:20px;"></div>
+          <div class="sk-line" style="width:80%;height:14px;margin-bottom:6px;"></div>
+          <div class="sk-line" style="width:70%;height:14px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BREADCRUMB -->
+    <nav class="breadcrumb" aria-label="Localização">
+      <a href="index.html">Início</a>
+      <span aria-hidden="true">›</span>
+      <span id="bc-film" aria-current="page">Carregando...</span>
+    </nav>
+
+    <!-- HERO DO FILME -->
+    <section class="fp-hero" aria-labelledby="fp-h1">
+      <div class="fp-inner">
+        <div id="fp-poster-box" class="fp-poster" aria-hidden="true"></div>
+        <div class="fp-info">
+          <h1 class="fp-h1" id="fp-h1"></h1>
+          <p id="fp-orig" class="fp-orig"></p>
+          <div class="meta-pills" id="fp-meta-pills" aria-label="Informações do filme"></div>
+          <div class="a11y-chips" id="fp-a11y-chips" aria-label="Recursos de acessibilidade"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTEÚDO PRINCIPAL -->
     <main id="main-content" tabindex="-1">
+      <div class="fp-body">
 
-      <!-- SKELETON (visible during film-loading) -->
-      <div class="fp-skeleton" aria-hidden="true">
-        <div class="fp-sk-hero">
-          <div class="fp-sk-poster"></div>
-          <div class="fp-sk-info">
-            <div class="sk-line" style="width:60%;height:32px;margin-bottom:16px;"></div>
-            <div class="sk-line" style="width:40%;height:16px;margin-bottom:8px;"></div>
-            <div class="sk-line" style="width:50%;height:16px;margin-bottom:24px;"></div>
-            <div class="sk-line" style="width:30%;height:40px;border-radius:8px;"></div>
-          </div>
-        </div>
-      </div>
+        <!-- COLUNA PRINCIPAL -->
+        <div>
 
-      <!-- FILM CONTENT (hidden until JS populates) -->
-      <div id="film-body-content">
-
-        <nav class="breadcrumb" aria-label="Breadcrumb">
-          <a href="index.html">Início</a>
-          <span aria-hidden="true">›</span>
-          <span id="bc-film" aria-current="page">Carregando...</span>
-        </nav>
-
-        <section class="fp-hero" aria-labelledby="fp-h1">
-          <div class="fp-inner">
-            <div class="fp-poster" id="fp-poster-box">
-              <img id="fp-poster-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:none;">
-            </div>
-            <div class="fp-info">
-              <div class="meta-pills" id="fp-meta-pills">
-                <!-- Ano · Duração · Gênero -->
-              </div>
-              <p class="fp-orig" id="fp-orig"></p>
-              <h1 class="fp-h1" id="fp-h1"></h1>
-              <div class="a11y-chips" id="fp-a11y-chips">
-                <!-- AD / LSE / LIBRAS badges -->
-              </div>
-              <div class="fp-ctas" id="fp-ctas">
-                <!-- Ingresso + Aplicativo buttons -->
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div class="fp-body">
-          <div class="fp-col-main">
-
-            <!-- TRAILER -->
-            <div class="fp-section" id="trailer-section" style="display:none;">
-              <h2 class="fp-section-title">Trailer</h2>
-              <div class="trailer-wrap" id="trailer-wrap">
-                <div class="trailer-thumb" id="trailer-thumb" role="button" tabindex="0" aria-label="Reproduzir trailer">
-                  <!-- Thumbnail + play icon injected by filme.js -->
-                </div>
-                <div class="trailer-frame" id="trailer-frame" style="display:none;">
-                  <!-- iframe injected on play -->
+          <!-- TRAILER -->
+          <div class="block" id="trailer-section" style="display:none;">
+            <div class="block-label">Trailer acessível</div>
+            <div class="trailer-wrap">
+              <div class="trailer-thumb" id="trailer-thumb"
+                   role="button" tabindex="0"
+                   aria-label="Reproduzir trailer"
+                   onclick="playTrailer()"
+                   onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();playTrailer()}">
+                <img id="trailer-img" src="" alt="">
+                <div class="trailer-play" aria-hidden="true">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
                 </div>
               </div>
+              <iframe id="trailer-iframe" class="trailer-iframe"
+                title="Trailer do filme"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen></iframe>
             </div>
+          </div>
 
-            <!-- SINOPSE -->
-            <div class="fp-section" id="sinopse-section" style="display:none;">
-              <h2 class="fp-section-title">Sinopse</h2>
-              <p class="fp-sinopse" id="fp-sinopse"></p>
-            </div>
+          <!-- SINOPSE -->
+          <div class="block" id="sinopse-section" style="display:none;">
+            <div class="block-label">Sinopse</div>
+            <p id="fp-sinopse1" class="sinopse"></p>
+            <p id="fp-sinopse2" class="sinopse" style="margin-top:10px;"></p>
+          </div>
 
-            <!-- SESSÕES -->
-            <div class="fp-section" id="sessoes-section">
-              <h2 class="fp-section-title">Sessões acessíveis</h2>
-              <div class="sessoes-loading" id="sessoes-loading" aria-live="polite">
-                <div class="sk-line" style="width:50%;height:14px;margin-bottom:8px;"></div>
-                <div class="sk-line" style="width:70%;height:14px;margin-bottom:8px;"></div>
-                <div class="sk-line" style="width:40%;height:14px;"></div>
+          <!-- APP DESTAQUE -->
+          <div class="app-destaque" id="app-destaque" style="display:none;" aria-labelledby="app-dest-title">
+            <div class="ad-header">
+              <div class="ad-ico" id="app-destaque-ico" aria-hidden="true">
+                <img id="app-logo-img" src="" alt="" class="app-logo-img" style="display:none;">
               </div>
-              <div id="sessoes-content" style="display:none;"></div>
-              <div id="sessoes-empty" style="display:none;">
-                <p class="fp-empty-msg">Nenhuma sessão acessível encontrada no momento.</p>
-              </div>
-            </div>
-
-            <!-- STREAMING -->
-            <div class="fp-section" id="streaming-section" style="display:none;">
-              <h2 class="fp-section-title">Disponível no streaming</h2>
-              <div class="streaming-grid" id="streaming-grid"></div>
-            </div>
-
-            <!-- COMENTÁRIOS -->
-            <div class="fp-section" id="comentarios-section">
-              <h2 class="fp-section-title">Comentários da comunidade</h2>
-              <div class="comment-form" id="comment-form">
-                <label for="comment-nome" class="sr-only">Seu nome</label>
-                <input type="text" id="comment-nome" class="comment-input" placeholder="Seu nome" autocomplete="given-name">
-                <label for="comment-texto" class="sr-only">Comentário</label>
-                <textarea id="comment-texto" class="comment-textarea" placeholder="Compartilhe sua experiência de acessibilidade neste filme..." rows="3"></textarea>
-                <button class="btn btn-primary" onclick="submitComentario()" id="btn-comentar">Publicar</button>
-              </div>
-              <div id="comentarios-list" aria-live="polite" aria-label="Lista de comentários">
-                <!-- Comments injected by filme.js -->
+              <div>
+                <div class="ad-name" id="app-dest-title"></div>
+                <div class="ad-sub">Aplicativo gratuito · iOS e Android</div>
               </div>
             </div>
-
-          </div><!-- /.fp-col-main -->
-
-          <aside class="fp-col-side" aria-label="Informações adicionais">
-
-            <!-- APP DESTAQUE -->
-            <div class="app-destaque" id="app-destaque" style="display:none;">
-              <div class="app-destaque-title">Aplicativo necessário</div>
-              <div class="app-destaque-body" id="app-destaque-body">
-                <!-- App card injected by filme.js -->
-              </div>
+            <div class="recursos-row" id="app-recursos" aria-label="Recursos disponíveis"></div>
+            <div class="app-store-btns" style="margin-top:12px;">
+              <a id="app-ios-link" href="aplicativos.html" target="_blank" rel="noopener"
+                 class="btn-store btn-ios" aria-label="Baixar na App Store">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                App Store
+              </a>
+              <a id="app-android-link" href="aplicativos.html" target="_blank" rel="noopener"
+                 class="btn-store btn-android" aria-label="Baixar no Google Play">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48A5.84 5.84 0 0 0 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.3 1.3C7.14 3.07 6 4.99 6 7h12c0-2.01-1.14-3.93-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/></svg>
+                Google Play
+              </a>
             </div>
+          </div>
 
-            <!-- FICHA TÉCNICA -->
-            <div class="fp-ficha" id="fp-ficha" style="display:none;">
-              <div class="fp-ficha-title">Ficha técnica</div>
-              <div class="fp-ficha-body" id="fp-ficha-body">
-                <!-- Director, cast injected by filme.js -->
-              </div>
+          <!-- SESSÕES ACESSÍVEIS -->
+          <div class="block" id="bloco-sessoes">
+            <div class="block-title">Sessões acessíveis</div>
+            <div class="sessoes-wrap" id="sessoes-wrap">
+              <p style="font-size:13px;color:var(--ink3);padding:8px 0;">Carregando sessões...</p>
             </div>
+          </div>
 
-          </aside>
-        </div><!-- /.fp-body -->
+          <!-- STREAMING -->
+          <div class="block" id="streaming-section" style="display:none;">
+            <div class="block-title">Disponível no streaming</div>
+            <div class="str-grid" id="fp-streaming"></div>
+          </div>
 
-      </div><!-- /#film-body-content -->
+        </div><!-- /.fp-col-main -->
 
-      <!-- ERROR STATE -->
-      <div id="film-error" style="display:none;">
-        <div class="fp-error-wrap">
-          <div style="font-size:48px;margin-bottom:16px;">🎬</div>
-          <h1>Filme não encontrado</h1>
-          <p>Não foi possível carregar as informações deste filme.</p>
-          <a href="index.html" class="btn btn-primary">← Voltar ao início</a>
-        </div>
-      </div>
+        <!-- SIDEBAR -->
+        <aside role="complementary" aria-label="Informações adicionais">
 
+          <div class="sb-card" id="fp-ficha-card" style="display:none;">
+            <div class="sb-title">Ficha técnica</div>
+            <div id="fp-ficha"></div>
+          </div>
+
+          <div class="sb-card">
+            <div class="sb-title">Relatos da comunidade</div>
+            <div class="comment-form" id="comment-form">
+              <label for="comment-nome" class="sr-only">Seu nome</label>
+              <input type="text" id="comment-nome" class="comment-input" placeholder="Seu nome" autocomplete="given-name">
+              <label for="comment-texto" class="sr-only">Relato</label>
+              <textarea id="comment-texto" class="comment-ta" placeholder="Compartilhe sua experiência de acessibilidade neste filme..." rows="3"></textarea>
+              <button class="comment-send" onclick="submitComentario()" id="btn-comentar">Enviar relato</button>
+            </div>
+            <div id="comentarios-list" aria-live="polite" aria-label="Lista de relatos"></div>
+          </div>
+
+        </aside>
+
+      </div><!-- /.fp-body -->
     </main>
+
+    <!-- ESTADO DE ERRO -->
+    <div id="film-error" style="display:none;">
+      <div class="fp-error-wrap" style="padding:60px 28px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:16px;">🎬</div>
+        <h1 style="font-size:24px;margin-bottom:8px;">Filme não encontrado</h1>
+        <p style="color:var(--ink3);margin-bottom:24px;">Não foi possível carregar as informações deste filme.</p>
+        <a href="index.html" class="btn-prim">← Voltar ao início</a>
+      </div>
+    </div>
 
     <div id="footer-mount"></div>
   </div><!-- /.shell -->

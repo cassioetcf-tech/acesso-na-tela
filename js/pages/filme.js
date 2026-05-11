@@ -3,7 +3,7 @@
 // Depende de: js/api/supabase.js, js/api/tmdb.js, js/api/ingresso.js,
 //             js/utils.js (escHtml, today)
 
-// ── Mapeamento de plataformas de streaming ────────────────────────────────────
+// ── Plataformas de streaming ──────────────────────────────────────────────────
 var STREAMING_PLATFORMS = {
   8:   { n: 'Netflix',     i: 'N', c: '#E50914' },
   9:   { n: 'Prime Video', i: '▶', c: '#00A8E0' },
@@ -13,6 +13,34 @@ var STREAMING_PLATFORMS = {
   384: { n: 'Max',         i: 'M', c: '#002BE7' },
   531: { n: 'Paramount+',  i: 'P', c: '#0064FF' },
   2:   { n: 'Apple TV+',   i: 'A', c: '#1c1c1e' },
+};
+
+// ── Links por aplicativo ──────────────────────────────────────────────────────
+var APP_LINKS = {
+  'MovieReading': {
+    cls:     'app-logo-mr',
+    logo:    '/assets/app-moviereading.png',
+    ios:     'https://apps.apple.com/it/app/moviereading/id460349347',
+    android: 'https://play.google.com/store/apps/details?id=com.unimaccess.umaclient',
+  },
+  'MLOAD': {
+    cls:     'app-logo-ml',
+    logo:    '/assets/app-mload.png',
+    ios:     'https://apps.apple.com/br/app/mload/id6444372728',
+    android: 'https://play.google.com/store/apps/details?id=com.stenomobi.mobiload',
+  },
+  'GRETA': {
+    cls:     'app-logo-greta',
+    logo:    '/assets/app-greta.png',
+    ios:     'https://apps.apple.com/br/app/greta/id793892423',
+    android: 'https://play.google.com/store/apps/details?id=de.debesefilm.greta',
+  },
+  'PingPlay': {
+    cls:     'app-logo-pp',
+    logo:    '/assets/app-pingplay.png',
+    ios:     'https://apps.apple.com/us/app/pingplay/id1592113008',
+    android: 'https://play.google.com/store/apps/details?id=com.etc.pingplay',
+  },
 };
 
 var _trailerKey = null;
@@ -35,6 +63,60 @@ function _dismissLoading() {
 // Safety timeout — exibe conteúdo mesmo se a API falhar silenciosamente
 setTimeout(_dismissLoading, 5000);
 
+// ── Atualiza links e ícone do aplicativo ──────────────────────────────────────
+function updateAppLinks(appName) {
+  var info = APP_LINKS[appName];
+  if (!info) return;
+
+  _set('app-dest-title', appName);
+
+  var ios     = document.getElementById('app-ios-link');
+  var android = document.getElementById('app-android-link');
+  if (ios)     ios.href     = info.ios;
+  if (android) android.href = info.android;
+
+  var ico     = document.getElementById('app-destaque-ico');
+  var logoImg = document.getElementById('app-logo-img');
+  if (ico) {
+    ico.className = 'ad-ico ' + info.cls;
+  }
+  if (logoImg && info.logo) {
+    logoImg.src   = info.logo;
+    logoImg.alt   = appName;
+    logoImg.style.display = 'block';
+  }
+}
+
+// ── Renderização de dados do Supabase ─────────────────────────────────────────
+function _renderSupabaseData(f) {
+  // Chips AD / LSE / LIBRAS
+  var chipsEl = document.getElementById('fp-a11y-chips');
+  if (chipsEl) {
+    var html = '';
+    if (f.ad)     html += '<span class="achip ac-ad">AD — Audiodescrição</span>';
+    if (f.lse)    html += '<span class="achip ac-lse">LSE — Legenda p/ surdos</span>';
+    if (f.libras) html += '<span class="achip ac-lib">LIBRAS — Janela de Sinais</span>';
+    chipsEl.innerHTML = html;
+  }
+
+  // Recursos disponíveis (app-destaque)
+  var recursosEl = document.getElementById('app-recursos');
+  if (recursosEl) {
+    var rhtml = '';
+    if (f.ad)     rhtml += '<span class="rtag rt-ad">Audiodescrição</span>';
+    if (f.lse)    rhtml += '<span class="rtag rt-lse">Legenda p/ surdos</span>';
+    if (f.libras) rhtml += '<span class="rtag rt-lib">Janela de Libras</span>';
+    recursosEl.innerHTML = rhtml;
+  }
+
+  // App destaque
+  if (f.app) {
+    updateAppLinks(f.app);
+    var destEl = document.getElementById('app-destaque');
+    if (destEl) destEl.style.display = '';
+  }
+}
+
 // ── Renderização de dados TMDb ────────────────────────────────────────────────
 function _renderTmdb(d, wp) {
   var title = d.title || d.original_title || '';
@@ -52,13 +134,13 @@ function _renderTmdb(d, wp) {
     (co ? ' · ' + co.name : '')
   );
 
-  // Pôster
+  // Pôster (background-image no div)
   if (d.poster_path) {
-    var posterImg = document.getElementById('fp-poster-img');
-    if (posterImg) {
-      posterImg.src   = CONFIG.TMDB_IMG + d.poster_path;
-      posterImg.alt   = 'Pôster de ' + title;
-      posterImg.style.display = 'block';
+    var pb = document.getElementById('fp-poster-box');
+    if (pb) {
+      pb.style.backgroundImage    = 'url(' + CONFIG.TMDB_IMG + d.poster_path + ')';
+      pb.style.backgroundSize     = 'cover';
+      pb.style.backgroundPosition = 'center top';
     }
   }
 
@@ -90,8 +172,12 @@ function _renderTmdb(d, wp) {
   }
 
   // Sinopse
-  var sinopseEl = document.getElementById('fp-sinopse');
-  if (sinopseEl) sinopseEl.textContent = d.overview || 'Sinopse não disponível em português.';
+  _set('fp-sinopse1', d.overview || 'Sinopse não disponível em português.');
+  _set('fp-sinopse2',
+    certLabel === 'Livre'
+      ? 'Adequada para toda a família. Sem cenas de violência ou conteúdo sensível.'
+      : 'Classificação indicativa: ' + certLabel + '. Verifique o conteúdo antes de levar crianças.'
+  );
   var sinopseSection = document.getElementById('sinopse-section');
   if (sinopseSection) sinopseSection.style.display = '';
 
@@ -99,9 +185,9 @@ function _renderTmdb(d, wp) {
   var dir = '';
   ((d.credits || {}).crew || []).forEach(function (c) { if (c.job === 'Director') dir = c.name; });
   var fichaEl     = document.getElementById('fp-ficha');
-  var fichaBodyEl = document.getElementById('fp-ficha-body');
+  var fichaCardEl = document.getElementById('fp-ficha-card');
   var filmeStatus = window._filmeStatus || 'cartaz';
-  if (fichaBodyEl) {
+  if (fichaEl) {
     var rows = [
       ['Direção',       dir || '—'],
       ['Produção',      co ? co.name : '—'],
@@ -110,17 +196,19 @@ function _renderTmdb(d, wp) {
       ['Classificação', certLabel],
       ['Lançamento',    dateStr || '—'],
       ['Status',
-        filmeStatus === 'catalogo' ? 'Catálogo' : '<span class="verde">Em cartaz</span>'],
+        filmeStatus === 'catalogo'
+          ? 'Catálogo'
+          : '<span class="ir-v verde">Em cartaz</span>'],
     ];
-    fichaBodyEl.innerHTML = rows.map(function (row) {
+    fichaEl.innerHTML = rows.map(function (row) {
       return '<div class="info-row"><span class="ir-l">' + row[0] + '</span>' +
              '<span class="ir-v">' + row[1] + '</span></div>';
     }).join('');
-    if (fichaEl) fichaEl.style.display = '';
+    if (fichaCardEl) fichaCardEl.style.display = '';
   }
 
   // Streaming
-  var sgEl = document.getElementById('streaming-grid');
+  var sgEl = document.getElementById('fp-streaming');
   if (sgEl && wp) {
     var seen = {};
     var html = '';
@@ -146,23 +234,19 @@ function _renderTmdb(d, wp) {
     if (streamSection) streamSection.style.display = '';
   }
 
-  // Trailer thumbnail
+  // Trailer
   var vids = ((d.videos || {}).results || []);
   var tr   = vids.find(function (v) { return v.type === 'Trailer' && v.site === 'YouTube'; });
   if (!tr) tr = vids.find(function (v) { return v.site === 'YouTube'; });
   if (tr) {
     _trailerKey = tr.key;
-    var trailerThumb = document.getElementById('trailer-thumb');
-    if (trailerThumb) {
-      trailerThumb.innerHTML =
-        '<img src="https://img.youtube.com/vi/' + tr.key + '/hqdefault.jpg" ' +
-             'alt="Trailer de ' + escHtml(title) + '" ' +
-             'style="width:100%;height:100%;object-fit:cover;display:block;">' +
-        '<div class="trailer-play" aria-hidden="true">' +
-          '<svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>' +
-        '</div>';
-      trailerThumb.onclick = playTrailer;
+    var img = document.getElementById('trailer-img');
+    if (img) {
+      img.src = 'https://img.youtube.com/vi/' + tr.key + '/hqdefault.jpg';
+      img.alt = 'Capa do trailer de ' + title;
     }
+    var trailerThumb = document.getElementById('trailer-thumb');
+    if (trailerThumb) trailerThumb.style.display = '';
     var trailerSection = document.getElementById('trailer-section');
     if (trailerSection) trailerSection.style.display = '';
   }
@@ -170,68 +254,33 @@ function _renderTmdb(d, wp) {
   _dismissLoading();
 }
 
-// ── API pública ───────────────────────────────────────────────────────────────
-
-/**
- * Carrega e renderiza a página de um filme a partir do urlKey.
- * Busca dados no Supabase, depois no TMDb via título.
- */
+// ── Carrega e renderiza o filme ───────────────────────────────────────────────
 async function loadFilme(urlKey) {
   try {
-    // 1. Dados do Supabase (status, app, tmdb_id)
     var rows = await supabaseGet('filmes', 'url_key=eq.' + encodeURIComponent(urlKey) + '&limit=1');
     var f = rows && rows[0];
+
     if (f) {
-      window._filmeStatus = f.status || 'cartaz';
+      window._filmeStatus = (f.status || 'cartaz').toLowerCase();
+      _renderSupabaseData(f);
 
-      // Chips AD / LSE / LIBRAS
-      var chipsEl = document.getElementById('fp-a11y-chips');
-      if (chipsEl) {
-        var chipsHtml = '';
-        if (f.ad)     chipsHtml += '<span class="achip ac-ad">AD — Audiodescrição</span>';
-        if (f.lse)    chipsHtml += '<span class="achip ac-lse">LSE — Legenda p/ surdos</span>';
-        if (f.libras) chipsHtml += '<span class="achip ac-lib">LIBRAS — Janela de Sinais</span>';
-        chipsEl.innerHTML = chipsHtml;
-      }
-
-      // Botão comprar ingresso
-      var ctasEl = document.getElementById('fp-ctas');
-      if (ctasEl && f.url_key) {
-        ctasEl.innerHTML =
-          '<a href="https://www.ingresso.com/filme/' + escHtml(f.url_key) + '" ' +
-             'target="_blank" rel="noopener" class="btn-prim">Comprar ingresso</a>';
-      }
-
-      // App destaque na sidebar
-      if (f.app) {
-        var destEl   = document.getElementById('app-destaque');
-        var destBody = document.getElementById('app-destaque-body');
-        if (destBody) {
-          destBody.innerHTML =
-            '<div class="ad-name">' + escHtml(f.app) + '</div>' +
-            '<div class="ad-sub">Aplicativo gratuito · iOS e Android</div>' +
-            '<a href="aplicativos.html" class="btn-abrir" style="margin-top:12px;display:block;text-decoration:none;">Ver aplicativos →</a>';
-        }
-        if (destEl) destEl.style.display = '';
-      }
-
-      // 2. TMDb: preferir tmdb_id salvo; fallback = busca por título via Ingresso
       if (f.tmdb_id) {
         var tmdbData = await getMovie(f.tmdb_id);
-        var wp = await getWatchProviders(f.tmdb_id);
+        var wp       = await getWatchProviders(f.tmdb_id);
         _renderTmdb(tmdbData, wp);
         return;
       }
     }
 
-    // 3. Fallback: busca título via Ingresso e depois TMDb por título
+    // Fallback: busca título via Ingresso e depois TMDb
     var eventData = await getEventId(urlKey);
     var title = (eventData && (eventData.title || eventData.originalTitle)) || '';
     if (title) {
       var results = await searchMovie(title);
       var best = results[0];
       if (best) {
-        var [tmdbFull, wpFull] = await Promise.all([getMovie(best.id), getWatchProviders(best.id)]);
+        var tmdbFull = await getMovie(best.id);
+        var wpFull   = await getWatchProviders(best.id);
         _renderTmdb(tmdbFull, wpFull);
         return;
       }
@@ -245,77 +294,46 @@ async function loadFilme(urlKey) {
   }
 }
 
-/**
- * Ativa o iframe do YouTube para o trailer.
- */
+// ── Reprodução do trailer ─────────────────────────────────────────────────────
 function playTrailer() {
-  var key = _trailerKey;
-  if (!key) return;
-  var thumb = document.getElementById('trailer-thumb');
-  var frame = document.getElementById('trailer-frame');
-  if (thumb) thumb.style.display = 'none';
-  if (frame) {
-    frame.innerHTML = '<iframe width="100%" height="100%" ' +
-      'src="https://www.youtube-nocookie.com/embed/' + key + '?autoplay=1&rel=0&modestbranding=1" ' +
-      'frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
-    frame.style.display = 'block';
+  if (!_trailerKey) return;
+  var thumb  = document.getElementById('trailer-thumb');
+  var iframe = document.getElementById('trailer-iframe');
+  if (thumb)  thumb.style.display = 'none';
+  if (iframe) {
+    iframe.src = 'https://www.youtube-nocookie.com/embed/' + _trailerKey +
+                 '?autoplay=1&rel=0&modestbranding=1';
   }
 }
 
-/**
- * Ativa o iframe da sinopse em vídeo.
- */
-function playSinopseVideo() {
-  var thumb  = document.getElementById('sinopse-thumb');
-  var iframe = document.getElementById('sinopse-video-iframe');
-  if (!thumb || !iframe) return;
-  var src = iframe.getAttribute('data-src');
-  if (src) {
-    iframe.src          = src + '?autoplay=1&rel=0';
-    iframe.style.display = 'block';
-    thumb.style.display  = 'none';
-  }
-}
-
-/**
- * Carrega sessões do Ingresso para um eventId e cidade.
- */
-function loadSessoes(eventId, cityId) {
-  var content  = document.getElementById('sessoes-content');
-  var loading  = document.getElementById('sessoes-loading');
-  if (!content) return;
-
-  cityId = cityId || '1';
-  if (loading) loading.style.display = 'none';
-  content.style.display = '';
-
-  // Monta controles de cidade/data se ainda não existirem
-  _buildSessoesControls(content, eventId, cityId);
-
-  // Carrega sessões para hoje
-  _fetchAndRenderSessoes(eventId, cityId, today(), content);
-}
-
+// ── Sessões ───────────────────────────────────────────────────────────────────
 var _CITIES = [
-  { id: '1',  name: 'São Paulo — SP'       },
-  { id: '2',  name: 'Rio de Janeiro — RJ'  },
-  { id: '3',  name: 'Belo Horizonte — MG'  },
-  { id: '4',  name: 'Brasília — DF'        },
-  { id: '5',  name: 'Curitiba — PR'        },
-  { id: '6',  name: 'Porto Alegre — RS'    },
-  { id: '7',  name: 'Salvador — BA'        },
-  { id: '8',  name: 'Recife — PE'          },
-  { id: '9',  name: 'Fortaleza — CE'       },
-  { id: '10', name: 'Manaus — AM'          },
+  { id: '1',  name: 'São Paulo — SP'      },
+  { id: '2',  name: 'Rio de Janeiro — RJ' },
+  { id: '3',  name: 'Belo Horizonte — MG' },
+  { id: '4',  name: 'Brasília — DF'       },
+  { id: '5',  name: 'Curitiba — PR'       },
+  { id: '6',  name: 'Porto Alegre — RS'   },
+  { id: '7',  name: 'Salvador — BA'       },
+  { id: '8',  name: 'Recife — PE'         },
+  { id: '9',  name: 'Fortaleza — CE'      },
+  { id: '10', name: 'Manaus — AM'         },
 ];
 
 var _TYPE_ALIAS = {
   'Dublado': 'DUB', 'Legendado': 'LEG', 'Libras': 'LIBRAS',
-  'Audiodescrição': 'AD', 'Laser': 'LASER', 'Vip': 'VIP',
-  'Normal': null,
+  'Audiodescrição': 'AD', 'Laser': 'LASER', 'Vip': 'VIP', 'Normal': null,
 };
 
 var _A11Y_TYPES = ['Audiodescrição', 'Libras', 'Legendado'];
+
+function loadSessoes(eventId, cityId) {
+  var wrap = document.getElementById('sessoes-wrap');
+  if (!wrap) return;
+  cityId = cityId || '1';
+  _buildSessoesControls(wrap, eventId, cityId);
+  _fetchAndRenderSessoes(eventId, cityId, today(), wrap);
+}
 
 function _buildSessoesControls(wrap, eventId, defaultCity) {
   if (document.getElementById('sess-city')) return;
@@ -342,25 +360,16 @@ function _buildSessoesControls(wrap, eventId, defaultCity) {
 }
 
 async function _fetchAndRenderSessoes(eventId, city, date, container) {
-  container.innerHTML = '<p style="font-size:13px;color:var(--ink3);padding:16px 0">Carregando sessões...</p>';
-
-  // Lê flags de acessibilidade do elemento data-a11y da página, se existir
-  var a11yFlags = null;
-  var pageData = document.querySelector('[data-a11y]');
-  if (pageData) {
-    try { a11yFlags = JSON.parse(pageData.getAttribute('data-a11y')); } catch (e) {}
-  }
-
+  container.innerHTML = '<p style="font-size:13px;color:var(--ink3);padding:8px 0;">Carregando sessões...</p>';
   try {
     var data = await getSessoes(eventId, city, date);
-    _renderSessoes(data, container, a11yFlags);
+    _renderSessoes(data, container);
   } catch (err) {
     container.innerHTML = '<p class="sessoes-empty">Erro ao carregar sessões.</p>';
-    console.warn('Ingresso sessions error:', err);
   }
 }
 
-function _renderSessoes(data, container, a11yFlags) {
+function _renderSessoes(data, container) {
   var days = Array.isArray(data) ? data : [];
   if (!days.length) {
     container.innerHTML = '<p class="sessoes-empty">Nenhuma sessão encontrada para esta data e cidade.</p>';
@@ -373,42 +382,32 @@ function _renderSessoes(data, container, a11yFlags) {
       var sessions = [];
       (theater.rooms || []).forEach(function (room) {
         (room.sessions || []).forEach(function (s) {
-          sessions.push({
-            time:    s.time || s.startTime || '',
-            types:   s.type || [],
-            siteUrl: s.siteURL || theater.siteURL || '',
-          });
+          sessions.push({ time: s.time || s.startTime || '', types: s.type || [], siteUrl: s.siteURL || theater.siteURL || '' });
         });
       });
       if (!sessions.length) return;
-
       sessions.sort(function (a, b) { return a.time < b.time ? -1 : 1; });
 
       var addr = [theater.address, theater.number, theater.neighborhood].filter(Boolean).join(', ');
       html += '<div class="cinema-block">';
       html += '<div class="cinema-name">' + escHtml(theater.name) + '</div>';
-      html += '<div class="cinema-end">'  + escHtml(addr)          + '</div>';
+      html += '<div class="cinema-end">'  + escHtml(addr) + '</div>';
       html += '<div class="horarios" role="list">';
 
       sessions.forEach(function (s) {
         var displayTypes = (s.types || []).filter(function (t) { return _TYPE_ALIAS[t] !== null; });
         var hasA11y      = s.types.some(function (t) { return _A11Y_TYPES.indexOf(t) >= 0; });
-        if (a11yFlags && (a11yFlags.ad || a11yFlags.lse || a11yFlags.libras)) hasA11y = true;
-
-        var label  = s.time + (displayTypes.length ? ' ' + displayTypes.join('/') : '');
-        var buyUrl = s.siteUrl;
+        var label        = s.time + (displayTypes.length ? ' ' + displayTypes.join('/') : '');
 
         html += '<div role="listitem">';
-        if (buyUrl) html += '<a href="' + escHtml(buyUrl) + '" target="_blank" rel="noopener" aria-label="Comprar ingresso ' + escHtml(label) + '">';
+        if (s.siteUrl) html += '<a href="' + escHtml(s.siteUrl) + '" target="_blank" rel="noopener" aria-label="Comprar ingresso ' + escHtml(label) + '">';
         html += '<button class="hora-btn' + (hasA11y ? ' accessible' : '') + '" aria-label="' + escHtml(label) + '">';
         html += escHtml(s.time);
         if (displayTypes.length) {
-          html += '<span class="hora-tipo">' +
-                  displayTypes.map(function (t) { return _TYPE_ALIAS[t] || t; }).join(' ') +
-                  '</span>';
+          html += '<span class="hora-tipo">' + displayTypes.map(function (t) { return _TYPE_ALIAS[t] || t; }).join(' ') + '</span>';
         }
         html += '</button>';
-        if (buyUrl) html += '</a>';
+        if (s.siteUrl) html += '</a>';
         html += '</div>';
       });
 
@@ -419,15 +418,24 @@ function _renderSessoes(data, container, a11yFlags) {
   container.innerHTML = html || '<p class="sessoes-empty">Nenhuma sessão encontrada.</p>';
 }
 
-// ── Comentários (Supabase) ────────────────────────────────────────────────────
+async function _loadSessoesForFilme(urlKey) {
+  var wrap = document.getElementById('sessoes-wrap');
+  try {
+    var eventData = await getEventId(urlKey);
+    if (eventData && eventData.id) {
+      loadSessoes(eventData.id, '1');
+    } else {
+      if (wrap) wrap.innerHTML = '<p class="sessoes-empty">Sessões não encontradas.</p>';
+    }
+  } catch (e) {
+    if (wrap) wrap.innerHTML = '<p class="sessoes-empty">Não foi possível carregar sessões.</p>';
+  }
+}
 
-/**
- * Carrega comentários do Supabase para um filme e os renderiza.
- */
+// ── Comentários ───────────────────────────────────────────────────────────────
 async function initComentarios(urlKey) {
   var container = document.getElementById('comentarios-list');
   if (!container) return;
-
   try {
     var rows = await supabaseGet(
       'comentarios',
@@ -443,21 +451,17 @@ async function initComentarios(urlKey) {
 
 function _renderComentarios(rows, container) {
   if (!rows.length) {
-    container.innerHTML = '<p style="font-size:13px;color:var(--ink3)">Nenhum comentário ainda. Seja o primeiro!</p>';
+    container.innerHTML = '<p style="font-size:13px;color:var(--ink3);margin-top:12px;">Nenhum relato ainda. Seja o primeiro!</p>';
     return;
   }
   container.innerHTML = rows.map(function (c) {
-    return '<div class="comentario-item">' +
-      '<div class="comentario-autor">' + escHtml(c.autor || 'Anônimo') + '</div>' +
-      '<div class="comentario-texto">' + escHtml(c.texto || '') + '</div>' +
+    return '<div class="comment">' +
+      '<div class="cu">' + escHtml(c.autor || 'Anônimo') + '</div>' +
+      '<div class="ct">' + escHtml(c.texto || '') + '</div>' +
       '</div>';
   }).join('');
 }
 
-/**
- * Chamado via onclick="submitComentario()" no filme.html.
- * Lê urlKey da URL e os campos do formulário no DOM.
- */
 async function submitComentario() {
   var urlKey = new URLSearchParams(window.location.search).get('urlKey') || '';
   var autor  = ((document.getElementById('comment-nome')  || {}).value || '').trim();
@@ -465,7 +469,7 @@ async function submitComentario() {
   if (!texto) return;
 
   var btn = document.getElementById('btn-comentar');
-  if (btn) { btn.disabled = true; btn.textContent = 'Publicando...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
 
   try {
     await supabasePost('comentarios', {
@@ -482,26 +486,7 @@ async function submitComentario() {
   } catch (err) {
     console.error('Erro ao enviar comentário:', err);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Publicar'; }
-  }
-}
-
-async function _loadSessoesForFilme(urlKey) {
-  try {
-    var eventData = await getEventId(urlKey);
-    if (eventData && eventData.id) {
-      loadSessoes(eventData.id, '1');
-    } else {
-      var loading = document.getElementById('sessoes-loading');
-      var empty   = document.getElementById('sessoes-empty');
-      if (loading) loading.style.display = 'none';
-      if (empty)   empty.style.display   = '';
-    }
-  } catch (e) {
-    var loading = document.getElementById('sessoes-loading');
-    var empty   = document.getElementById('sessoes-empty');
-    if (loading) loading.style.display = 'none';
-    if (empty)   empty.style.display   = '';
+    if (btn) { btn.disabled = false; btn.textContent = 'Enviar relato'; }
   }
 }
 
