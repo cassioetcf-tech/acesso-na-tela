@@ -89,13 +89,19 @@ function updateAppLinks(appName) {
 
 // ── Renderização de dados do Supabase ─────────────────────────────────────────
 function _renderSupabaseData(f) {
-  // Chips AD / LSE / LIBRAS
+  // a11y é armazenado como objeto { ad, lse, libras } no Supabase
+  var a11y = f.a11y || {};
+  var hasAd     = a11y.ad     !== false;
+  var hasLse    = a11y.lse    !== false;
+  var hasLibras = a11y.libras !== false;
+
+  // Chips AD / LSE / LIBRAS no hero
   var chipsEl = document.getElementById('fp-a11y-chips');
   if (chipsEl) {
     var html = '';
-    if (f.ad)     html += '<span class="achip ac-ad">AD — Audiodescrição</span>';
-    if (f.lse)    html += '<span class="achip ac-lse">LSE — Legenda p/ surdos</span>';
-    if (f.libras) html += '<span class="achip ac-lib">LIBRAS — Janela de Sinais</span>';
+    if (hasAd)     html += '<span class="achip ac-ad">AD — Audiodescrição</span>';
+    if (hasLse)    html += '<span class="achip ac-lse">LSE — Legenda p/ surdos</span>';
+    if (hasLibras) html += '<span class="achip ac-lib">LIBRAS — Janela de Sinais</span>';
     chipsEl.innerHTML = html;
   }
 
@@ -103,14 +109,14 @@ function _renderSupabaseData(f) {
   var recursosEl = document.getElementById('app-recursos');
   if (recursosEl) {
     var rhtml = '';
-    if (f.ad)     rhtml += '<span class="rtag rt-ad">Audiodescrição</span>';
-    if (f.lse)    rhtml += '<span class="rtag rt-lse">Legenda p/ surdos</span>';
-    if (f.libras) rhtml += '<span class="rtag rt-lib">Janela de Libras</span>';
+    if (hasAd)     rhtml += '<span class="rtag rt-ad">Audiodescrição</span>';
+    if (hasLse)    rhtml += '<span class="rtag rt-lse">Legenda p/ surdos</span>';
+    if (hasLibras) rhtml += '<span class="rtag rt-lib">Janela de Libras</span>';
     recursosEl.innerHTML = rhtml;
   }
 
   // Vídeo de sinopse acessível
-  var sinopseVideoId = f.sinopse_video_id || f.video_sinopse || f.sinopse_video || null;
+  var sinopseVideoId = f.sinopse_video_id || null;
   if (sinopseVideoId) {
     var svImg = document.getElementById('sinopse-video-img');
     if (svImg) svImg.src = 'https://img.youtube.com/vi/' + sinopseVideoId + '/hqdefault.jpg';

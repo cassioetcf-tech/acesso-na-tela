@@ -179,8 +179,12 @@ function openModal(id) {
 
     setSemA11y(!!(f.a11y && f.a11y.ad === false && f.a11y.lse === false && f.a11y.libras === false));
     if (f.tmdb_data) showPreview(f.tmdb_data);
+    var svEl = document.getElementById('f-sinopse-video');
+    if (svEl) svEl.value = f.sinopse_video_id || '';
   } else {
     document.getElementById('modal-title').textContent = 'Adicionar filme';
+    var svEl2 = document.getElementById('f-sinopse-video');
+    if (svEl2) svEl2.value = '';
   }
 
   document.getElementById('modal-overlay').classList.add('open');
@@ -306,16 +310,19 @@ async function saveFilme() {
       ? { ad: false, lse: false, libras: false }
       : { ad: true,  lse: true,  libras: true  };
 
+    var sinopseVideo = ((document.getElementById('f-sinopse-video') || {}).value || '').trim();
+
     var filme = {
-      titulo:       titulo,
-      ingresso_url: ingressoUrl,
-      url_key:      urlKey,
-      app:          _semA11yActive ? null : app,
-      status:       status,
-      a11y:         a11yVal,
-      tmdb_id:      tmdbData ? tmdbData.id   : null,
-      tmdb_data:    tmdbData,
-      updated_at:   new Date().toISOString(),
+      titulo:          titulo,
+      ingresso_url:    ingressoUrl,
+      url_key:         urlKey,
+      app:             _semA11yActive ? null : app,
+      status:          status,
+      a11y:            a11yVal,
+      sinopse_video_id: sinopseVideo || null,
+      tmdb_id:         tmdbData ? tmdbData.id   : null,
+      tmdb_data:       tmdbData,
+      updated_at:      new Date().toISOString(),
     };
 
     if (_editId) {
