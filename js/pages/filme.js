@@ -310,10 +310,11 @@ function playTrailer() {
   if (!_trailerKey) return;
   var thumb  = document.getElementById('trailer-thumb');
   var iframe = document.getElementById('trailer-iframe');
-  if (thumb)  thumb.style.display = 'none';
+  if (thumb)  thumb.style.display  = 'none';
   if (iframe) {
-    iframe.src = 'https://www.youtube-nocookie.com/embed/' + _trailerKey +
-                 '?autoplay=1&rel=0&modestbranding=1';
+    iframe.src          = 'https://www.youtube-nocookie.com/embed/' + _trailerKey +
+                          '?autoplay=1&rel=0&modestbranding=1';
+    iframe.style.display = 'block';
   }
 }
 
