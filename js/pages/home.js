@@ -4,7 +4,58 @@
 //             js/utils.js (escHtml, today)
 
 /**
+ * Busca a ordem de exibição da Ingresso.com (via AdoroCinema scraper, cache 1h).
+ * Retorna um Map de urlKey → posição (0 = primeiro da lista).
+ */
+async function _fetchIngressoOrder() {
+  var CACHE_KEY = 'ant_ingresso_order';
+  var CACHE_TTL = 60 * 60 * 1000; // 1 hora
+
+  try {
+    var cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
+    if (cached && Date.now() < cached.exp) return cached.map;
+  } catch (e) {}
+
+  try {
+    var r    = await fetch('/api/ingresso?type=nowplaying');
+    var list = await r.json();
+    if (!Array.isArray(list)) return {};
+
+    var map = {};
+    list.forEach(function (item, i) {
+      if (item.urlKey) map[item.urlKey] = i;
+    });
+
+    try {
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ map: map, exp: Date.now() + CACHE_TTL }));
+    } catch (e) {}
+
+    return map;
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * Ordena filmes "cartaz" conforme a posição na Ingresso.com.
+ * Filmes sem correspondência ficam no final, mantendo ordem original entre si.
+ */
+function _sortByIngressoOrder(filmes, orderMap) {
+  return filmes.slice().sort(function (a, b) {
+    var posA = orderMap[a.filme.url_key];
+    var posB = orderMap[b.filme.url_key];
+    var hasA = posA !== undefined;
+    var hasB = posB !== undefined;
+    if (hasA && hasB) return posA - posB;
+    if (hasA) return -1;
+    if (hasB) return 1;
+    return 0;
+  });
+}
+
+/**
  * Busca filmes do Supabase (status=cartaz e status=breve) e renderiza as grades.
+ * Os filmes "Em cartaz" seguem a ordem da Ingresso.com.
  */
 async function loadCatalog() {
   var gridCartaz = document.getElementById('grid-cartaz') ||
@@ -19,8 +70,8 @@ async function loadCatalog() {
 
     if (!Array.isArray(filmes) || filmes.length === 0) return;
 
-    // Enriquecer com TMDb em paralelo
-    var enriched = await Promise.all(filmes.map(async function (filme) {
+    // Busca ordem da Ingresso.com em paralelo com o enriquecimento TMDb
+    var enrichedPromise = Promise.all(filmes.map(async function (filme) {
       var tmdb = null;
       try {
         if (filme.tmdb_id) {
@@ -29,12 +80,18 @@ async function loadCatalog() {
           var results = await searchMovie(filme.titulo);
           if (results[0]) tmdb = results[0];
         }
-      } catch (e) { /* ignora falhas individuais do TMDb */ }
+      } catch (e) {}
       return { filme: filme, tmdb: tmdb };
     }));
 
+    var orderMap = await _fetchIngressoOrder();
+    var enriched = await enrichedPromise;
+
     var cartaz = enriched.filter(function (i) { return (i.filme.status || '').toLowerCase() === 'cartaz'; });
     var breve  = enriched.filter(function (i) { return (i.filme.status || '').toLowerCase() === 'breve'; });
+
+    // Ordenar "Em cartaz" conforme Ingresso.com
+    cartaz = _sortByIngressoOrder(cartaz, orderMap);
 
     // Renderizar "Em cartaz"
     gridCartaz.innerHTML = '';
