@@ -13,60 +13,43 @@ export default async function handler(request) {
   let target;
 
   if (type === 'nowplaying') {
-    // Scraping AdoroCinema — HTML server-side renderizado, sem CORS
-    // Busca todas as páginas em paralelo
+    // Busca direta na API da Ingresso.com — lista de filmes em cartaz por cidade
+    // Tenta múltiplas cidades para cobrir todo o Brasil
+    const CITIES = ['1011', '9', '1', '2', '3', '5']; // SP, RJ, BH, Curitiba, Fortaleza, Porto Alegre
+    const ING_HEADERS = {
+      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+      'Origin': 'https://www.ingresso.com',
+      'Referer': 'https://www.ingresso.com/',
+    };
+
     try {
-      const BASE_URL = 'https://www.adorocinema.com/filmes/numero-cinemas/';
-      const HEADERS = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept-Language': 'pt-BR,pt;q=0.9',
-        'Accept': 'text/html',
-        'Referer': 'https://www.adorocinema.com/',
-      };
-
-      // Fetch página 1 primeiro para descobrir total de páginas
-      const page1 = await fetch(BASE_URL, { headers: HEADERS });
-      const html1 = await page1.text();
-
-      // Descobre número total de páginas
-      const pageNums = [...html1.matchAll(/[?&]page=(\d+)/g)].map(m => parseInt(m[1]));
-      const totalPages = pageNums.length ? Math.max(...pageNums) : 1;
-
-      // Busca demais páginas em paralelo
-      const extraFetches = [];
-      for (let p = 2; p <= totalPages; p++) {
-        extraFetches.push(
-          fetch(BASE_URL + '?page=' + p, { headers: HEADERS }).then(r => r.text())
-        );
-      }
-      const extraHtmls = await Promise.all(extraFetches);
-      const allHtmls = [html1, ...extraHtmls];
-
-      // Extrai filmes de todas as páginas
-      const seen = new Set();
+      const seen  = new Set();
       const films = [];
-      const re = /href="\/filmes\/(filme-[\d]+)\/"[^>]*>([^<]+)<\/a>/g;
 
-      for (const html of allHtmls) {
-        let m;
-        re.lastIndex = 0;
-        while ((m = re.exec(html)) !== null) {
-          const adoroId = m[1];
-          const title   = m[2].trim();
-          if (seen.has(adoroId) || title.length < 2) continue;
-          seen.add(adoroId);
+      // Busca em paralelo nas principais cidades
+      const fetches = CITIES.map(cityId =>
+        fetch(`${BASE}/templates/nowplaying/city/${cityId}/partnership/${PART}`, { headers: ING_HEADERS })
+          .then(r => r.ok ? r.json() : [])
+          .catch(() => [])
+      );
+      const results = await Promise.all(fetches);
 
-          const urlKey = title.toLowerCase()
-            .replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e')
-            .replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o')
-            .replace(/[úùûü]/g,'u').replace(/[ç]/g,'c')
-            .replace(/[^a-z0-9\s]/g,'').trim().replace(/\s+/g,'-');
-
-          films.push({ id: adoroId, adoroId, title, urlKey });
+      for (const data of results) {
+        const list = Array.isArray(data) ? data : (data.items || data.events || []);
+        for (const ev of list) {
+          const key = ev.urlKey || ev.url_key || '';
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          films.push({
+            id:     ev.id || key,
+            title:  ev.title || ev.originalTitle || '',
+            urlKey: key,
+          });
         }
       }
 
-      console.log('[AdoroCinema] pages:', totalPages, 'films:', films.length);
+      console.log('[Ingresso nowplaying] total films:', films.length);
 
       return new Response(JSON.stringify(films), {
         status: 200,

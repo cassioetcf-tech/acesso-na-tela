@@ -303,8 +303,19 @@ async function saveFilme() {
   btn.disabled  = true;
 
   try {
+    // Busca TMDb: tenta match exato de título primeiro, depois resultado 1
     var results  = await searchMovie(titulo);
-    var tmdbData = results[0] || null;
+    var titleNrm = titulo.toLowerCase().trim();
+    var tmdbData = results.find(function (r) {
+      return (r.title || '').toLowerCase().trim() === titleNrm ||
+             (r.original_title || '').toLowerCase().trim() === titleNrm;
+    }) || (results[0] && results[0].poster_path ? results[0] : null);
+
+    // Se estamos editando e a busca não encontrou nada, preserva o tmdb_id já salvo
+    var existingFilme = _editId ? _filmes.find(function (x) { return x.id === _editId; }) : null;
+    if (!tmdbData && existingFilme && existingFilme.tmdb_id) {
+      tmdbData = existingFilme.tmdb_data || { id: existingFilme.tmdb_id };
+    }
 
     var a11yVal = _semA11yActive
       ? { ad: false, lse: false, libras: false }
@@ -321,7 +332,7 @@ async function saveFilme() {
       a11y:            a11yVal,
       sinopse_video_id: sinopseVideo || null,
       tmdb_id:         tmdbData ? tmdbData.id   : null,
-      tmdb_data:       tmdbData,
+      tmdb_data:       tmdbData || null,
       updated_at:      new Date().toISOString(),
     };
 
@@ -414,7 +425,7 @@ async function importBuscar() {
     _importStMap  = {};
     _importFilmes.forEach(function (f) {
       _importSel[f.id]    = !f.exists;
-      _importAppMap[f.id] = 'MovieReading';
+      _importAppMap[f.id] = 'Sem Acessibilidade'; // padrão: sem app, editar depois
       _importStMap[f.id]  = 'cartaz';
     });
 
@@ -509,54 +520,42 @@ function importIrConfirmar() {
 async function importSalvar() {
   var btn      = document.getElementById('btn-import-salvar');
   var resultEl = document.getElementById('import-save-result');
-  btn.textContent = 'Validando no TMDb...';
+  btn.textContent = 'Buscando no TMDb...';
   btn.disabled    = true;
   if (resultEl) resultEl.innerHTML = '';
 
-  var sel = _importFilmes.filter(function (f) { return _importSel[f.id]; });
-  var aprovados  = [];
-  var rejeitados = [];
+  var sel       = _importFilmes.filter(function (f) { return _importSel[f.id]; });
+  var semTmdb   = []; // filmes sem match — serão importados mesmo assim
 
-  if (resultEl) resultEl.innerHTML = '<div style="font-size:13px;color:#64748b;padding:8px 0;">Verificando ' + sel.length + ' filmes no TMDb...</div>';
+  if (resultEl) resultEl.innerHTML = '<div style="font-size:13px;color:#64748b;padding:8px 0;">Buscando dados no TMDb para ' + sel.length + ' filmes...</div>';
 
+  // Enriquecer com TMDb (opcional — importa mesmo sem match)
+  var enriched = [];
   for (var i = 0; i < sel.length; i++) {
     var f = sel[i];
-    btn.textContent = 'Validando ' + (i + 1) + '/' + sel.length + '...';
+    btn.textContent = 'TMDb ' + (i + 1) + '/' + sel.length + '...';
+    var tmdbMatch = null;
     try {
       var results  = await searchMovie(f.title);
       var titleNrm = f.title.toLowerCase().trim();
-      var match    = results.find(function (r) {
+      tmdbMatch = results.find(function (r) {
         return (r.title || '').toLowerCase().trim() === titleNrm ||
                (r.original_title || '').toLowerCase().trim() === titleNrm;
       });
-      if (!match && results[0] && results[0].popularity > 1 && results[0].poster_path) match = results[0];
-      if (match) { aprovados.push({ f: f, tmdb: match }); }
-      else        { rejeitados.push(f); }
-    } catch (e) { rejeitados.push(f); }
+      if (!tmdbMatch && results[0] && results[0].popularity > 1 && results[0].poster_path) {
+        tmdbMatch = results[0];
+      }
+    } catch (e) { /* sem TMDb, ok */ }
+    if (!tmdbMatch) semTmdb.push(f.title);
+    enriched.push({ f: f, tmdb: tmdbMatch });
   }
 
-  var resumoHtml = '';
-  if (rejeitados.length > 0) {
-    resumoHtml += '<div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:12px 14px;margin-bottom:10px;">' +
-      '<div style="font-size:13px;font-weight:700;color:#854d0e;margin-bottom:6px;">&#9888; ' + rejeitados.length + ' filme(s) sem match no TMDb:</div>' +
-      '<ul style="margin:0;padding-left:18px;font-size:12px;color:#92400e;">' +
-      rejeitados.map(function (f) { return '<li>' + escHtml(f.title) + '</li>'; }).join('') +
-      '</ul></div>';
-  }
-
-  if (aprovados.length === 0) {
-    btn.textContent = 'Cadastrar no Supabase';
-    btn.disabled    = false;
-    if (resultEl) resultEl.innerHTML = resumoHtml + '<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:12px;font-size:13px;color:#991b1b;">Nenhum filme aprovado para cadastro.</div>';
-    return;
-  }
-
-  var payloads = aprovados.map(function (item) {
+  var payloads = enriched.map(function (item) {
     var f       = item.f;
     var tmdb    = item.tmdb;
-    var appVal  = _importAppMap[f.id] || 'MovieReading';
+    var appVal  = _importAppMap[f.id] || 'Sem Acessibilidade';
     var stVal   = _importStMap[f.id]  || 'cartaz';
-    var semA11y = appVal === 'Sem Acessibilidade';
+    var semA11y = !appVal || appVal === 'Sem Acessibilidade';
     return {
       id:           'f_' + f.id,
       titulo:       f.title,
@@ -565,21 +564,30 @@ async function importSalvar() {
       app:          semA11y ? null : appVal,
       status:       stVal,
       a11y:         semA11y ? { ad: false, lse: false, libras: false } : { ad: true, lse: true, libras: true },
-      tmdb_id:      tmdb.id,
-      tmdb_data:    tmdb,
+      tmdb_id:      tmdb ? tmdb.id   : null,
+      tmdb_data:    tmdb ? tmdb      : null,
       created_at:   new Date().toISOString(),
       updated_at:   new Date().toISOString(),
     };
   });
+
+  var avisoHtml = '';
+  if (semTmdb.length > 0) {
+    avisoHtml = '<div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:12px 14px;margin-bottom:10px;">' +
+      '<div style="font-size:13px;font-weight:700;color:#854d0e;margin-bottom:4px;">&#9888; ' + semTmdb.length + ' sem match no TMDb (serão importados sem poster/dados):</div>' +
+      '<div style="font-size:12px;color:#92400e;">' + semTmdb.map(escHtml).join(', ') + '</div>' +
+      '</div>';
+  }
 
   try {
     await supabasePost('filmes', payloads, 'resolution=ignore-duplicates,return=minimal');
     btn.textContent = 'Cadastrar no Supabase';
     btn.disabled    = false;
     await loadFilmes();
-    if (resultEl) resultEl.innerHTML = resumoHtml +
+    if (resultEl) resultEl.innerHTML = avisoHtml +
       '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px 18px;text-align:center;">' +
-      '<div style="font-size:14px;font-weight:600;color:#166534;">' + payloads.length + ' filmes cadastrados!</div>' +
+      '<div style="font-size:14px;font-weight:600;color:#166534;">&#10003; ' + payloads.length + ' filmes cadastrados!</div>' +
+      '<div style="font-size:12px;color:#166534;margin-top:4px;">Edite os filmes no admin para adicionar acessibilidade.</div>' +
       '</div>';
     showToast(payloads.length + ' filmes importados!', 'success');
   } catch (e) {
@@ -670,6 +678,71 @@ async function excluirTodosSemTmdb(ids, btn) {
   }
   renderTable();
   showToast((ids.length - erros) + ' filmes removidos.', 'success');
+}
+
+// ── Corrigir TMDb em lote ─────────────────────────────────────────────────────
+async function runTmdbFix() {
+  var btn      = document.getElementById('btn-tmdb-fix');
+  var resultEl = document.getElementById('tmdb-cleanup-result');
+  btn.disabled    = true;
+  btn.textContent = 'Verificando...';
+  if (resultEl) resultEl.innerHTML = '<div style="padding:12px;font-size:13px;color:#64748b;">Buscando filmes sem tmdb_id...</div>';
+
+  var semId = _filmes.filter(function (f) { return !f.tmdb_id; });
+  if (!semId.length) {
+    btn.disabled    = false;
+    btn.textContent = '🔧 Corrigir TMDb';
+    if (resultEl) resultEl.innerHTML = '<div style="padding:12px 14px;background:#f0fdf4;border-top:1px solid #bbf7d0;font-size:13px;color:#166534;">&#10003; Todos os filmes já têm tmdb_id.</div>';
+    return;
+  }
+
+  var corrigidos = 0;
+  var semMatch   = [];
+
+  for (var i = 0; i < semId.length; i++) {
+    var f = semId[i];
+    btn.textContent = 'Corrigindo ' + (i + 1) + '/' + semId.length + '...';
+    try {
+      var results  = await searchMovie(f.titulo || '');
+      var titleNrm = (f.titulo || '').toLowerCase().trim();
+      var match    = results.find(function (r) {
+        return (r.title || '').toLowerCase().trim() === titleNrm ||
+               (r.original_title || '').toLowerCase().trim() === titleNrm;
+      });
+      if (!match && results[0] && results[0].popularity > 1 && results[0].poster_path) match = results[0];
+
+      if (match) {
+        await supabasePatch('filmes', 'id=eq.' + f.id, {
+          tmdb_id:   match.id,
+          tmdb_data: match,
+          updated_at: new Date().toISOString(),
+        });
+        // Atualiza cache local
+        var idx = _filmes.findIndex(function (x) { return x.id === f.id; });
+        if (idx > -1) { _filmes[idx].tmdb_id = match.id; _filmes[idx].tmdb_data = match; }
+        corrigidos++;
+      } else {
+        semMatch.push(f.titulo);
+      }
+    } catch (e) { semMatch.push(f.titulo); }
+  }
+
+  btn.disabled    = false;
+  btn.textContent = '🔧 Corrigir TMDb';
+  renderTable();
+  updateStats();
+
+  var html = '<div style="padding:14px 16px;border-top:1px solid #e2e8f0;">';
+  if (corrigidos > 0) {
+    html += '<div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:8px;">&#10003; ' + corrigidos + ' filme(s) corrigido(s) com tmdb_id.</div>';
+  }
+  if (semMatch.length > 0) {
+    html += '<div style="font-size:13px;font-weight:700;color:#854d0e;margin-bottom:6px;">&#9888; ' + semMatch.length + ' sem match no TMDb (precisam de revisão manual):</div>' +
+      '<div style="font-size:12px;color:#92400e;">' + semMatch.map(escHtml).join(', ') + '</div>';
+  }
+  html += '</div>';
+  if (resultEl) resultEl.innerHTML = html;
+  showToast(corrigidos + ' filmes com TMDb corrigido(s).', corrigidos > 0 ? 'success' : 'error');
 }
 
 // ── Sincronização automática de status ────────────────────────────────────────

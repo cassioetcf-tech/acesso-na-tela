@@ -106,12 +106,13 @@
           <div class="auto-panel-left">
             <div class="auto-icon">🧹</div>
             <div>
-              <div class="auto-title">Limpeza de filmes sem match no TMDb</div>
-              <div class="auto-sub">Identifica e remove filmes cadastrados que não têm correspondência confiável no TMDb</div>
+              <div class="auto-title">Gerenciar filmes sem dados do TMDb</div>
+              <div class="auto-sub">Corrige ou remove filmes sem <code>tmdb_id</code> — filmes sem esse dado não aparecem no site público</div>
             </div>
           </div>
           <div class="auto-right">
-            <button class="btn-auto" id="btn-tmdb-scan" onclick="runTmdbCleanup()" style="background:#dc2626;">🔍 Verificar agora</button>
+            <button class="btn-auto" id="btn-tmdb-fix" onclick="runTmdbFix()" style="background:#0369a1;margin-right:8px;">🔧 Corrigir TMDb</button>
+            <button class="btn-auto" id="btn-tmdb-scan" onclick="runTmdbCleanup()" style="background:#dc2626;">🗑 Remover sem match</button>
           </div>
         </div>
         <div id="tmdb-cleanup-result" style="margin-top:0;"></div>
