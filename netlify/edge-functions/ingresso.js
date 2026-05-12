@@ -26,42 +26,35 @@ export default async function handler(request) {
   let target;
 
   if (type === 'nowplaying') {
-    // Usa TMDb /movie/now_playing?region=BR como fonte de filmes em cartaz no Brasil.
-    // O endpoint de listagem da Ingresso não é público/documentado, então usamos TMDb
-    // que é confiável e já temos credenciais. O urlKey é derivado do título em português.
+    // Usa o endpoint oficial da Ingresso.com para listar filmes em cartaz/em breve.
+    // GET /v0/events/city/1/partnership/locomotivadigital
+    // Retorna { items: [...] } com title, urlKey, isPlaying, isComingSoon — sem paginação.
     try {
-      const seen  = new Set();
-      const films = [];
+      const ingressoUrl = `${BASE}/events/city/1/partnership/${PART}`;
+      const r = await fetch(ingressoUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+          'Origin': 'https://www.ingresso.com',
+          'Referer': 'https://www.ingresso.com/',
+        },
+      });
 
-      // Busca até 5 páginas (~100 filmes) para cobrir todo o Brasil
-      let page = 1;
-      let totalPages = 1;
+      if (!r.ok) throw new Error(`Ingresso HTTP ${r.status}`);
+      const data = await r.json();
+      const items = Array.isArray(data.items) ? data.items : [];
 
-      do {
-        const tmdbUrl = `https://api.themoviedb.org/3/movie/now_playing?language=pt-BR&region=BR&page=${page}`;
-        const r = await fetch(tmdbUrl, {
-          headers: {
-            'Authorization': `Bearer ${TMDB_TOKEN}`,
-            'Accept': 'application/json',
-          },
-        });
+      // Filtra apenas filmes (exclui peças de teatro, shows, etc.)
+      const films = items
+        .filter(m => (m.type || '').toLowerCase() === 'filme')
+        .map(m => ({
+          title:       m.title        || '',
+          urlKey:      m.urlKey       || '',
+          isComingSoon: !!m.isComingSoon,
+        }))
+        .filter(m => m.title && m.urlKey);
 
-        if (!r.ok) break;
-        const data = await r.json();
-        totalPages = Math.min(data.total_pages || 1, 5);
-
-        for (const movie of (data.results || [])) {
-          const title  = movie.title || movie.original_title || '';
-          const urlKey = titleToUrlKey(title);
-          if (!urlKey || seen.has(urlKey)) continue;
-          seen.add(urlKey);
-          films.push({ id: String(movie.id), title, urlKey });
-        }
-
-        page++;
-      } while (page <= totalPages);
-
-      console.log('[nowplaying] TMDb retornou', films.length, 'filmes');
+      console.log('[nowplaying] Ingresso retornou', films.length, 'filmes');
 
       return new Response(JSON.stringify(films), {
         status: 200,

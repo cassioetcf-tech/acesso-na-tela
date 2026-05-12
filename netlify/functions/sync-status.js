@@ -1,14 +1,18 @@
-// ── sync-status v2 — Discovery + Sync Engine ─────────────────────────────────
+// ── sync-status v3 — Discovery + Sync Engine ─────────────────────────────────
 // Netlify Scheduled Function: roda diariamente às 6h UTC (netlify.toml)
 //
-// FASE 1 — Discovery via TMDb /movie/now_playing?region=BR
-//   → todos os filmes em cartaz no Brasil, com metadados completos (poster, sinopse…)
-//   → filmes novos criados no Supabase com app_status='pendente'
-//   → urlKey derivado do título em português (padrão Ingresso.com)
+// FASE 1 — Ingresso: descoberta + verificação de sessões
+//   → GET /v0/events/city/1/partnership/locomotivadigital — lista oficial do Ingresso
+//   → filmes novos inseridos SEM tmdb_data (enriquecidos na Fase 2)
+//   → usa isComingSoon para definir status inicial (CARTAZ ou BREVE)
+//   → filmes já cadastrados em cartaz/breve: verifica sessões (cartaz ↔ catálogo)
 //
-// FASE 2 — Sync de status via Ingresso.com sessions
-//   → sem sessões nos próximos 7 dias → move para CATALOGO
-//   → breve com sessões → move para CARTAZ
+// FASE 2 — TMDb: enriquecimento de dados
+//   → filmes em cartaz sem tmdb_data → busca por título → atualiza tmdb_id + tmdb_data
+//
+// FASE 3 — Apps: auto-classificação
+//   → scrape CineAcessivel (MovieReading) + GoMAV (MLOAD) + PingPlay
+//   → cruza com filmes pendentes → atualiza app/app_status/a11y
 
 const SUPA_URL    = process.env.SUPA_URL  || 'https://gpwmmvaetokgrzekepbk.supabase.co';
 const SUPA_KEY    = process.env.SUPA_KEY  || 'sb_publishable_lbKSyHwh8nNINEef-0Hi5Q_oPF5qt-P';
@@ -16,7 +20,7 @@ const TMDB_TOKEN  = process.env.TMDB_TOKEN || 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIx
 
 const INGRESSO_BASE = 'https://api-content.ingresso.com/v0';
 const INGRESSO_PART = 'locomotivadigital';
-const TMDB_BASE     = 'https://api.themoviedb.org/3';
+const TMDB_BASE     = 'https://api.themoviedb.org/3'; // usado apenas na Fase 2 (enriquecimento)
 
 const ING_HEADERS = {
   'Accept': 'application/json',
@@ -24,17 +28,6 @@ const ING_HEADERS = {
   'Origin': 'https://www.ingresso.com',
   'Referer': 'https://www.ingresso.com/',
 };
-
-// Converte título em urlKey no padrão da Ingresso.com (ex: "O Velho Fusca" → "o-velho-fusca")
-function titleToUrlKey(title) {
-  return (title || '')
-    .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
-}
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
 
@@ -79,46 +72,43 @@ const TMDB_HEADERS = {
 };
 
 /**
- * Busca todos os filmes em cartaz no Brasil via TMDb /movie/now_playing?region=BR.
- * Retorna array com { tmdb_id, title, urlKey, tmdb_data } — sem chamada extra ao TMDb.
+ * Busca filmes em cartaz/em breve diretamente do Ingresso.com.
+ * GET /v0/events/city/1/partnership/locomotivadigital
+ * Retorna array com { title, urlKey, isComingSoon } — sem chamada extra ao TMDb.
+ * tmdb_data será preenchido na Fase 2.
  */
-async function fetchNowPlaying() {
-  const seen  = new Set();
-  const films = [];
-  let   page  = 1;
-  let   total = 1;
+async function fetchIngressoMovies() {
+  const r = await fetch(
+    `${INGRESSO_BASE}/events/city/1/partnership/${INGRESSO_PART}`,
+    { headers: ING_HEADERS }
+  );
+  if (!r.ok) throw new Error(`Ingresso listing HTTP ${r.status}`);
+  const data  = await r.json();
+  const items = Array.isArray(data.items) ? data.items : [];
 
-  do {
-    try {
-      const r = await fetch(
-        `${TMDB_BASE}/movie/now_playing?language=pt-BR&region=BR&page=${page}`,
-        { headers: TMDB_HEADERS }
-      );
-      if (!r.ok) { console.error('[discovery] TMDb HTTP', r.status); break; }
+  return items
+    .filter(m => (m.type || '').toLowerCase() === 'filme')
+    .map(m => ({
+      title:        m.title        || '',
+      urlKey:       m.urlKey       || '',
+      isComingSoon: !!m.isComingSoon,
+    }))
+    .filter(m => m.title && m.urlKey);
+}
 
-      const data = await r.json();
-      total = Math.min(data.total_pages || 1, 5); // máximo 5 páginas (~100 filmes)
-
-      for (const movie of (data.results || [])) {
-        const title  = movie.title || movie.original_title || '';
-        const urlKey = titleToUrlKey(title);
-        if (!urlKey || seen.has(urlKey)) continue;
-        seen.add(urlKey);
-        films.push({
-          tmdb_id:   movie.id,
-          title,
-          urlKey,
-          tmdb_data: movie, // já temos os dados, sem busca extra
-        });
-      }
-    } catch (e) {
-      console.error('[discovery] erro página', page, e.message);
-      break;
-    }
-    page++;
-  } while (page <= total);
-
-  return films;
+/**
+ * Busca filme por título no TMDb. Retorna array de resultados.
+ */
+async function searchMovie(title) {
+  try {
+    const r = await fetch(
+      `${TMDB_BASE}/search/movie?language=pt-BR&query=${encodeURIComponent(title)}&page=1`,
+      { headers: TMDB_HEADERS }
+    );
+    if (!r.ok) return [];
+    const data = await r.json();
+    return data.results || [];
+  } catch (e) { return []; }
 }
 
 async function getEventId(urlKey) {
@@ -148,111 +138,97 @@ async function checkHasSessions(eventId) {
   return false;
 }
 
+// ── Normaliza título para comparação ──────────────────────────────────────────
+function normT(t) {
+  return (t || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 exports.handler = async function () {
-  const log      = [];
-  const now      = new Date().toISOString();
-  let   created  = 0;
-  let   updated  = 0;
-  let   errors   = 0;
+  const log            = [];
+  const now            = new Date().toISOString();
+  let   created        = 0;
+  let   updated        = 0;
+  let   enriched       = 0;
+  let   autoClassified = 0;
+  let   errors         = 0;
 
-  // ── FASE 1: Discovery via TMDb now_playing ────────────────────────────────
-  log.push('[sync] FASE 1 — Discovery via TMDb /movie/now_playing?region=BR');
+  // ── FASE 1: Ingresso — Descoberta + Verificação de sessões ───────────────────
+  log.push('[sync] FASE 1 — Ingresso: descoberta + verificação de sessões');
 
-  let nowPlayingFilms = [];
+  // 1a. Busca lista diretamente do Ingresso.com (fonte oficial)
+  let ingressoFilms = [];
   try {
-    nowPlayingFilms = await fetchNowPlaying();
-    log.push(`[sync] TMDb retornou ${nowPlayingFilms.length} filmes em cartaz no Brasil`);
+    ingressoFilms = await fetchIngressoMovies();
+    log.push(`[sync] Ingresso retornou ${ingressoFilms.length} filmes`);
   } catch (e) {
-    log.push(`[sync] ERRO ao buscar TMDb nowplaying: ${e.message} — pula fase 1`);
+    log.push(`[sync] ERRO ao buscar Ingresso: ${e.message} — pula descoberta`);
   }
 
-  if (nowPlayingFilms.length > 0) {
-    // Busca url_keys e tmdb_ids já no Supabase
+  // 1b. Insere os filmes que ainda não estão na base
+  // Não precisa verificar no Ingresso — a lista JÁ veio de lá
+  if (ingressoFilms.length > 0) {
     let existentes = [];
     try {
-      existentes = await supaGet('filmes', 'select=url_key,tmdb_id&limit=500');
+      existentes = await supaGet('filmes', 'select=url_key&limit=500');
     } catch (e) {
       log.push(`[sync] ERRO ao buscar filmes existentes: ${e.message}`);
     }
 
-    const keysExistentes  = new Set(existentes.map(f => f.url_key).filter(Boolean));
-    const tmdbsExistentes = new Set(existentes.map(f => String(f.tmdb_id)).filter(Boolean));
+    const keysExistentes = new Set(existentes.map(f => f.url_key).filter(Boolean));
+    const novos = ingressoFilms.filter(f => f.urlKey && !keysExistentes.has(f.urlKey));
 
-    let ingressoVerified = 0;
-    let ingressoSkipped  = 0;
+    log.push(`[sync] ${novos.length} filme(s) novo(s) para adicionar`);
 
-    for (const film of nowPlayingFilms) {
-      // Pula se já existe pelo urlKey ou pelo tmdb_id
-      if (keysExistentes.has(film.urlKey) || tmdbsExistentes.has(String(film.tmdb_id))) continue;
-      if (!film.title) continue;
-
-      // ── Verifica se o filme existe no Ingresso.com ─────────────────────────
-      // Só importa filmes que o Ingresso reconhece via url-key.
-      // Isso garante que só entram filmes realmente em cartaz no Brasil segundo
-      // o Ingresso (evita divergências com a lista TMDb).
-      const eventId = await getEventId(film.urlKey);
-      if (!eventId) {
-        log.push(`SKIP  ${film.title} — urlKey "${film.urlKey}" não encontrado na Ingresso`);
-        ingressoSkipped++;
-        continue;
-      }
-      ingressoVerified++;
-
+    for (const film of novos) {
       try {
-        const novoFilme = {
+        const statusInicial = film.isComingSoon ? 'BREVE' : 'CARTAZ';
+        // Inserido SEM tmdb_data — enriquecido na Fase 2
+        await supaInsert({
           id:           `film_${film.urlKey}`,
           titulo:       film.title,
           url_key:      film.urlKey,
           ingresso_url: `https://www.ingresso.com/filme/${film.urlKey}`,
-          status:       'CARTAZ',
+          status:       statusInicial,
           app_status:   'pendente',
           app:          null,
           a11y:         { ad: false, lse: false, libras: false },
-          tmdb_id:      film.tmdb_id,
-          tmdb_data:    film.tmdb_data,
+          tmdb_id:      null,
+          tmdb_data:    null,
           created_at:   now,
           updated_at:   now,
-        };
-
-        await supaInsert(novoFilme);
-        log.push(`NEW   ${film.title} (TMDb: ${film.tmdb_id}, Ingresso: ${eventId})`);
+        });
+        log.push(`NEW   ${film.title} [${statusInicial}]`);
         created++;
       } catch (e) {
         log.push(`ERR   ${film.title} — ${e.message}`);
         errors++;
       }
     }
-
-    log.push(`[sync] Ingresso check: ${ingressoVerified} verificados, ${ingressoSkipped} ignorados (sem urlKey no Ingresso)`);
   }
 
-  log.push(`[sync] Fase 1 concluída: ${created} filme(s) novo(s)`);
+  log.push(`[sync] Fase 1a concluída: ${created} filme(s) novo(s)`);
 
-  // ── FASE 2: Sync de status ─────────────────────────────────────────────────
-  log.push('[sync] FASE 2 — Sync de status (cartaz/catalogo)');
-
-  let filmes = [];
+  // 1c. Verifica sessões para filmes já em cartaz/breve
+  let filmesAtivos = [];
   try {
-    filmes = await supaGet(
+    filmesAtivos = await supaGet(
       'filmes',
       'or=(status.ilike.cartaz,status.ilike.breve)&select=id,titulo,url_key,status&order=titulo&limit=500'
     );
   } catch (e) {
-    log.push(`[sync] ERRO ao buscar filmes para sync: ${e.message}`);
-    return { statusCode: 500, body: JSON.stringify({ error: e.message, log }) };
+    log.push(`[sync] ERRO ao buscar filmes para verificação de sessões: ${e.message}`);
   }
 
-  log.push(`[sync] ${filmes.length} filme(s) em cartaz/breve para verificar`);
+  log.push(`[sync] ${filmesAtivos.length} filme(s) em cartaz/breve para verificar sessões`);
 
-  for (const f of filmes) {
+  for (const f of filmesAtivos) {
     const status = (f.status || '').toLowerCase();
-
-    if (!f.url_key) {
-      log.push(`SKIP  ${f.titulo} — sem url_key`);
-      continue;
-    }
+    if (!f.url_key) { log.push(`SKIP  ${f.titulo} — sem url_key`); continue; }
 
     try {
       const eventId = await getEventId(f.url_key);
@@ -287,82 +263,122 @@ exports.handler = async function () {
     }
   }
 
-  // ── FASE 3: Auto-classificação por app ────────────────────────────────────────
-  log.push('[sync] FASE 3 — Auto-classificação: MovieReading (CineAcessivel) + MLOAD (GoMAV)');
+  log.push(`[sync] Fase 1 concluída: ${created} novo(s), ${updated} sessão/status atualizado(s)`);
 
-  function normT(t) {
-    return (t || '').toLowerCase()
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-z0-9\s]/g, '')
-      .replace(/\s+/g, ' ').trim();
+  // ── FASE 2: TMDb — Enriquecimento de dados ────────────────────────────────────
+  log.push('[sync] FASE 2 — TMDb: buscando poster e dados dos filmes sem tmdb_data');
+
+  let todosFilmes = [];
+  try {
+    todosFilmes = await supaGet('filmes', 'select=id,titulo,status,tmdb_id,tmdb_data&limit=500');
+  } catch (e) {
+    log.push(`[sync] ERRO ao buscar filmes para enriquecimento: ${e.message}`);
   }
 
-  // ── Busca títulos MovieReading (cineacessivel.com.br, paginado) ──────────────
-  const mrTitles = new Set();
-  try {
-    let page = 1;
-    while (page <= 40) {
-      const pageNums = [page, page+1, page+2, page+3, page+4];
-      const htmls    = await Promise.all(
-        pageNums.map(p =>
-          fetch(`https://cineacessivel.com.br/em-cartaz?page=${p}`)
-            .then(r => r.ok ? r.text() : '').catch(() => '')
-        )
+  const semDados = todosFilmes.filter(f =>
+    !f.tmdb_data && (f.status || '').toLowerCase() === 'cartaz'
+  );
+
+  log.push(`[sync] ${semDados.length} filme(s) em cartaz sem tmdb_data`);
+
+  for (const f of semDados) {
+    try {
+      const results  = await searchMovie(f.titulo || '');
+      const titleNrm = (f.titulo || '').toLowerCase().trim();
+      let   match    = results.find(r =>
+        (r.title || '').toLowerCase().trim() === titleNrm ||
+        (r.original_title || '').toLowerCase().trim() === titleNrm
       );
-      let found = 0;
-      for (const html of htmls) {
-        for (const m of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)) {
-          mrTitles.add(normT(m[1])); found++;
+      if (!match && results[0] && results[0].popularity > 1 && results[0].poster_path) match = results[0];
+
+      if (match) {
+        await supaPatch(f.id, { tmdb_id: match.id, tmdb_data: match, updated_at: now });
+        log.push(`TMDB  ${f.titulo} — poster e dados atualizados (TMDb: ${match.id})`);
+        enriched++;
+      } else {
+        log.push(`SKIP  ${f.titulo} — não encontrado no TMDb`);
+      }
+    } catch (e) {
+      log.push(`ERR   ${f.titulo} — TMDb: ${e.message}`);
+      errors++;
+    }
+  }
+
+  log.push(`[sync] Fase 2 concluída: ${enriched} filme(s) enriquecido(s)`);
+
+  // ── FASE 3: Auto-classificação por app ────────────────────────────────────────
+  log.push('[sync] FASE 3 — Auto-classificação: MovieReading (CineAcessivel) + MLOAD (GoMAV) + PingPlay');
+
+  // Busca todas as 3 fontes em paralelo
+  const [mrTitles, mloadTitles, pingplayTitles] = await Promise.all([
+    // MovieReading — cineacessivel.com.br (paginado)
+    (async () => {
+      const set = new Set();
+      try {
+        let page = 1;
+        while (page <= 40) {
+          const htmls = await Promise.all(
+            [page, page+1, page+2, page+3, page+4].map(p =>
+              fetch(`https://cineacessivel.com.br/em-cartaz?page=${p}`)
+                .then(r => r.ok ? r.text() : '').catch(() => '')
+            )
+          );
+          let found = 0;
+          for (const html of htmls) {
+            for (const m of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)) {
+              set.add(normT(m[1])); found++;
+            }
+          }
+          if (!found) break;
+          page += 5;
         }
-      }
-      if (!found) break;
-      page += 5;
-    }
-    log.push(`[sync] MovieReading: ${mrTitles.size} títulos do CineAcessivel`);
-  } catch (e) {
-    log.push(`[sync] ERRO MovieReading scrape: ${e.message}`);
-  }
+        log.push(`[sync] MovieReading: ${set.size} títulos do CineAcessivel`);
+      } catch (e) { log.push(`[sync] ERRO MovieReading scrape: ${e.message}`); }
+      return set;
+    })(),
 
-  // ── Busca títulos MLOAD (gomav.co, página única) ─────────────────────────────
-  const mloadTitles = new Set();
-  try {
-    const r    = await fetch('https://gomav.co/filmes-2025-2/');
-    const html = await r.text();
-    for (const m of html.matchAll(/<h4[^>]*>([^<]+)<\/h4>/g)) {
-      const t = m[1].trim();
-      if (/^\d{2}\/\d{2}/.test(t)) continue;
-      if (/^(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i.test(t)) continue;
-      if (t.length >= 3) mloadTitles.add(normT(t));
-    }
-    log.push(`[sync] MLOAD: ${mloadTitles.size} títulos do GoMAV`);
-  } catch (e) {
-    log.push(`[sync] ERRO MLOAD scrape: ${e.message}`);
-  }
+    // MLOAD — gomav.co (página única)
+    (async () => {
+      const set = new Set();
+      try {
+        const r    = await fetch('https://gomav.co/filmes-2025-2/');
+        const html = await r.text();
+        for (const m of html.matchAll(/<h4[^>]*>([^<]+)<\/h4>/g)) {
+          const t = m[1].trim();
+          if (/^\d{2}\/\d{2}/.test(t)) continue;
+          if (/^(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i.test(t)) continue;
+          if (t.length >= 3) set.add(normT(t));
+        }
+        log.push(`[sync] MLOAD: ${set.size} títulos do GoMAV`);
+      } catch (e) { log.push(`[sync] ERRO MLOAD scrape: ${e.message}`); }
+      return set;
+    })(),
 
-  // ── Busca títulos PingPlay (pingplay.com.br, paginado) ───────────────────────
-  const pingplayTitles = new Set();
-  try {
-    let page = 1;
-    while (page <= 50) {
-      const r    = await fetch(`https://pingplay.com.br/catalogo.php?pagina=${page}&por_pagina=40`);
-      const html = r.ok ? await r.text() : '';
-      const matches = [...html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)];
-      if (!matches.length) break;
-      let found = 0;
-      for (const m of matches) {
-        const norm = normT(m[1]);
-        if (norm && !pingplayTitles.has(norm)) { pingplayTitles.add(norm); found++; }
-      }
-      if (!found) break;
-      page++;
-    }
-    log.push(`[sync] PingPlay: ${pingplayTitles.size} títulos do catalogo.php`);
-  } catch (e) {
-    log.push(`[sync] ERRO PingPlay scrape: ${e.message}`);
-  }
+    // PingPlay — pingplay.com.br (paginado)
+    (async () => {
+      const set = new Set();
+      try {
+        let page = 1;
+        while (page <= 50) {
+          const r       = await fetch(`https://pingplay.com.br/catalogo.php?pagina=${page}&por_pagina=40`);
+          const html    = r.ok ? await r.text() : '';
+          const matches = [...html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)];
+          if (!matches.length) break;
+          let found = 0;
+          for (const m of matches) {
+            const norm = normT(m[1]);
+            if (norm && !set.has(norm)) { set.add(norm); found++; }
+          }
+          if (!found) break;
+          page++;
+        }
+        log.push(`[sync] PingPlay: ${set.size} títulos do catalogo.php`);
+      } catch (e) { log.push(`[sync] ERRO PingPlay scrape: ${e.message}`); }
+      return set;
+    })(),
+  ]);
 
-  // ── Cruza com filmes pendentes no Supabase ───────────────────────────────────
-  let autoClassified = 0;
+  // Cruza com filmes pendentes no Supabase
   try {
     const pendentes = await supaGet('filmes', 'app_status=eq.pendente&select=id,titulo&limit=500');
     for (const f of pendentes) {
@@ -387,17 +403,17 @@ exports.handler = async function () {
         errors++;
       }
     }
-    log.push(`[sync] Fase 3: ${autoClassified} filme(s) auto-classificado(s)`);
+    log.push(`[sync] Fase 3 concluída: ${autoClassified} filme(s) auto-classificado(s)`);
   } catch (e) {
     log.push(`[sync] ERRO Fase 3 match: ${e.message}`);
   }
 
-  const summary = `[sync] concluído: ${created} novo(s), ${updated} atualizado(s), ${autoClassified} auto-class, ${errors} erro(s)`;
+  const summary = `[sync] concluído: ${created} novo(s), ${updated} sessão/status, ${enriched} enriquecido(s), ${autoClassified} auto-class, ${errors} erro(s)`;
   log.push(summary);
   console.log(log.join('\n'));
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ created, updated, autoClassified, errors, total: filmes.length, log }),
+    body: JSON.stringify({ created, updated, enriched, autoClassified, errors, log }),
   };
 };

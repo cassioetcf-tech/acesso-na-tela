@@ -2,34 +2,22 @@
 // Depende de: js/api/supabase.js, js/api/tmdb.js, js/components/film-card.js,
 //             js/utils.js (escHtml)
 
-var _allCards      = []; // { el, acessivel: bool }
-var _filtroAtivo   = 'acessivel'; // 'todos' | 'acessivel'
+var _allCards = []; // { el, acessivel: bool }
 
-// ── Filtro ────────────────────────────────────────────────────────────────────
+// ── Legenda ───────────────────────────────────────────────────────────────────
 
-function setFiltroHome(val, btnEl) {
-  _filtroAtivo = val;
-  document.querySelectorAll('.home-filter-tab').forEach(function (t) {
-    t.classList.toggle('active', t === btnEl);
-  });
-  _applyFilter();
+function _showLegend() {
+  var leg = document.getElementById('legend-a11y');
+  if (leg) leg.style.display = '';
 }
 
 function _applyFilter() {
-  var grid     = document.getElementById('grid-cartaz');
+  // Sempre mostra só filmes com acessibilidade confirmada
   var visiveis = 0;
-
   _allCards.forEach(function (item) {
-    var mostrar = _filtroAtivo === 'todos' || item.acessivel;
-    item.el.style.display = mostrar ? '' : 'none';
-    if (mostrar) visiveis++;
+    item.el.style.display = item.acessivel ? '' : 'none';
+    if (item.acessivel) visiveis++;
   });
-
-  // Atualiza legenda de acessibilidade
-  var leg = document.getElementById('legend-a11y');
-  if (leg) leg.style.display = _filtroAtivo === 'acessivel' ? '' : 'none';
-
-  // Empty state
   var empty = document.getElementById('grid-empty');
   if (empty) empty.style.display = (!visiveis && _allCards.length) ? '' : 'none';
 }
@@ -77,10 +65,10 @@ async function loadCatalog() {
   if (!grid) return;
 
   try {
-    // Busca TODOS os filmes em cartaz — sem filtro de tmdb_id
+    // Busca apenas filmes em cartaz com acessibilidade confirmada
     var filmes = await supabaseGet(
       'filmes',
-      'status=ilike.cartaz&order=created_at.desc&limit=200'
+      'status=ilike.cartaz&app_status=eq.confirmado&order=created_at.desc&limit=200'
     );
 
     if (!Array.isArray(filmes) || filmes.length === 0) {
@@ -137,6 +125,7 @@ async function loadCatalog() {
     emptyEl.textContent = 'Nenhum filme com acessibilidade confirmada no momento.';
     grid.appendChild(emptyEl);
 
+    _showLegend();
     _applyFilter();
 
   } catch (err) {
@@ -153,9 +142,8 @@ function doSearch(val) {
 
   _allCards.forEach(function (item) {
     var text = item.el.textContent.toLowerCase();
-    var show = !q || text.includes(q);
-    // Respeita também o filtro de acessibilidade
-    if (show && _filtroAtivo === 'acessivel' && !item.acessivel) show = false;
+    // Só exibe filmes acessíveis que correspondem à busca
+    var show = item.acessivel && (!q || text.includes(q));
     item.el.style.display = show ? '' : 'none';
     if (show) visible++;
   });

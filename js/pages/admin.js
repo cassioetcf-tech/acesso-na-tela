@@ -673,9 +673,9 @@ async function _checkFilmHasSessions(urlKey) {
 }
 
 // ── Sincronização completa ────────────────────────────────────────────────────
-// FASE 1 — Descoberta: busca filmes novos no TMDb, verifica no Ingresso, insere.
-// FASE 2 — Status: checa sessões dos filmes em cartaz/breve, atualiza status.
-// Equivalente ao que roda automaticamente às 6h UTC (sync-status.js).
+// FASE 1 — Ingresso: descobre filmes novos via Ingresso + verifica sessões.
+// FASE 2 — TMDb: enriquece filmes sem poster/dados com informações do TMDb.
+// FASE 3 — Apps: auto-classifica MovieReading, MLOAD e PingPlay.
 
 async function runSync() {
   var btn      = document.getElementById('btn-sync');
@@ -700,152 +700,152 @@ async function runSync() {
 
   var discovered = 0;
   var changed    = 0;
+  var enriched   = 0;
   var errors     = 0;
   var now        = new Date().toISOString();
   var BATCH      = 8;
 
-  // ── FASE 1: Descoberta ───────────────────────────────────────────────────────
-  addLog('ok', '🔍', '<strong>Fase 1</strong> — Descobrindo filmes novos', null, null);
+  function normT(t) {
+    return (t || '').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, ' ').trim();
+  }
 
+  // ── FASE 1: Ingresso — Descoberta + Verificação de sessões ──────────────────
+  addLog('ok', '🎟️', '<strong>Fase 1</strong> — Ingresso.com: descoberta + sessões', null, null);
+
+  // 1a. Busca lista diretamente do Ingresso.com (fonte oficial)
   try {
-    setProgress(3, 'Buscando filmes no TMDb...');
+    setProgress(2, 'Buscando filmes em cartaz no Ingresso.com...');
     var data  = await getNowPlaying();
     var lista = Array.isArray(data) ? data : [];
+    if (!lista.length) throw new Error('Nenhum filme retornado pelo Ingresso.');
+    addLog('ok', '🎬', '<strong>' + lista.length + '</strong> filmes encontrados no Ingresso.com', null, null);
 
-    if (!lista.length) throw new Error('TMDb não retornou filmes.');
-    addLog('ok', '🎬', 'TMDb: <strong>' + lista.length + '</strong> filmes em cartaz no Brasil', null, null);
-
+    // 1b. Filtra os que ainda não estão na base — sem verificação extra (fonte JÁ é o Ingresso)
     var keysExistentes = new Set(_filmes.map(function (f) { return f.url_key; }).filter(Boolean));
-    var novos = lista.filter(function (f) {
-      return f.urlKey && f.title && !keysExistentes.has(f.urlKey);
-    });
+    var novos = lista.filter(function (f) { return f.urlKey && f.title && !keysExistentes.has(f.urlKey); });
 
     if (!novos.length) {
       addLog('ok', '✓', 'Nenhum filme novo para adicionar', null, null);
     } else {
-      addLog('ok', '🆕', '<strong>' + novos.length + '</strong> novo(s) — verificando no Ingresso...', null, null);
-
+      addLog('ok', '🆕', '<strong>' + novos.length + '</strong> filme(s) novo(s) para adicionar...', null, null);
       for (var i = 0; i < novos.length; i += BATCH) {
-        setProgress(5 + Math.round((i / novos.length) * 35), 'Verificando Ingresso ' + Math.min(i + BATCH, novos.length) + '/' + novos.length + '...');
-        var batch   = novos.slice(i, i + BATCH);
-        var ingResults = await Promise.all(batch.map(function (f) {
-          return getEventId(f.urlKey)
-            .then(function (d) { return (d && d.id) ? d.id : null; })
-            .catch(function ()  { return null; });
-        }));
-
-        for (var j = 0; j < batch.length; j++) {
-          var nf      = batch[j];
-          var eventId = ingResults[j];
-
-          if (!eventId) {
-            addLog('skip', '—', escHtml(nf.title) + ' <span style="color:#94a3b8;font-size:11px;">não encontrado no Ingresso</span>', null, null);
-            continue;
-          }
-
-          var tmdbData = null;
-          try {
-            var tmdbR    = await searchMovie(nf.title);
-            var titleNrm = nf.title.toLowerCase().trim();
-            tmdbData = tmdbR.find(function (r) {
-              return (r.title || '').toLowerCase().trim() === titleNrm ||
-                     (r.original_title || '').toLowerCase().trim() === titleNrm;
-            });
-            if (!tmdbData && tmdbR[0] && tmdbR[0].popularity > 1 && tmdbR[0].poster_path) tmdbData = tmdbR[0];
-          } catch (e) { /* sem TMDb, ok */ }
-
-          try {
-            await supabasePost('filmes', {
-              id:           'film_' + nf.urlKey,
-              titulo:       nf.title,
-              url_key:      nf.urlKey,
-              ingresso_url: 'https://www.ingresso.com/filme/' + nf.urlKey,
-              status:       'CARTAZ',
-              app_status:   'pendente',
-              app:          null,
-              a11y:         { ad: false, lse: false, libras: false },
-              tmdb_id:      tmdbData ? tmdbData.id : null,
-              tmdb_data:    tmdbData || null,
-              created_at:   now,
-              updated_at:   now,
-            }, 'resolution=ignore-duplicates,return=minimal');
-            addLog('ok', '✓', '<strong>' + escHtml(nf.title) + '</strong> adicionado à triagem', 'Novo', 'tag-cartaz');
+        setProgress(4 + Math.round((i / novos.length) * 26), 'Adicionando ' + Math.min(i + BATCH, novos.length) + '/' + novos.length + '...');
+        var batch = novos.slice(i, i + BATCH);
+        await Promise.all(batch.map(function (nf) {
+          var statusInicial = nf.isComingSoon ? 'BREVE' : 'CARTAZ';
+          var tagLabel      = nf.isComingSoon ? 'Em breve' : 'Em cartaz';
+          var tagCls        = nf.isComingSoon ? 'tag-breve' : 'tag-cartaz';
+          return supabasePost('filmes', {
+            id: 'film_' + nf.urlKey, titulo: nf.title, url_key: nf.urlKey,
+            ingresso_url: 'https://www.ingresso.com/filme/' + nf.urlKey,
+            status: statusInicial, app_status: 'pendente', app: null,
+            a11y: { ad: false, lse: false, libras: false },
+            tmdb_id: null, tmdb_data: null, // enriquecido na Fase 2
+            created_at: now, updated_at: now,
+          }, 'resolution=ignore-duplicates,return=minimal')
+          .then(function () {
+            addLog('ok', '✓', '<strong>' + escHtml(nf.title) + '</strong> — adicionado', tagLabel, tagCls);
             discovered++;
-          } catch (e) {
+          })
+          .catch(function (e) {
             addLog('err', '✕', escHtml(nf.title) + ' — ' + e.message, null, null);
             errors++;
-          }
-        }
+          });
+        }));
       }
     }
   } catch (e) {
-    addLog('err', '✕', 'Fase 1 erro: ' + e.message, null, null);
+    addLog('err', '✕', 'Fase 1 descoberta: ' + e.message, null, null);
     errors++;
   }
 
-  // Recarrega filmes para Fase 2 ter a lista atualizada
-  try { _filmes = await supabaseGet('filmes', 'order=created_at.desc&limit=500'); } catch (e) { /* continua */ }
-
-  // ── FASE 2: Verificação de status ────────────────────────────────────────────
-  addLog('ok', '🎟️', '<strong>Fase 2</strong> — Verificando sessões', null, null);
+  // 1c. Verifica sessões para filmes já cadastrados
+  try { _filmes = await supabaseGet('filmes', 'order=created_at.desc&limit=500'); } catch (e) {}
 
   var toCheck = _filmes.filter(function (f) {
     var s = (f.status || '').toLowerCase();
     return (s === 'cartaz' || s === 'breve') && f.url_key;
   });
 
-  if (!toCheck.length) {
-    addLog('ok', '✓', 'Nenhum filme em cartaz/breve para verificar', null, null);
-  } else {
+  if (toCheck.length) {
+    addLog('ok', '🎟️', 'Verificando sessões para <strong>' + toCheck.length + '</strong> filmes...', null, null);
     for (var k = 0; k < toCheck.length; k++) {
       var cf = toCheck[k];
-      setProgress(40 + Math.round((k / toCheck.length) * 58), 'Sessões ' + (k + 1) + '/' + toCheck.length + ': ' + cf.titulo);
-
+      setProgress(26 + Math.round((k / toCheck.length) * 24), 'Sessões ' + (k + 1) + '/' + toCheck.length + ': ' + cf.titulo);
       var currentStatus = (cf.status || '').toLowerCase();
-      var hasSessions   = false;
-
       try {
-        hasSessions = await _checkFilmHasSessions(cf.url_key);
-      } catch (e) {
-        addLog('err', '✕', '<strong>' + escHtml(cf.titulo) + '</strong> — erro: ' + e.message, null, null);
-        errors++;
-        continue;
-      }
-
-      var newStatus = null;
-      if (currentStatus === 'cartaz' && !hasSessions) newStatus = 'CATALOGO';
-      else if (currentStatus === 'breve' && hasSessions) newStatus = 'CARTAZ';
-
-      if (newStatus) {
-        try {
+        var hasSessions = await _checkFilmHasSessions(cf.url_key);
+        var newStatus   = null;
+        if (currentStatus === 'cartaz' && !hasSessions) newStatus = 'CATALOGO';
+        else if (currentStatus === 'breve' && hasSessions) newStatus = 'CARTAZ';
+        if (newStatus) {
           await supabasePatch('filmes', 'id=eq.' + cf.id, { status: newStatus, updated_at: now });
           var oldLbl = currentStatus === 'cartaz' ? 'Em cartaz' : 'Em breve';
-          var newLbl = newStatus === 'CATALOGO'   ? 'Catálogo'  : 'Em cartaz';
+          var newLbl = newStatus === 'CATALOGO' ? 'Catálogo' : 'Em cartaz';
           addLog('ok', '→', '<strong>' + escHtml(cf.titulo) + '</strong> — ' + oldLbl + ' → ' + newLbl, newLbl, 'tag-' + newStatus.toLowerCase());
           changed++;
           cf.status = newStatus;
-        } catch (e) {
-          addLog('err', '✕', '<strong>' + escHtml(cf.titulo) + '</strong> — erro ao atualizar: ' + e.message, null, null);
-          errors++;
         }
+      } catch (e) {
+        addLog('err', '✕', '<strong>' + escHtml(cf.titulo) + '</strong> — ' + e.message, null, null);
+        errors++;
+      }
+    }
+  } else {
+    addLog('ok', '✓', 'Nenhum filme em cartaz/breve para verificar sessões', null, null);
+  }
+
+  // ── FASE 2: TMDb — Enriquecimento de dados ───────────────────────────────────
+  addLog('ok', '🎬', '<strong>Fase 2</strong> — TMDb: buscando poster e dados dos filmes', null, null);
+  setProgress(50, 'Buscando dados no TMDb...');
+
+  try { _filmes = await supabaseGet('filmes', 'order=created_at.desc&limit=500'); } catch (e) {}
+
+  var semDados = _filmes.filter(function (f) {
+    return !f.tmdb_data && (f.status || '').toLowerCase() === 'cartaz';
+  });
+
+  if (!semDados.length) {
+    addLog('ok', '✓', 'Todos os filmes em cartaz já têm dados do TMDb', null, null);
+  } else {
+    addLog('ok', '🔍', '<strong>' + semDados.length + '</strong> filme(s) sem dados — buscando no TMDb...', null, null);
+    for (var t = 0; t < semDados.length; t++) {
+      var sf = semDados[t];
+      setProgress(50 + Math.round((t / semDados.length) * 22), 'TMDb ' + (t + 1) + '/' + semDados.length + ': ' + sf.titulo);
+      try {
+        var tmdbR    = await searchMovie(sf.titulo);
+        var titleNrm = sf.titulo.toLowerCase().trim();
+        var tmdbData = tmdbR.find(function (r) {
+          return (r.title || '').toLowerCase().trim() === titleNrm ||
+                 (r.original_title || '').toLowerCase().trim() === titleNrm;
+        });
+        if (!tmdbData && tmdbR[0] && tmdbR[0].popularity > 1 && tmdbR[0].poster_path) tmdbData = tmdbR[0];
+
+        if (tmdbData) {
+          await supabasePatch('filmes', 'id=eq.' + sf.id, { tmdb_id: tmdbData.id, tmdb_data: tmdbData, updated_at: now });
+          addLog('ok', '🎬', '<strong>' + escHtml(sf.titulo) + '</strong> — poster e dados atualizados', null, null);
+          var sfIdx = _filmes.findIndex(function (x) { return x.id === sf.id; });
+          if (sfIdx > -1) { _filmes[sfIdx].tmdb_id = tmdbData.id; _filmes[sfIdx].tmdb_data = tmdbData; }
+          enriched++;
+        } else {
+          addLog('skip', '—', escHtml(sf.titulo) + ' — não encontrado no TMDb', null, null);
+        }
+      } catch (e) {
+        addLog('err', '✕', escHtml(sf.titulo) + ' — TMDb: ' + e.message, null, null);
       }
     }
   }
 
-  // ── FASE 3: Auto-classificação por app ───────────────────────────────────────
-  addLog('ok', '🎯', '<strong>Fase 3</strong> — Auto-classificação: MovieReading + MLOAD', null, null);
-  setProgress(98, 'Buscando fontes de acessibilidade...');
+  // ── FASE 3: Apps — Auto-classificação ───────────────────────────────────────
+  addLog('ok', '🎯', '<strong>Fase 3</strong> — Auto-classificação: MovieReading, MLOAD e PingPlay', null, null);
+  setProgress(72, 'Buscando fontes de acessibilidade...');
 
   try {
     var a11yResp = await fetch('/.netlify/functions/a11y-sources');
     var a11yData = await a11yResp.json();
-
-    function normT(t) {
-      return (t || '').toLowerCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/[^a-z0-9\s]/g, '')
-        .replace(/\s+/g, ' ').trim();
-    }
 
     var mrSet       = new Set((a11yData.moviereading || []).map(normT));
     var mloadSet    = new Set((a11yData.mload        || []).map(normT));
@@ -856,8 +856,8 @@ async function runSync() {
       'PingPlay: <strong>' + pingplaySet.size + '</strong> títulos',
       null, null);
 
-    var pendentes  = _filmes.filter(function (f) { return _getAppStatusAdmin(f) === 'pendente'; });
-    var autoCount  = 0;
+    var pendentes = _filmes.filter(function (f) { return _getAppStatusAdmin(f) === 'pendente'; });
+    var autoCount = 0;
 
     for (var ap = 0; ap < pendentes.length; ap++) {
       var pf   = pendentes[ap];
@@ -867,30 +867,23 @@ async function runSync() {
       else if (mloadSet.has(norm))    app = 'MLOAD';
       else if (pingplaySet.has(norm)) app = 'PingPlay';
       if (!app) continue;
-
       try {
         await supabasePatch('filmes', 'id=eq.' + pf.id, {
-          app:        app,
-          app_status: 'confirmado',
-          a11y:       { ad: true, lse: true, libras: true },
+          app: app, app_status: 'confirmado',
+          a11y: { ad: true, lse: true, libras: true },
           updated_at: now,
         });
         addLog('ok', '🎯', '<strong>' + escHtml(pf.titulo) + '</strong> → ' + app, app, 'tag-cartaz');
         autoCount++;
         var pidx = _filmes.findIndex(function (x) { return x.id === pf.id; });
-        if (pidx > -1) {
-          _filmes[pidx].app        = app;
-          _filmes[pidx].app_status = 'confirmado';
-          _filmes[pidx].a11y       = { ad: true, lse: true, libras: true };
-        }
+        if (pidx > -1) { _filmes[pidx].app = app; _filmes[pidx].app_status = 'confirmado'; _filmes[pidx].a11y = { ad: true, lse: true, libras: true }; }
       } catch (e) {
         addLog('err', '✕', escHtml(pf.titulo) + ' — ' + e.message, null, null);
         errors++;
       }
     }
-
     if (autoCount > 0) discovered += autoCount;
-    addLog('ok', '✓', '<strong>' + autoCount + '</strong> filme(s) auto-classificado(s) por app', null, null);
+    addLog('ok', '✓', '<strong>' + autoCount + '</strong> filme(s) auto-classificado(s)', null, null);
   } catch (e) {
     addLog('err', '✕', 'Fase 3 erro: ' + e.message, null, null);
   }
@@ -903,8 +896,9 @@ async function runSync() {
   if (togBtn)   togBtn.style.display = '';
 
   var summaryParts = [];
-  if (discovered > 0) summaryParts.push(discovered + ' novo(s) adicionado(s)');
+  if (discovered > 0) summaryParts.push(discovered + ' novo(s)');
   if (changed    > 0) summaryParts.push(changed    + ' status atualizado(s)');
+  if (enriched   > 0) summaryParts.push(enriched   + ' enriquecido(s) no TMDb');
   if (errors     > 0) summaryParts.push(errors     + ' erro(s)');
   if (!summaryParts.length) summaryParts.push('Tudo em dia — nenhuma alteração necessária');
 
