@@ -99,7 +99,6 @@ function buildCard(filme, tmdb) {
           : '<div class="poster-placeholder"><span>' + escHtml((title || '??').slice(0, 2).toUpperCase()) + '</span></div>'
         ) +
         '<div class="poster-badges">' + _buildBadgesHtml(filme) + '</div>' +
-        '<div class="poster-title">' + escHtml(title) + '</div>' +
       '</div>' +
       '<div class="film-body">' +
         '<div class="film-name">' + escHtml(title) + '</div>' +
@@ -134,7 +133,6 @@ function buildBreveCard(filme, tmdb) {
       '<div class="poster" aria-hidden="true">' +
         (poster ? '<img class="poster-img" src="' + poster + '" alt="" loading="lazy">' : '') +
         '<div class="poster-badges"><span class="pbadge pb-pending">Em breve</span></div>' +
-        '<div class="poster-title">' + escHtml(title) + '</div>' +
       '</div>' +
       '<div class="film-body">' +
         '<div class="film-name">' + escHtml(title) + '</div>' +

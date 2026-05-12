@@ -128,6 +128,12 @@
         <div class="toolbar-right">
           <input type="text" class="search-input" placeholder="Buscar filme..."
                  id="search-input" oninput="filterFilmes()">
+          <select id="sort-select" onchange="filterFilmes()" style="height:38px;padding:0 10px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;background:var(--surface);color:var(--ink1);cursor:pointer;">
+            <option value="recentes">Mais recentes</option>
+            <option value="antigos">Mais antigos</option>
+            <option value="az">Título A→Z</option>
+            <option value="za">Título Z→A</option>
+          </select>
           <button class="btn btn-add" onclick="openModal()">+ Adicionar filme</button>
         </div>
       </div>
@@ -251,9 +257,15 @@
       </div>
 
       <div class="field">
-        <label>Vídeo da sinopse acessível (YouTube ID)</label>
+        <label>Trailer acessível (YouTube ID)</label>
+        <input type="text" id="f-trailer-acessivel" placeholder="Ex: dQw4w9WgXcQ">
+        <div class="field-hint">Substitui o trailer do TMDb pelo link acessível (AD/Libras). Deixe em branco para manter o original.</div>
+      </div>
+
+      <div class="field">
+        <label>Sinopse acessível em vídeo (YouTube ID)</label>
         <input type="text" id="f-sinopse-video" placeholder="Ex: rLq4RhRFBgA">
-        <div class="field-hint">ID do vídeo YouTube com a sinopse em audiodescrição/Libras (opcional)</div>
+        <div class="field-hint">Vídeo com sinopse em audiodescrição/Libras. Ocultado automaticamente se não preenchido.</div>
       </div>
 
       <div class="modal-footer">

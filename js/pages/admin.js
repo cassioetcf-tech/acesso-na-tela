@@ -140,8 +140,9 @@ function setFilter(filter, el) {
 function filterFilmes() { renderTable(); }
 
 function renderTable() {
-  var q     = ((document.getElementById('search-input') || {}).value || '').toLowerCase();
-  var tbody = document.getElementById('filmes-tbody');
+  var q      = ((document.getElementById('search-input') || {}).value || '').toLowerCase();
+  var sort   = ((document.getElementById('sort-select')  || {}).value || 'recentes');
+  var tbody  = document.getElementById('filmes-tbody');
 
   var list = _filmes.filter(function (f) {
     var s = (f.status || '').toLowerCase();
@@ -150,6 +151,14 @@ function renderTable() {
                       s === _currentFilter;
     var matchSearch = !q || (f.titulo || '').toLowerCase().includes(q);
     return matchFilter && matchSearch;
+  });
+
+  // Ordenação
+  list = list.slice().sort(function (a, b) {
+    if (sort === 'az')      return (a.titulo || '').localeCompare(b.titulo || '', 'pt-BR');
+    if (sort === 'za')      return (b.titulo || '').localeCompare(a.titulo || '', 'pt-BR');
+    if (sort === 'antigos') return (a.created_at || '') < (b.created_at || '') ? -1 : 1;
+    return (a.created_at || '') > (b.created_at || '') ? -1 : 1; // recentes (default)
   });
 
   if (!list.length) {
@@ -235,6 +244,8 @@ function openModal(id) {
     }
     var svEl = document.getElementById('f-sinopse-video');
     if (svEl) svEl.value = f.sinopse_video_id || '';
+    var tvEl = document.getElementById('f-trailer-acessivel');
+    if (tvEl) tvEl.value = f.trailer_acessivel_id || '';
   } else {
     document.getElementById('modal-title').textContent = 'Adicionar filme';
     var svEl2 = document.getElementById('f-sinopse-video');
@@ -259,6 +270,8 @@ function clearForm() {
   document.getElementById('tmdb-preview').innerHTML   = '<div class="preview-loading">Digite o título para buscar dados do filme</div>';
   var manualEl = document.getElementById('f-tmdb-id-manual');
   if (manualEl) manualEl.value = '';
+  var tvEl2 = document.getElementById('f-trailer-acessivel');
+  if (tvEl2) tvEl2.value = '';
   _setTmdbAlert(false);
   document.querySelectorAll('.app-option').forEach(function (el) {
     el.classList.remove('selected');
@@ -408,21 +421,23 @@ async function saveFilme() {
       ? { ad: false, lse: false, libras: false }
       : { ad: true,  lse: true,  libras: true  };
 
-    var sinopseVideo = ((document.getElementById('f-sinopse-video') || {}).value || '').trim();
+    var sinopseVideo    = ((document.getElementById('f-sinopse-video')     || {}).value || '').trim();
+    var trailerAcessivel= ((document.getElementById('f-trailer-acessivel') || {}).value || '').trim();
 
     var filme = {
-      titulo:      titulo,
+      titulo:       titulo,
       ingresso_url: ingressoUrl,
-      url_key:     urlKey,
-      app:         _semA11yActive ? null : app,
-      status:      status,
-      a11y:        a11yVal,
-      tmdb_id:     tmdbData ? tmdbData.id   : null,
-      tmdb_data:   tmdbData || null,
-      updated_at:  new Date().toISOString(),
+      url_key:      urlKey,
+      app:          _semA11yActive ? null : app,
+      status:       status,
+      a11y:         a11yVal,
+      tmdb_id:      tmdbData ? tmdbData.id : null,
+      tmdb_data:    tmdbData || null,
+      updated_at:   new Date().toISOString(),
     };
-    // Inclui sinopse_video_id apenas se tiver valor (coluna pode não existir no schema ainda)
-    if (sinopseVideo) filme.sinopse_video_id = sinopseVideo;
+    // Campos opcionais: só inclui se preenchidos (colunas podem ainda não existir no schema)
+    if (sinopseVideo)     filme.sinopse_video_id     = sinopseVideo;
+    if (trailerAcessivel) filme.trailer_acessivel_id = trailerAcessivel;
 
     if (_editId) {
       await supabasePatch('filmes', 'id=eq.' + _editId, filme);
