@@ -1,10 +1,12 @@
 // ── a11y-sources — Fontes de acessibilidade por app ──────────────────────────
 // GET /.netlify/functions/a11y-sources
-// Retorna { moviereading: [...títulos], mload: [...títulos] }
+// Retorna { moviereading: [...títulos], mload: [...títulos], pingplay: [...títulos] }
 //
 // Fontes:
-//   MovieReading → https://cineacessivel.com.br/em-cartaz  (paginado, <h3>)
-//   MLOAD        → https://gomav.co/filmes-2025-2/         (página única, <h4>)
+//   MovieReading → https://cineacessivel.com.br/em-cartaz       (paginado, <h3>)
+//   MLOAD        → https://gomav.co/filmes-2025-2/              (página única, <h4>)
+//   PingPlay     → https://pingplay.com.br/catalogo.php?pagina=N (paginado, <h3>)
+//   GRETA        → paramountpictures.com.br/filmes — JS-rendered, não scrapeável
 
 function normalizeTitle(title) {
   return (title || '')
@@ -79,11 +81,45 @@ async function fetchMload() {
   return titles;
 }
 
+async function fetchPingPlay() {
+  const titles = [];
+  const seen   = new Set();
+
+  let page = 1;
+  while (page <= 50) { // limite de segurança
+    const r    = await fetch(`https://pingplay.com.br/catalogo.php?pagina=${page}&por_pagina=40`).catch(() => null);
+    const html = r && r.ok ? await r.text() : '';
+
+    if (!html) break;
+
+    const matches = [...html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)];
+    if (!matches.length) break;
+
+    let found = 0;
+    for (const m of matches) {
+      const orig = m[1].trim();
+      const norm = normalizeTitle(orig);
+      if (norm && !seen.has(norm)) {
+        seen.add(norm);
+        titles.push(orig);
+        found++;
+      }
+    }
+
+    if (!found) break;
+    page++;
+  }
+
+  console.log(`[a11y-sources] PingPlay: ${titles.length} títulos`);
+  return titles;
+}
+
 exports.handler = async function () {
   try {
-    const [moviereading, mload] = await Promise.all([
-      fetchMovieReading().catch(e => { console.error('MR error:', e.message); return []; }),
-      fetchMload().catch(e        => { console.error('ML error:', e.message); return []; }),
+    const [moviereading, mload, pingplay] = await Promise.all([
+      fetchMovieReading().catch(e => { console.error('MR error:',  e.message); return []; }),
+      fetchMload().catch(e        => { console.error('ML error:',  e.message); return []; }),
+      fetchPingPlay().catch(e     => { console.error('PP error:',  e.message); return []; }),
     ]);
 
     return {
@@ -92,13 +128,13 @@ exports.handler = async function () {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
       },
-      body: JSON.stringify({ moviereading, mload }),
+      body: JSON.stringify({ moviereading, mload, pingplay }),
     };
   } catch (e) {
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ moviereading: [], mload: [], error: e.message }),
+      body: JSON.stringify({ moviereading: [], mload: [], pingplay: [], error: e.message }),
     };
   }
 };

@@ -339,6 +339,28 @@ exports.handler = async function () {
     log.push(`[sync] ERRO MLOAD scrape: ${e.message}`);
   }
 
+  // ── Busca títulos PingPlay (pingplay.com.br, paginado) ───────────────────────
+  const pingplayTitles = new Set();
+  try {
+    let page = 1;
+    while (page <= 50) {
+      const r    = await fetch(`https://pingplay.com.br/catalogo.php?pagina=${page}&por_pagina=40`);
+      const html = r.ok ? await r.text() : '';
+      const matches = [...html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)];
+      if (!matches.length) break;
+      let found = 0;
+      for (const m of matches) {
+        const norm = normT(m[1]);
+        if (norm && !pingplayTitles.has(norm)) { pingplayTitles.add(norm); found++; }
+      }
+      if (!found) break;
+      page++;
+    }
+    log.push(`[sync] PingPlay: ${pingplayTitles.size} títulos do catalogo.php`);
+  } catch (e) {
+    log.push(`[sync] ERRO PingPlay scrape: ${e.message}`);
+  }
+
   // ── Cruza com filmes pendentes no Supabase ───────────────────────────────────
   let autoClassified = 0;
   try {
@@ -346,8 +368,9 @@ exports.handler = async function () {
     for (const f of pendentes) {
       const norm = normT(f.titulo);
       let   app  = null;
-      if      (mrTitles.has(norm))    app = 'MovieReading';
-      else if (mloadTitles.has(norm)) app = 'MLOAD';
+      if      (mrTitles.has(norm))       app = 'MovieReading';
+      else if (mloadTitles.has(norm))    app = 'MLOAD';
+      else if (pingplayTitles.has(norm)) app = 'PingPlay';
       if (!app) continue;
 
       try {

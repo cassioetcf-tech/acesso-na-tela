@@ -847,9 +847,14 @@ async function runSync() {
         .replace(/\s+/g, ' ').trim();
     }
 
-    var mrSet    = new Set((a11yData.moviereading || []).map(normT));
-    var mloadSet = new Set((a11yData.mload        || []).map(normT));
-    addLog('ok', '📋', 'MovieReading: <strong>' + mrSet.size + '</strong> títulos · MLOAD: <strong>' + mloadSet.size + '</strong> títulos', null, null);
+    var mrSet       = new Set((a11yData.moviereading || []).map(normT));
+    var mloadSet    = new Set((a11yData.mload        || []).map(normT));
+    var pingplaySet = new Set((a11yData.pingplay     || []).map(normT));
+    addLog('ok', '📋',
+      'MovieReading: <strong>' + mrSet.size + '</strong> · ' +
+      'MLOAD: <strong>' + mloadSet.size + '</strong> · ' +
+      'PingPlay: <strong>' + pingplaySet.size + '</strong> títulos',
+      null, null);
 
     var pendentes  = _filmes.filter(function (f) { return _getAppStatusAdmin(f) === 'pendente'; });
     var autoCount  = 0;
@@ -858,8 +863,9 @@ async function runSync() {
       var pf   = pendentes[ap];
       var norm = normT(pf.titulo);
       var app  = null;
-      if      (mrSet.has(norm))    app = 'MovieReading';
-      else if (mloadSet.has(norm)) app = 'MLOAD';
+      if      (mrSet.has(norm))       app = 'MovieReading';
+      else if (mloadSet.has(norm))    app = 'MLOAD';
+      else if (pingplaySet.has(norm)) app = 'PingPlay';
       if (!app) continue;
 
       try {
