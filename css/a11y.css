@@ -1,0 +1,76 @@
+/* ═══════════════════════════════════════
+   A11Y — ACESSO NA TELA
+   sr-only, skip-link, focus ring,
+   contrast modes, font-size levels
+═══════════════════════════════════════ */
+
+/* ── SCREEN READER ONLY ── */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0,0,0,0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ── SKIP LINK ── */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  background: var(--laranja);
+  color: #fff;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 14px;
+  z-index: 9999;
+  text-decoration: none;
+  border-radius: 0 0 8px 0;
+  transition: top .2s;
+}
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ── FOCUS RING (WCAG 2.4.7) ── */
+*:focus-visible {
+  outline: 3px solid var(--laranja) !important;
+  outline-offset: 3px !important;
+  border-radius: 4px;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--laranja) !important;
+  outline-offset: 3px !important;
+}
+
+/* Hora buttons: filled on focus */
+.hora-btn:focus-visible {
+  outline: 3px solid var(--laranja) !important;
+  background: var(--laranja);
+  color: #fff;
+}
+
+/* ── CONTRAST MODES ── */
+body.contrast-high     { filter: contrast(1.5) brightness(1.1); }
+body.contrast-inverted { filter: invert(1) hue-rotate(180deg); }
+body.contrast-grayscale { filter: grayscale(1); }
+
+/* ── FONT SIZE LEVELS ── */
+:root { --fscale: 1; }
+body.font-lg { --fscale: 1.13; }
+body.font-xl { --fscale: 1.25; }
+body.font-lg *,
+body.font-xl * {
+  font-size: calc(1em * var(--fscale)) !important;
+  line-height: 1.5 !important;
+}

@@ -1,470 +1,158 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FAQ — Acesso na Tela</title>
-<meta name="description" content="Perguntas frequentes sobre acessibilidade no cinema: audiodescrição, legenda para surdos, Libras e como usar os aplicativos." />
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap');
-
-:root {
-  --laranja:      #D4500F;
-  --laranja-esc:  #A83D0A;
-  --laranja-cl:   #FDF0EA;
-  --laranja-bdr:  #E8845A;
-  --ink:   #1A1A1A;
-  --ink2:  #444444;
-  --ink3:  #777777;
-  --bg:    #FFFFFF;
-  --bg2:   #F7F6F3;
-  --bg3:   #EDEBE6;
-  --bdr:   rgba(0,0,0,0.11);
-  --bdr2:  rgba(0,0,0,0.20);
-  --r:     14px;
-  --r-sm:  8px;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 15px;
-  color: var(--ink);
-  background: var(--bg3);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
-*:focus-visible { outline: 3px solid var(--laranja); outline-offset: 3px; border-radius: 4px; }
-.shell { max-width: 1000px; margin: 0 auto; background: var(--bg); min-height: 100vh; }
-
-/* ── A11Y BAR ── */
-.a11y-bar {
-  background: #1A1A1A; color: #fff;
-  display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 8px; padding: 6px 20px; font-size: 13px;
-  position: relative; z-index: 50;
-}
-.a11y-skip-links { display: flex; gap: 16px; }
-.a11y-skip-btn {
-  color: #ccc; text-decoration: none; font-size: 12px;
-  padding: 4px 8px; border-radius: 4px; transition: background .15s, color .15s; white-space: nowrap;
-}
-.a11y-skip-btn:hover, .a11y-skip-btn:focus { background: var(--laranja); color: #fff; outline: 2px solid #fff; outline-offset: 1px; }
-.a11y-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.a11y-label { color: #aaa; font-size: 12px; white-space: nowrap; }
-.a11y-font-btn {
-  background: transparent; border: 1.5px solid #555; color: #fff;
-  padding: 3px 10px; border-radius: 4px; font-size: 13px; font-weight: 700;
-  cursor: pointer; transition: all .15s; font-family: inherit;
-}
-.a11y-font-btn:hover, .a11y-font-btn:focus-visible { border-color: var(--laranja); color: var(--laranja); }
-.a11y-contrast-wrap { position: relative; }
-.a11y-contrast-btn {
-  background: transparent; border: 1.5px solid #555; color: #fff;
-  padding: 4px 12px; border-radius: 4px; font-size: 12px;
-  cursor: pointer; transition: all .15s; font-family: inherit; white-space: nowrap;
-}
-.a11y-contrast-btn:hover, .a11y-contrast-btn:focus-visible { border-color: var(--laranja); color: var(--laranja); }
-.a11y-contrast-menu {
-  position: absolute; top: calc(100% + 6px); left: 0;
-  background: #2A2A2A; border: 1px solid #444; border-radius: 8px;
-  min-width: 180px; z-index: 200; overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0,0,0,.4);
-}
-.a11y-contrast-menu[hidden] { display: none; }
-.a11y-contrast-menu button {
-  display: block; width: 100%; background: transparent; border: none;
-  color: #fff; padding: 10px 16px; text-align: left; font-size: 13px;
-  cursor: pointer; font-family: inherit; transition: background .15s;
-}
-.a11y-contrast-menu button:hover,
-.a11y-contrast-menu button:focus-visible { background: var(--laranja); outline: none; }
-body.contrast-high    { filter: contrast(1.5) brightness(1.1); }
-body.contrast-inverted { filter: invert(1) hue-rotate(180deg); }
-body.contrast-grayscale { filter: grayscale(1); }
-:root { --fscale: 1; }
-body.font-lg { --fscale: 1.13; }
-body.font-xl { --fscale: 1.25; }
-body.font-lg *, body.font-xl * { font-size: calc(1em * var(--fscale)) !important; line-height: 1.5 !important; }
-
-/* ── HEADER ── */
-header {
-  background: #fff; border-bottom: 2px solid var(--bg3);
-  padding: 0 28px; height: 72px;
-  display: flex; align-items: center; justify-content: space-between;
-  position: sticky; top: 0; z-index: 100;
-}
-.logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
-.logo img { height: 44px; width: auto; display: block; }
-nav { display: flex; gap: 2px; }
-nav a {
-  color: var(--ink2); font-size: 13px; font-weight: 600;
-  padding: 8px 13px; border-radius: var(--r-sm);
-  text-decoration: none; cursor: pointer; transition: background .12s; letter-spacing: 0.1px;
-}
-nav a:hover { background: var(--laranja-cl); color: var(--laranja); }
-nav a.active { background: var(--laranja-cl); color: var(--laranja); font-weight: 700; }
-nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
-
-/* ── HERO ── */
-.faq-hero {
-  background: var(--laranja);
-  padding: 48px 28px 44px;
-}
-.faq-hero h1 {
-  font-family: 'Inter', sans-serif;
-  font-size: clamp(24px, 4vw, 36px);
-  font-weight: 800; color: #fff;
-  line-height: 1.1; letter-spacing: -0.5px;
-  margin-bottom: 10px;
-}
-.faq-hero h1 em { color: #FFE5B0; font-style: italic; font-family: 'Fraunces', serif; font-weight: 500; }
-.faq-hero p { font-size: 15px; color: rgba(255,255,255,0.85); line-height: 1.65; max-width: 540px; }
-
-/* ── MAIN ── */
-.faq-main { padding: 36px 28px 72px; }
-
-/* ── FAQ LIST ── */
-.faq-list {
-  max-width: 720px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-/* ── FAQ ITEM ── */
-.faq-item {
-  border: 1.5px solid var(--bdr);
-  border-radius: var(--r);
-  overflow: hidden;
-  background: var(--bg);
-  transition: border-color .15s;
-}
-.faq-item:has(.faq-question[aria-expanded="true"]) {
-  border-color: var(--laranja-bdr);
-}
-
-.faq-question {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ink);
-  text-align: left;
-  transition: background .12s;
-}
-.faq-question:hover { background: var(--laranja-cl); color: var(--laranja); }
-.faq-question[aria-expanded="true"] {
-  background: var(--laranja-cl);
-  color: var(--laranja);
-}
-.faq-question:focus-visible {
-  outline: 3px solid var(--laranja);
-  outline-offset: -3px;
-  border-radius: var(--r-sm);
-}
-
-.faq-icon {
-  flex-shrink: 0;
-  transition: transform .25s ease;
-  color: var(--ink3);
-}
-.faq-question[aria-expanded="true"] .faq-icon {
-  transform: rotate(180deg);
-  color: var(--laranja);
-}
-
-/* ── ANSWER ── */
-.faq-answer {
-  overflow: hidden;
-}
-.faq-answer[hidden] { display: none; }
-.faq-answer__inner {
-  padding: 0 20px 20px;
-  font-size: 14px;
-  color: var(--ink2);
-  line-height: 1.75;
-  border-top: 1px solid var(--bdr);
-  padding-top: 16px;
-}
-.faq-answer__inner strong { color: var(--ink); }
-.faq-answer__inner a {
-  color: var(--laranja);
-  text-decoration: none;
-  font-weight: 500;
-}
-.faq-answer__inner a:hover { text-decoration: underline; }
-.faq-answer__inner br + br { display: block; content: ""; margin-top: 6px; }
-
-/* ── FOOTER ── */
-footer { background: var(--bg2); border-top: 1px solid var(--bdr); padding: 22px 28px; text-align: center; font-size: 12px; color: var(--ink3); }
-footer a { color: var(--laranja); text-decoration: none; font-weight: 600; }
-footer a:hover { text-decoration: underline; }
-footer strong { color: var(--ink2); font-weight: 700; }
-.foot-row + .foot-row { margin-top: 5px; }
-
-/* ── RESPONSIVE ── */
-@media (max-width: 640px) {
-  .faq-hero { padding: 32px 16px 28px; }
-  .faq-main { padding: 20px 16px 48px; }
-  .faq-question { font-size: 14px; padding: 16px; }
-  .faq-answer__inner { padding: 0 16px 16px; padding-top: 14px; }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FAQ — Acesso na Tela</title>
+  <meta name="description" content="Perguntas frequentes sobre acessibilidade no cinema — audiodescrição, legenda para surdos, Libras e como usar os aplicativos.">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/a11y.css">
+  <link rel="stylesheet" href="/css/pages/faq.css">
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Ir para o conteúdo [1]</a>
+  <a href="#header-mount" class="skip-link">Ir para o menu [2]</a>
 
-<!-- A11Y BAR -->
-<div class="a11y-bar" role="toolbar" aria-label="Ferramentas de acessibilidade">
-  <div class="a11y-skip-links">
-    <a href="#main-content" class="a11y-skip-btn">Ir para o conteúdo [1]</a>
-    <a href="#nav-main" class="a11y-skip-btn">Ir para o menu [2]</a>
+  <div id="a11y-bar-mount"></div>
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
+
+  <div class="shell">
+    <div id="header-mount"></div>
+
+    <main id="main-content" tabindex="-1">
+
+      <section class="faq-hero" aria-labelledby="faq-h1">
+        <h1 id="faq-h1">Perguntas <em>frequentes</em></h1>
+        <p>Tudo o que você precisa saber sobre acessibilidade no cinema — audiodescrição, legenda para surdos, Libras e como usar os aplicativos.</p>
+      </section>
+
+      <div class="faq-main">
+        <div class="faq-list" role="list" aria-label="Lista de perguntas frequentes">
+
+          <div class="faq-item" id="faq-1">
+            <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-1" id="faq-btn-1">
+              <span>Como funciona a tecnologia dos aplicativos?</span>
+              <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer" id="faq-answer-1" role="region" aria-labelledby="faq-btn-1" hidden>
+              <div class="faq-answer__inner">Os aplicativos de acessibilidade (MovieReading, MLOAD, GRETA, PingPlay) usam tecnologia de <strong>reconhecimento de áudio</strong> para identificar em que ponto do filme você está. Basta abrir o app com o filme em cartaz, deixar o microfone do celular captando o som da sala e, em segundos, o recurso — audiodescrição, legenda ou janela de Libras — sincroniza automaticamente.</div>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-2">
+            <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-2" id="faq-btn-2">
+              <span>Por que só alguns filmes têm recursos de acessibilidade?</span>
+              <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer" id="faq-answer-2" role="region" aria-labelledby="faq-btn-2" hidden>
+              <div class="faq-answer__inner">A produção dos recursos de acessibilidade é responsabilidade dos <strong>produtores e distribuidores</strong> de cada filme. O Acesso na Tela reúne em um só lugar os filmes que já contam com esses recursos.</div>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-3">
+            <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-3" id="faq-btn-3">
+              <span>Quais recursos de acessibilidade estão disponíveis?</span>
+              <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer" id="faq-answer-3" role="region" aria-labelledby="faq-btn-3" hidden>
+              <div class="faq-answer__inner">
+                <strong>AD — Audiodescrição:</strong> narração que descreve ações, cenários e expressões, para pessoas com deficiência visual.<br><br>
+                <strong>LSE — Legenda para Surdos e Ensurdecidos:</strong> inclui diálogos, efeitos sonoros e identificação de quem fala.<br><br>
+                <strong>Libras:</strong> janela com intérprete humano em Língua Brasileira de Sinais, sobreposta ao vídeo do aplicativo.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-4">
+            <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-4" id="faq-btn-4">
+              <span>O que é a versão dublada e a versão legendada no aplicativo?</span>
+              <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer" id="faq-answer-4" role="region" aria-labelledby="faq-btn-4" hidden>
+              <div class="faq-answer__inner">É essencial baixar o arquivo correspondente à <strong>mesma versão que vai assistir</strong> (dublada ou legendada). Versões trocadas causam dessincronismo.</div>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-5">
+            <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-5" id="faq-btn-5">
+              <span>Como funciona o sincronismo e quanto tempo leva?</span>
+              <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer" id="faq-answer-5" role="region" aria-labelledby="faq-btn-5" hidden>
+              <div class="faq-answer__inner">O sincronismo costuma levar <strong>em média 15 segundos</strong>. Se perceber defasagem, use o botão <strong>"Sincronizar"</strong> para forçar um novo rastreamento.</div>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-6">
+            <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-6" id="faq-btn-6">
+              <span>Posso usar o aplicativo em qualquer sala de cinema?</span>
+              <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer" id="faq-answer-6" role="region" aria-labelledby="faq-btn-6" hidden>
+              <div class="faq-answer__inner">Sim. Os recursos sincronizam em <strong>qualquer sala e sessão</strong>. Recomendamos fazer o download em casa pelo Wi-Fi antes de ir ao cinema.</div>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-7">
+            <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-7" id="faq-btn-7">
+              <span>Qual a diferença entre a versão Cinema e a versão Streaming?</span>
+              <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer" id="faq-answer-7" role="region" aria-labelledby="faq-btn-7" hidden>
+              <div class="faq-answer__inner">Cinema usa <strong>24 fps</strong>, streaming usa <strong>23,98 fps</strong>. Use sempre o arquivo com a indicação correta para evitar defasagem acumulada.</div>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-8">
+            <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-8" id="faq-btn-8">
+              <span>Com quanto tempo de antecedência devo baixar os recursos?</span>
+              <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer" id="faq-answer-8" role="region" aria-labelledby="faq-btn-8" hidden>
+              <div class="faq-answer__inner">Baixe <strong>antes de sair de casa</strong> pelo Wi-Fi. Os arquivos ficam disponíveis por <strong>24 horas</strong> após o download.</div>
+            </div>
+          </div>
+
+          <div class="faq-item" id="faq-9">
+            <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-9" id="faq-btn-9">
+              <span>Como entrar em contato para suporte?</span>
+              <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-answer" id="faq-answer-9" role="region" aria-labelledby="faq-btn-9" hidden>
+              <div class="faq-answer__inner">
+                <strong>MovieReading:</strong> moviereadingbrasil.com.br<br>
+                <strong>MLOAD:</strong> gomav.co/m-load<br>
+                <strong>GRETA:</strong> <a href="https://www.gretaundstarks.de/starks/GretaEStarks" target="_blank" rel="noopener">gretaundstarks.de</a><br>
+                <strong>PingPlay:</strong> pingplay.com.br
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+    <div id="footer-mount"></div>
   </div>
-  <div class="a11y-controls">
-    <span class="a11y-label">Tamanho do texto:</span>
-    <button class="a11y-font-btn" onclick="changeFontSize('increase')" aria-label="Aumentar fonte">A+</button>
-    <button class="a11y-font-btn" onclick="changeFontSize('decrease')" aria-label="Diminuir fonte">A-</button>
-    <div class="a11y-contrast-wrap">
-      <button class="a11y-contrast-btn" onclick="toggleContrastMenu(this)" aria-haspopup="true" aria-expanded="false" aria-label="Opções de contraste">
-        ◑ Contraste
-      </button>
-      <div class="a11y-contrast-menu" id="contrast-menu" role="menu" hidden>
-        <button role="menuitem" onclick="setContrast('default')">Cores originais</button>
-        <button role="menuitem" onclick="setContrast('high')">Alto contraste</button>
-        <button role="menuitem" onclick="setContrast('inverted')">Cor invertida</button>
-        <button role="menuitem" onclick="setContrast('grayscale')">Escala de cinza</button>
-      </div>
-    </div>
+
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
   </div>
-</div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
 
-<div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
-
-<div class="shell">
-
-<!-- HEADER -->
-<header role="banner">
-  <a class="logo" href="index.html" aria-label="Acesso na Tela — página inicial">
-    <img src="assets/logo.png" alt="Acesso na Tela" />
-  </a>
-  <nav id="nav-main" role="navigation" aria-label="Navegação principal">
-    <a href="index.html#h-cartaz">Em cartaz</a>
-    <a href="index.html#h-breve">Em breve</a>
-    <a href="catalogo.html">Catálogo</a>
-    <a href="aplicativos.html">Aplicativos</a>
-    <a href="faq.html" class="active" aria-current="page">FAQ</a>
-  </nav>
-</header>
-
-<!-- HERO -->
-<section class="faq-hero" aria-labelledby="faq-h1">
-  <h1 id="faq-h1">Perguntas <em>frequentes</em></h1>
-  <p>Tudo o que você precisa saber sobre acessibilidade no cinema — audiodescrição, legenda para surdos, Libras e como usar os aplicativos.</p>
-</section>
-
-<!-- FAQ -->
-<main id="main-content" class="faq-main" tabindex="-1">
-  <div class="faq-list" role="list" aria-label="Lista de perguntas frequentes">
-    <div class="faq-item" id="faq-1">
-      <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-1" id="faq-btn-1">
-        <span>Como funciona a tecnologia dos aplicativos?</span>
-        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="faq-answer" id="faq-answer-1" role="region" aria-labelledby="faq-btn-1" hidden>
-        <div class="faq-answer__inner">Os aplicativos de acessibilidade (MovieReading, MLOAD, GRETA, PingPlay) usam tecnologia de <strong>reconhecimento de áudio</strong> para identificar em que ponto do filme você está. Basta abrir o app com o filme em cartaz, deixar o microfone do celular captando o som da sala e, em segundos, o recurso — audiodescrição, legenda ou janela de Libras — sincroniza automaticamente com o que está passando na tela. Tudo acontece no seu próprio dispositivo, sem interferir no som da sala para outras pessoas.</div>
-      </div>
-    </div>
-    <div class="faq-item" id="faq-2">
-      <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-2" id="faq-btn-2">
-        <span>Por que só alguns filmes têm recursos de acessibilidade?</span>
-        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="faq-answer" id="faq-answer-2" role="region" aria-labelledby="faq-btn-2" hidden>
-        <div class="faq-answer__inner">A produção dos recursos de acessibilidade (audiodescrição, legenda para surdos e Libras) é uma responsabilidade dos <strong>produtores e distribuidores</strong> de cada filme. Não são os cinemas nem os aplicativos que produzem esse conteúdo. Por isso, a disponibilidade varia de título para título e depende do compromisso de cada estúdio com a acessibilidade. O Acesso na Tela existe justamente para reunir em um só lugar os filmes que já contam com esses recursos.</div>
-      </div>
-    </div>
-    <div class="faq-item" id="faq-3">
-      <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-3" id="faq-btn-3">
-        <span>Quais recursos de acessibilidade estão disponíveis?</span>
-        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="faq-answer" id="faq-answer-3" role="region" aria-labelledby="faq-btn-3" hidden>
-        <div class="faq-answer__inner">Os filmes listados no Acesso na Tela podem contar com até três recursos:<br><br>
-<strong>AD — Audiodescrição:</strong> narração em áudio que descreve ações, cenários e expressões, voltada para pessoas com deficiência visual.<br><br>
-<strong>LSE — Legenda para Surdos e Ensurdecidos:</strong> legenda que inclui, além do diálogo, descrição de efeitos sonoros e identificação de quem está falando.<br><br>
-<strong>Libras:</strong> janela com intérprete humano em Língua Brasileira de Sinais, sobreposta ao vídeo do aplicativo — nunca à tela do cinema.<br><br>
-Cada filme pode ter um, dois ou todos os três recursos. Verifique os ícones na página do título antes de ir ao cinema.</div>
-      </div>
-    </div>
-    <div class="faq-item" id="faq-4">
-      <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-4" id="faq-btn-4">
-        <span>O que é a versão dublada e a versão legendada no aplicativo?</span>
-        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="faq-answer" id="faq-answer-4" role="region" aria-labelledby="faq-btn-4" hidden>
-        <div class="faq-answer__inner">Alguns filmes são exibidos em duas versões nos cinemas: <strong>dublado</strong> (em português) e <strong>legendado</strong> (no idioma original). O aplicativo disponibiliza os recursos de acessibilidade separadamente para cada versão.<br><br>É essencial que você baixe o arquivo correspondente à <strong>mesma versão que vai assistir</strong>. Baixar o recurso da versão dublada e assistir ao filme legendado (ou vice-versa) vai causar dessincronismo. Confira sempre na página do filme qual sessão você comprou.</div>
-      </div>
-    </div>
-    <div class="faq-item" id="faq-5">
-      <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-5" id="faq-btn-5">
-        <span>Como funciona o sincronismo e quanto tempo leva?</span>
-        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="faq-answer" id="faq-answer-5" role="region" aria-labelledby="faq-btn-5" hidden>
-        <div class="faq-answer__inner">Ao iniciar o app na sala de cinema, o aplicativo "ouve" o áudio do filme pelo microfone do celular e identifica automaticamente o ponto exato em que o filme está. O sincronismo costuma levar <strong>em média 15 segundos</strong>, mas pode variar para mais ou para menos dependendo do trecho.<br><br>Se perceber alguma defasagem, use o botão <strong>"Sincronizar"</strong> ou <strong>"Sync"</strong> para forçar um novo rastreamento. Deixe o aplicativo aberto e o celular com volume no mínimo durante toda a sessão.</div>
-      </div>
-    </div>
-    <div class="faq-item" id="faq-6">
-      <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-6" id="faq-btn-6">
-        <span>Posso usar o aplicativo em qualquer sala de cinema?</span>
-        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="faq-answer" id="faq-answer-6" role="region" aria-labelledby="faq-btn-6" hidden>
-        <div class="faq-answer__inner">Sim. Os recursos sincronizam em <strong>qualquer sala e sessão</strong> em que o filme estiver passando, independentemente do complexo de cinema. O único cuidado é baixar o recurso da versão correta (dublada ou legendada) antes de entrar na sala. Recomendamos fazer o download em casa ou em uma rede Wi-Fi estável, já que muitos cinemas não disponibilizam Wi-Fi e o sinal de dados móveis pode ser instável dentro das salas.</div>
-      </div>
-    </div>
-    <div class="faq-item" id="faq-7">
-      <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-7" id="faq-btn-7">
-        <span>Qual a diferença entre a versão Cinema e a versão Streaming?</span>
-        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="faq-answer" id="faq-answer-7" role="region" aria-labelledby="faq-btn-7" hidden>
-        <div class="faq-answer__inner">A diferença é técnica e importante. O cinema digital projeta os filmes a <strong>24 fps</strong> (quadros por segundo), enquanto as plataformas de streaming geralmente utilizam <strong>23,98 fps</strong>. Essa pequena diferença, acumulada ao longo do filme, pode gerar defasagem perceptível entre o recurso de acessibilidade e a imagem.<br><br>Por isso, ao ir ao cinema, sempre escolha e baixe o arquivo com a indicação <strong>"Cinema"</strong>. Para assistir em casa via streaming, use a versão correspondente à plataforma.</div>
-      </div>
-    </div>
-    <div class="faq-item" id="faq-8">
-      <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-8" id="faq-btn-8">
-        <span>Com quanto tempo de antecedência devo baixar os recursos?</span>
-        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="faq-answer" id="faq-answer-8" role="region" aria-labelledby="faq-btn-8" hidden>
-        <div class="faq-answer__inner">Recomendamos baixar os recursos <strong>antes de sair de casa</strong>, preferencialmente pelo Wi-Fi. Após o download, os arquivos ficam disponíveis na seção "Meus Filmes" do aplicativo por <strong>24 horas</strong> e são removidos automaticamente depois desse prazo — mas você pode baixá-los novamente quantas vezes quiser.<br><br>Evite deixar para baixar dentro do cinema: o sinal de dados pode ser fraco, o download pode travar e você perde parte do início do filme.</div>
-      </div>
-    </div>
-    <div class="faq-item" id="faq-9">
-      <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-9" id="faq-btn-9">
-        <span>Como entrar em contato para suporte?</span>
-        <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="faq-answer" id="faq-answer-9" role="region" aria-labelledby="faq-btn-9" hidden>
-        <div class="faq-answer__inner">O Acesso na Tela é um portal de informações e não presta suporte técnico diretamente aos aplicativos. Em caso de dúvidas ou problemas com o funcionamento dos apps, fale com o fornecedor correspondente:<br><br>
-<strong>MovieReading:</strong> <a href="/cdn-cgi/l/email-protection#94f7fbfae0f5e0fbd4f9fbe2fdf1e6f1f5f0fdfaf3f6e6f5e7fdf8baf7fbf9baf6e6"><span class="__cf_email__" data-cfemail="0d6e6263796c79624d60627b64687f686c6964636a6f7f6c7e6461236e6260236f7f">[email&#160;protected]</span></a><br>
-<strong>MLOAD:</strong> <a href="/cdn-cgi/l/email-protection#ef828e99af8880828e99c18c80"><span class="__cf_email__" data-cfemail="d7bab6a197b0b8bab6a1f9b4b8">[email&#160;protected]</span></a><br>
-<strong>GRETA:</strong> <a href="https://www.gretaundstarks.de/starks/GretaEStarks" target="_blank" rel="noopener">gretaundstarks.de</a><br>
-<strong>PingPlay:</strong> <a href="/cdn-cgi/l/email-protection#791a16170d180d16391c0d1a1f1015141c0a571a1614571b0b"><span class="__cf_email__" data-cfemail="197a76776d786d76597c6d7a7f7075747c6a377a7674377b6b">[email&#160;protected]</span></a></div>
-      </div>
-    </div>
-
-  </div>
-</main>
-
-<!-- FOOTER -->
-<footer role="contentinfo">
-  <p class="foot-row" style="margin-bottom:14px;"><img src="assets/logo.png" alt="Acesso na Tela" style="height:36px;width:auto;opacity:0.85;" /></p>
-  <p class="foot-row"><a href="#">Política de Privacidade</a> &nbsp;·&nbsp; <a href="#">Acessibilidade</a> &nbsp;·&nbsp; <a href="#">Fale Conosco</a></p>
-  <p class="foot-row" style="font-size:11px;margin-top:5px;">VLibras · WCAG 2.2 AA · ABNT NBR 17225</p>
-</footer>
-
-</div><!-- /.shell -->
-
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// ── A11Y: FONTE ────────────────────────────────────────────────────────────
-var fontLevel = 0;
-function changeFontSize(dir) {
-  if (dir === 'increase' && fontLevel < 2) fontLevel++;
-  if (dir === 'decrease' && fontLevel > 0) fontLevel--;
-  document.body.classList.remove('font-lg', 'font-xl');
-  if (fontLevel === 1) document.body.classList.add('font-lg');
-  if (fontLevel === 2) document.body.classList.add('font-xl');
-  try { localStorage.setItem('ant_font', fontLevel); } catch(e) {}
-}
-
-// ── A11Y: CONTRASTE ────────────────────────────────────────────────────────
-function setContrast(mode) {
-  document.body.classList.remove('contrast-high', 'contrast-inverted', 'contrast-grayscale');
-  if (mode !== 'default') document.body.classList.add('contrast-' + mode);
-  try { localStorage.setItem('ant_contrast', mode); } catch(e) {}
-  var menu = document.getElementById('contrast-menu');
-  if (menu) menu.hidden = true;
-  var btn = document.querySelector('.a11y-contrast-btn');
-  if (btn) btn.setAttribute('aria-expanded', 'false');
-}
-function toggleContrastMenu(btn) {
-  var menu = document.getElementById('contrast-menu');
-  if (!menu) return;
-  var isOpen = !menu.hidden;
-  menu.hidden = isOpen;
-  btn.setAttribute('aria-expanded', String(!isOpen));
-  if (!isOpen) { var first = menu.querySelector('button'); if (first) first.focus(); }
-}
-
-// ── RESTAURAR PREFERÊNCIAS ─────────────────────────────────────────────────
-(function() {
-  try {
-    var f = parseInt(localStorage.getItem('ant_font') || '0');
-    fontLevel = f;
-    document.body.classList.remove('font-lg', 'font-xl');
-    if (fontLevel === 1) document.body.classList.add('font-lg');
-    if (fontLevel === 2) document.body.classList.add('font-xl');
-    var c = localStorage.getItem('ant_contrast');
-    if (c && c !== 'default') setContrast(c);
-  } catch(e) {}
-})();
-
-// ── ACCORDION FAQ ──────────────────────────────────────────────────────────
-document.querySelectorAll('.faq-question').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var expanded = btn.getAttribute('aria-expanded') === 'true';
-    var answerId = btn.getAttribute('aria-controls');
-    var answer = document.getElementById(answerId);
-
-    // Fecha todos
-    document.querySelectorAll('.faq-question').forEach(function(b) {
-      b.setAttribute('aria-expanded', 'false');
-    });
-    document.querySelectorAll('.faq-answer').forEach(function(a) {
-      a.hidden = true;
-    });
-
-    // Abre o clicado (se estava fechado)
-    if (!expanded) {
-      btn.setAttribute('aria-expanded', 'true');
-      answer.hidden = false;
-    }
-  });
-});
-
-// Fechar menu de contraste ao clicar fora
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.a11y-contrast-wrap')) {
-    var menu = document.getElementById('contrast-menu');
-    if (menu) menu.hidden = true;
-    var btn = document.querySelector('.a11y-contrast-btn');
-    if (btn) btn.setAttribute('aria-expanded', 'false');
-  }
-});
-</script>
-
-<!-- VLibras Widget oficial -->
-<div vw class="enabled">
-  <div vw-access-button class="active"></div>
-  <div vw-plugin-wrapper>
-    <div class="vw-plugin-top-wrapper"></div>
-  </div>
-</div>
-<script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
-<script>
-  new window.VLibras.Widget('https://vlibras.gov.br/app');
-</script>
-
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/a11y.js"></script>
+  <script src="/js/components/header.js"></script>
+  <script src="/js/components/footer.js"></script>
+  <script src="/js/pages/faq.js"></script>
 </body>
 </html>

@@ -7,66 +7,54 @@ export default async function handler(request) {
   const urlKey = url.searchParams.get('urlKey') || '';
   const type   = url.searchParams.get('type')   || '';
 
-  const PART = 'locomotivadigital';
-  const BASE = 'https://api-content.ingresso.com/v0';
+  const PART       = 'locomotivadigital';
+  const BASE       = 'https://api-content.ingresso.com/v0';
+  const TMDB_TOKEN = Netlify.env.get('TMDB_TOKEN') ||
+    'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxMzcyNWY2YTUzYzRkNmRlOWIwNmIwZTFjYjllN2Q2NyIsIm5iZiI6MTc3NTc3NDQ0Ny4yMDk5OTk4LCJzdWIiOiI2OWQ4MmFlZjFjNTc0MjQxNWY0NGEyNGUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.cYtmprLIfaLsEpA_YcOxIGdpfF8BffGlubFf0qQ0U1I';
+
+  // Converte título em urlKey no padrão da Ingresso.com
+  function titleToUrlKey(title) {
+    return (title || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '') // remove acentos
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  }
 
   let target;
 
   if (type === 'nowplaying') {
-    // Scraping AdoroCinema — HTML server-side renderizado, sem CORS
-    // Busca todas as páginas em paralelo
+    // Usa o endpoint oficial da Ingresso.com para listar filmes em cartaz/em breve.
+    // GET /v0/events/city/1/partnership/locomotivadigital
+    // Retorna { items: [...] } com title, urlKey, isPlaying, isComingSoon — sem paginação.
     try {
-      const BASE_URL = 'https://www.adorocinema.com/filmes/numero-cinemas/';
-      const HEADERS = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept-Language': 'pt-BR,pt;q=0.9',
-        'Accept': 'text/html',
-        'Referer': 'https://www.adorocinema.com/',
-      };
+      const ingressoUrl = `${BASE}/events/city/1/partnership/${PART}`;
+      const r = await fetch(ingressoUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+          'Origin': 'https://www.ingresso.com',
+          'Referer': 'https://www.ingresso.com/',
+        },
+      });
 
-      // Fetch página 1 primeiro para descobrir total de páginas
-      const page1 = await fetch(BASE_URL, { headers: HEADERS });
-      const html1 = await page1.text();
+      if (!r.ok) throw new Error(`Ingresso HTTP ${r.status}`);
+      const data = await r.json();
+      const items = Array.isArray(data.items) ? data.items : [];
 
-      // Descobre número total de páginas
-      const pageNums = [...html1.matchAll(/[?&]page=(\d+)/g)].map(m => parseInt(m[1]));
-      const totalPages = pageNums.length ? Math.max(...pageNums) : 1;
+      // Filtra apenas filmes (exclui peças de teatro, shows, etc.)
+      const films = items
+        .filter(m => (m.type || '').toLowerCase() === 'filme')
+        .map(m => ({
+          title:       m.title        || '',
+          urlKey:      m.urlKey       || '',
+          isComingSoon: !!m.isComingSoon,
+        }))
+        .filter(m => m.title && m.urlKey);
 
-      // Busca demais páginas em paralelo
-      const extraFetches = [];
-      for (let p = 2; p <= totalPages; p++) {
-        extraFetches.push(
-          fetch(BASE_URL + '?page=' + p, { headers: HEADERS }).then(r => r.text())
-        );
-      }
-      const extraHtmls = await Promise.all(extraFetches);
-      const allHtmls = [html1, ...extraHtmls];
-
-      // Extrai filmes de todas as páginas
-      const seen = new Set();
-      const films = [];
-      const re = /href="\/filmes\/(filme-[\d]+)\/"[^>]*>([^<]+)<\/a>/g;
-
-      for (const html of allHtmls) {
-        let m;
-        re.lastIndex = 0;
-        while ((m = re.exec(html)) !== null) {
-          const adoroId = m[1];
-          const title   = m[2].trim();
-          if (seen.has(adoroId) || title.length < 2) continue;
-          seen.add(adoroId);
-
-          const urlKey = title.toLowerCase()
-            .replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e')
-            .replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o')
-            .replace(/[úùûü]/g,'u').replace(/[ç]/g,'c')
-            .replace(/[^a-z0-9\s]/g,'').trim().replace(/\s+/g,'-');
-
-          films.push({ id: adoroId, adoroId, title, urlKey });
-        }
-      }
-
-      console.log('[AdoroCinema] pages:', totalPages, 'films:', films.length);
+      console.log('[nowplaying] Ingresso retornou', films.length, 'filmes');
 
       return new Response(JSON.stringify(films), {
         status: 200,
