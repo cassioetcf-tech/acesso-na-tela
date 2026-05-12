@@ -69,11 +69,10 @@ async function loadFilmes() {
   }
 
   renderTable();
-  renderTriagem();
   updateStats();
 }
 
-// ── Fila de triagem ───────────────────────────────────────────────────────────
+// ── Helpers de status ─────────────────────────────────────────────────────────
 
 function _getAppStatusAdmin(f) {
   if (f.app_status) return f.app_status;
@@ -83,99 +82,19 @@ function _getAppStatusAdmin(f) {
   return 'pendente';
 }
 
-function renderTriagem() {
-  var panel = document.getElementById('triage-panel');
-  var list  = document.getElementById('triage-list');
-  var badge = document.getElementById('triage-count');
-  if (!panel || !list) return;
-
-  var pendentes = _filmes.filter(function (f) { return _getAppStatusAdmin(f) === 'pendente'; });
-
-  if (badge) badge.textContent = pendentes.length;
-
-  if (!pendentes.length) {
-    panel.style.display = 'none';
-    return;
-  }
-
-  panel.style.display = '';
-
-  list.innerHTML = pendentes.map(function (f) {
-    var tmdb   = f.tmdb_data || {};
-    var poster = tmdb.poster_path ? 'https://image.tmdb.org/t/p/w92' + tmdb.poster_path : '';
-    var title  = (tmdb.title || f.titulo || '').slice(0, 40);
-    var year   = (tmdb.release_date || '').slice(0, 4);
-    var meta   = year ? year : '';
-
-    return '<div class="triage-item" id="tri-' + escHtml(f.id) + '">' +
-      (poster
-        ? '<img class="triage-poster" src="' + poster + '" alt="">'
-        : '<div class="triage-poster triage-poster-ph">' + escHtml(title.slice(0,2).toUpperCase()) + '</div>'
-      ) +
-      '<div class="triage-info">' +
-        '<div class="triage-title">' + escHtml(title) + '</div>' +
-        (meta ? '<div class="triage-meta">' + escHtml(meta) + '</div>' : '') +
-      '</div>' +
-      '<div class="triage-btns">' +
-        '<button class="triage-btn triage-mr"  onclick="triageFilme(\'' + f.id + '\',\'MovieReading\')">MovieReading</button>' +
-        '<button class="triage-btn triage-ml"  onclick="triageFilme(\'' + f.id + '\',\'MLOAD\')">MLOAD</button>' +
-        '<button class="triage-btn triage-gr"  onclick="triageFilme(\'' + f.id + '\',\'GRETA\')">GRETA</button>' +
-        '<button class="triage-btn triage-pp"  onclick="triageFilme(\'' + f.id + '\',\'PingPlay\')">PingPlay</button>' +
-        '<button class="triage-btn triage-sem" onclick="triageFilme(\'' + f.id + '\',null)">Sem acessibilidade</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
-
-async function triageFilme(id, app) {
-  var itemEl = document.getElementById('tri-' + id);
-  if (itemEl) itemEl.style.opacity = '0.4';
-
-  var appStatus = app ? 'confirmado' : 'sem_acessibilidade';
-  var a11yVal   = app
-    ? { ad: true, lse: true, libras: true }
-    : { ad: false, lse: false, libras: false };
-
-  try {
-    await supabasePatch('filmes', 'id=eq.' + id, {
-      app:        app,
-      app_status: appStatus,
-      a11y:       a11yVal,
-      updated_at: new Date().toISOString(),
-    });
-
-    // Atualiza cache local
-    var idx = _filmes.findIndex(function (x) { return x.id === id; });
-    if (idx > -1) {
-      _filmes[idx].app        = app;
-      _filmes[idx].app_status = appStatus;
-      _filmes[idx].a11y       = a11yVal;
-    }
-
-    if (itemEl) itemEl.remove();
-    renderTable();
-    updateStats();
-
-    var pendentes = _filmes.filter(function (f) { return _getAppStatusAdmin(f) === 'pendente'; });
-    var badge = document.getElementById('triage-count');
-    if (badge) badge.textContent = pendentes.length;
-    if (!pendentes.length) {
-      var panel = document.getElementById('triage-panel');
-      if (panel) panel.style.display = 'none';
-    }
-
-    showToast(app ? 'App salvo: ' + app : 'Sem acessibilidade confirmada.', 'success');
-  } catch (e) {
-    if (itemEl) itemEl.style.opacity = '1';
-    showToast('Erro ao salvar: ' + e.message, 'error');
-  }
-}
-
 function updateStats() {
   _set('stat-total',   _filmes.length);
   _set('stat-cartaz',  _filmes.filter(function (f) { return (f.status || '').toLowerCase() === 'cartaz';   }).length);
   _set('stat-breve',   _filmes.filter(function (f) { return (f.status || '').toLowerCase() === 'breve';    }).length);
   _set('stat-catalogo',_filmes.filter(function (f) { return (f.status || '').toLowerCase() === 'catalogo'; }).length);
+
+  // Mostra/oculta aba "Sem TMDb" conforme existência de filmes sem tmdb_id
+  var semTmdb  = _filmes.filter(function (f) { return !f.tmdb_id; }).length;
+  var tabSemTmdb = document.getElementById('tab-semtmdb');
+  if (tabSemTmdb) {
+    tabSemTmdb.style.display = semTmdb > 0 ? '' : 'none';
+    tabSemTmdb.textContent   = '⚠️ Sem TMDb (' + semTmdb + ')';
+  }
 }
 
 function _set(id, val) {
@@ -198,7 +117,10 @@ function renderTable() {
   var tbody = document.getElementById('filmes-tbody');
 
   var list = _filmes.filter(function (f) {
-    var matchFilter = _currentFilter === 'todos' || (f.status || '').toLowerCase() === _currentFilter;
+    var s = (f.status || '').toLowerCase();
+    var matchFilter = _currentFilter === 'todos'   ? true :
+                      _currentFilter === 'semtmdb' ? !f.tmdb_id :
+                      s === _currentFilter;
     var matchSearch = !q || (f.titulo || '').toLowerCase().includes(q);
     return matchFilter && matchSearch;
   });
@@ -228,10 +150,17 @@ function renderTable() {
              '<span class="a11y-chip chip-libras">LIBRAS</span>';
     })();
 
+    var semTmdbBadge = !f.tmdb_id
+      ? '<span title="Sem dados do TMDb — edite para corrigir" style="display:inline-block;margin-left:6px;font-size:11px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:4px;padding:1px 5px;vertical-align:middle;cursor:default;">⚠️ TMDb</span>'
+      : '';
+    var pendentebadge = _getAppStatusAdmin(f) === 'pendente'
+      ? '<span title="Aguardando classificação de acessibilidade" style="display:inline-block;margin-left:4px;font-size:11px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:1px 5px;vertical-align:middle;cursor:default;">Pendente</span>'
+      : '';
+
     html +=
       '<tr>' +
         '<td>' +
-          '<div class="td-title">' + escHtml(f.titulo) + '</div>' +
+          '<div class="td-title">' + escHtml(f.titulo) + semTmdbBadge + pendentebadge + '</div>' +
           (f.url_key ? '<div class="td-urlkey">' + escHtml(f.url_key) + '</div>' : '') +
         '</td>' +
         '<td>' + (f.app ? '<span class="app-badge">' + escHtml(f.app) + '</span>' : '<span style="color:var(--ink3);font-size:12px">—</span>') + '</td>' +

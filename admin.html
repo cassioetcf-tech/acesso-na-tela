@@ -52,18 +52,6 @@
 
     <div class="admin-content">
 
-      <!-- TRIAGEM -->
-      <div id="triage-panel" class="triage-panel" style="display:none;">
-        <div class="triage-header">
-          <div class="triage-icon">🕐</div>
-          <div>
-            <div class="triage-header-title">Filmes aguardando classificação <span id="triage-count" class="triage-count-badge">0</span></div>
-            <div class="triage-header-sub">Selecione o app de acessibilidade ou confirme "sem acessibilidade" para cada filme</div>
-          </div>
-        </div>
-        <div id="triage-list" class="triage-list"></div>
-      </div>
-
       <!-- STATS -->
       <div class="stats-bar">
         <div class="stat-card">
@@ -150,6 +138,7 @@
         <div class="filter-tab" onclick="setFilter('cartaz',this)">Em cartaz</div>
         <div class="filter-tab" onclick="setFilter('breve',this)">Em breve</div>
         <div class="filter-tab" onclick="setFilter('catalogo',this)">Catálogo</div>
+        <div class="filter-tab filter-tab-warn" onclick="setFilter('semtmdb',this)" id="tab-semtmdb" style="display:none;">⚠️ Sem TMDb</div>
       </div>
 
       <!-- TABLE -->

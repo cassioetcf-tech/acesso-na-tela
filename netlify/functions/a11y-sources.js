@@ -11,7 +11,7 @@
 // Timeout: Netlify Functions têm limite de 10s (plano gratuito).
 // Cada fetch externo tem AbortController com 4s. As 3 fontes rodam em paralelo.
 
-const FETCH_TIMEOUT_MS = 4000; // 4s por requisição HTTP externa
+const FETCH_TIMEOUT_MS = 7000; // 7s por requisição HTTP externa
 
 function normalizeTitle(title) {
   return (title || '')
@@ -73,7 +73,26 @@ async function fetchMload() {
   const titles = [];
   const seen   = new Set();
 
-  const r = await fetchWithTimeout('https://gomav.co/filmes-2025-2/', FETCH_TIMEOUT_MS).catch(() => null);
+  // URL muda a cada semestre (ex: filmes-2026-1, filmes-2026-2).
+  // Descobre a URL atual pela homepage do GoMAV.
+  let pageUrl = '';
+  try {
+    const homeR  = await fetchWithTimeout('https://gomav.co/', FETCH_TIMEOUT_MS);
+    const homeHtml = homeR.ok ? await homeR.text() : '';
+    const m = homeHtml.match(/href="(\/filmes-\d{4}-\d+\/)"/);
+    if (m) pageUrl = 'https://gomav.co' + m[1];
+  } catch (e) {}
+
+  // Fallback: semestre atual baseado na data
+  if (!pageUrl) {
+    const now = new Date();
+    const sem = now.getMonth() < 6 ? '1' : '2';
+    pageUrl   = `https://gomav.co/filmes-${now.getFullYear()}-${sem}/`;
+  }
+
+  console.log(`[a11y-sources] MLOAD URL: ${pageUrl}`);
+
+  const r = await fetchWithTimeout(pageUrl, FETCH_TIMEOUT_MS).catch(() => null);
   if (!r || !r.ok) return titles;
   const html = await r.text();
 
