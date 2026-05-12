@@ -287,12 +287,94 @@ exports.handler = async function () {
     }
   }
 
-  const summary = `[sync] concluído: ${created} novo(s), ${updated} atualizado(s), ${errors} erro(s)`;
+  // ── FASE 3: Auto-classificação por app ────────────────────────────────────────
+  log.push('[sync] FASE 3 — Auto-classificação: MovieReading (CineAcessivel) + MLOAD (GoMAV)');
+
+  function normT(t) {
+    return (t || '').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, ' ').trim();
+  }
+
+  // ── Busca títulos MovieReading (cineacessivel.com.br, paginado) ──────────────
+  const mrTitles = new Set();
+  try {
+    let page = 1;
+    while (page <= 40) {
+      const pageNums = [page, page+1, page+2, page+3, page+4];
+      const htmls    = await Promise.all(
+        pageNums.map(p =>
+          fetch(`https://cineacessivel.com.br/em-cartaz?page=${p}`)
+            .then(r => r.ok ? r.text() : '').catch(() => '')
+        )
+      );
+      let found = 0;
+      for (const html of htmls) {
+        for (const m of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)) {
+          mrTitles.add(normT(m[1])); found++;
+        }
+      }
+      if (!found) break;
+      page += 5;
+    }
+    log.push(`[sync] MovieReading: ${mrTitles.size} títulos do CineAcessivel`);
+  } catch (e) {
+    log.push(`[sync] ERRO MovieReading scrape: ${e.message}`);
+  }
+
+  // ── Busca títulos MLOAD (gomav.co, página única) ─────────────────────────────
+  const mloadTitles = new Set();
+  try {
+    const r    = await fetch('https://gomav.co/filmes-2025-2/');
+    const html = await r.text();
+    for (const m of html.matchAll(/<h4[^>]*>([^<]+)<\/h4>/g)) {
+      const t = m[1].trim();
+      if (/^\d{2}\/\d{2}/.test(t)) continue;
+      if (/^(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i.test(t)) continue;
+      if (t.length >= 3) mloadTitles.add(normT(t));
+    }
+    log.push(`[sync] MLOAD: ${mloadTitles.size} títulos do GoMAV`);
+  } catch (e) {
+    log.push(`[sync] ERRO MLOAD scrape: ${e.message}`);
+  }
+
+  // ── Cruza com filmes pendentes no Supabase ───────────────────────────────────
+  let autoClassified = 0;
+  try {
+    const pendentes = await supaGet('filmes', 'app_status=eq.pendente&select=id,titulo&limit=500');
+    for (const f of pendentes) {
+      const norm = normT(f.titulo);
+      let   app  = null;
+      if      (mrTitles.has(norm))    app = 'MovieReading';
+      else if (mloadTitles.has(norm)) app = 'MLOAD';
+      if (!app) continue;
+
+      try {
+        await supaPatch(f.id, {
+          app:        app,
+          app_status: 'confirmado',
+          a11y:       { ad: true, lse: true, libras: true },
+          updated_at: now,
+        });
+        log.push(`AUTO  ${f.titulo} → ${app}`);
+        autoClassified++;
+      } catch (e) {
+        log.push(`ERR   ${f.titulo} auto-class: ${e.message}`);
+        errors++;
+      }
+    }
+    log.push(`[sync] Fase 3: ${autoClassified} filme(s) auto-classificado(s)`);
+  } catch (e) {
+    log.push(`[sync] ERRO Fase 3 match: ${e.message}`);
+  }
+
+  const summary = `[sync] concluído: ${created} novo(s), ${updated} atualizado(s), ${autoClassified} auto-class, ${errors} erro(s)`;
   log.push(summary);
   console.log(log.join('\n'));
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ created, updated, errors, total: filmes.length, log }),
+    body: JSON.stringify({ created, updated, autoClassified, errors, total: filmes.length, log }),
   };
 };

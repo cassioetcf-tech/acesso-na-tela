@@ -832,6 +832,63 @@ async function runSync() {
     }
   }
 
+  // ── FASE 3: Auto-classificação por app ───────────────────────────────────────
+  addLog('ok', '🎯', '<strong>Fase 3</strong> — Auto-classificação: MovieReading + MLOAD', null, null);
+  setProgress(98, 'Buscando fontes de acessibilidade...');
+
+  try {
+    var a11yResp = await fetch('/.netlify/functions/a11y-sources');
+    var a11yData = await a11yResp.json();
+
+    function normT(t) {
+      return (t || '').toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ').trim();
+    }
+
+    var mrSet    = new Set((a11yData.moviereading || []).map(normT));
+    var mloadSet = new Set((a11yData.mload        || []).map(normT));
+    addLog('ok', '📋', 'MovieReading: <strong>' + mrSet.size + '</strong> títulos · MLOAD: <strong>' + mloadSet.size + '</strong> títulos', null, null);
+
+    var pendentes  = _filmes.filter(function (f) { return _getAppStatusAdmin(f) === 'pendente'; });
+    var autoCount  = 0;
+
+    for (var ap = 0; ap < pendentes.length; ap++) {
+      var pf   = pendentes[ap];
+      var norm = normT(pf.titulo);
+      var app  = null;
+      if      (mrSet.has(norm))    app = 'MovieReading';
+      else if (mloadSet.has(norm)) app = 'MLOAD';
+      if (!app) continue;
+
+      try {
+        await supabasePatch('filmes', 'id=eq.' + pf.id, {
+          app:        app,
+          app_status: 'confirmado',
+          a11y:       { ad: true, lse: true, libras: true },
+          updated_at: now,
+        });
+        addLog('ok', '🎯', '<strong>' + escHtml(pf.titulo) + '</strong> → ' + app, app, 'tag-cartaz');
+        autoCount++;
+        var pidx = _filmes.findIndex(function (x) { return x.id === pf.id; });
+        if (pidx > -1) {
+          _filmes[pidx].app        = app;
+          _filmes[pidx].app_status = 'confirmado';
+          _filmes[pidx].a11y       = { ad: true, lse: true, libras: true };
+        }
+      } catch (e) {
+        addLog('err', '✕', escHtml(pf.titulo) + ' — ' + e.message, null, null);
+        errors++;
+      }
+    }
+
+    if (autoCount > 0) discovered += autoCount;
+    addLog('ok', '✓', '<strong>' + autoCount + '</strong> filme(s) auto-classificado(s) por app', null, null);
+  } catch (e) {
+    addLog('err', '✕', 'Fase 3 erro: ' + e.message, null, null);
+  }
+
   // ── Finaliza ─────────────────────────────────────────────────────────────────
   setProgress(100, 'Concluído.');
   btn.disabled  = false;
