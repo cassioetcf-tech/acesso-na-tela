@@ -33,8 +33,9 @@ function fetchWithTimeout(url, ms) {
 async function fetchMovieReading() {
   const titles = [];
   const seen   = new Set();
-  const BATCH  = 5; // páginas em paralelo por vez
-  const MAX    = 20; // máximo 20 páginas (~200 filmes) — evita timeout
+  // Títulos estão em <h2> (não <h3>) — confirmado inspecionando o HTML do site
+  const BATCH  = 8; // páginas em paralelo por vez
+  const MAX    = 32; // máximo 32 páginas (site mostra até ~320 filmes)
 
   let page = 1;
   while (page <= MAX) {
@@ -50,7 +51,7 @@ async function fetchMovieReading() {
     let found = 0;
     for (const html of htmls) {
       if (!html) continue;
-      for (const m of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)) {
+      for (const m of html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)) {
         const orig = m[1].trim();
         const norm = normalizeTitle(orig);
         if (norm && !seen.has(norm)) {
@@ -116,34 +117,37 @@ async function fetchMload() {
 async function fetchPingPlay() {
   const titles = [];
   const seen   = new Set();
-  const MAX    = 20; // máximo 20 páginas × 40 = 800 filmes — evita timeout
+  // Busca em lotes paralelos para não estourar o timeout da função (10s)
+  const BATCH  = 8;
+  const MAX    = 40; // 40 páginas × 40 por página = até 1600 filmes
 
   let page = 1;
   while (page <= MAX) {
-    const r    = await fetchWithTimeout(
-      `https://pingplay.com.br/catalogo.php?pagina=${page}&por_pagina=40`,
-      FETCH_TIMEOUT_MS
-    ).catch(() => null);
-    const html = r && r.ok ? await r.text() : '';
-
-    if (!html) break;
-
-    const matches = [...html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)];
-    if (!matches.length) break;
+    const pageNums = Array.from({ length: BATCH }, (_, i) => page + i);
+    const htmls    = await Promise.all(
+      pageNums.map(p =>
+        fetchWithTimeout(`https://pingplay.com.br/catalogo.php?pagina=${p}&por_pagina=40`, FETCH_TIMEOUT_MS)
+          .then(r => r.ok ? r.text() : '')
+          .catch(() => '')
+      )
+    );
 
     let found = 0;
-    for (const m of matches) {
-      const orig = m[1].trim();
-      const norm = normalizeTitle(orig);
-      if (norm && !seen.has(norm)) {
-        seen.add(norm);
-        titles.push(orig);
-        found++;
+    for (const html of htmls) {
+      if (!html) continue;
+      for (const m of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)) {
+        const orig = m[1].trim();
+        const norm = normalizeTitle(orig);
+        if (norm && !seen.has(norm)) {
+          seen.add(norm);
+          titles.push(orig);
+          found++;
+        }
       }
     }
 
     if (!found) break;
-    page++;
+    page += BATCH;
   }
 
   console.log(`[a11y-sources] PingPlay: ${titles.length} títulos`);

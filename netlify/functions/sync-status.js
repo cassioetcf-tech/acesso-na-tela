@@ -325,7 +325,8 @@ exports.handler = async function () {
           );
           let found = 0;
           for (const html of htmls) {
-            for (const m of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)) {
+            // Títulos em <h2> (não <h3>) — confirmado inspecionando o HTML do site
+            for (const m of html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)) {
               set.add(normT(m[1])); found++;
             }
           }
@@ -337,11 +338,25 @@ exports.handler = async function () {
       return set;
     })(),
 
-    // MLOAD — gomav.co (página única)
+    // MLOAD — gomav.co (página única, URL muda a cada semestre)
     (async () => {
       const set = new Set();
       try {
-        const r    = await fetch('https://gomav.co/filmes-2025-2/');
+        // Descobre a URL atual pela homepage do GoMAV
+        let mloadUrl = '';
+        try {
+          const homeR    = await fetch('https://gomav.co/');
+          const homeHtml = homeR.ok ? await homeR.text() : '';
+          const mloadM   = homeHtml.match(/href="(\/filmes-\d{4}-\d+\/)"/);
+          if (mloadM) mloadUrl = 'https://gomav.co' + mloadM[1];
+        } catch (e) { /* fallback abaixo */ }
+        if (!mloadUrl) {
+          const now2 = new Date();
+          const sem  = now2.getMonth() < 6 ? '1' : '2';
+          mloadUrl   = `https://gomav.co/filmes-${now2.getFullYear()}-${sem}/`;
+        }
+        log.push(`[sync] MLOAD URL: ${mloadUrl}`);
+        const r    = await fetch(mloadUrl);
         const html = await r.text();
         for (const m of html.matchAll(/<h4[^>]*>([^<]+)<\/h4>/g)) {
           const t = m[1].trim();
@@ -354,23 +369,30 @@ exports.handler = async function () {
       return set;
     })(),
 
-    // PingPlay — pingplay.com.br (paginado)
+    // PingPlay — pingplay.com.br (lotes paralelos)
     (async () => {
-      const set = new Set();
+      const set   = new Set();
+      const BATCH = 8;
+      const MAX   = 40;
       try {
         let page = 1;
-        while (page <= 50) {
-          const r       = await fetch(`https://pingplay.com.br/catalogo.php?pagina=${page}&por_pagina=40`);
-          const html    = r.ok ? await r.text() : '';
-          const matches = [...html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)];
-          if (!matches.length) break;
+        while (page <= MAX) {
+          const pageNums = Array.from({ length: BATCH }, (_, i) => page + i);
+          const htmls    = await Promise.all(
+            pageNums.map(p =>
+              fetch(`https://pingplay.com.br/catalogo.php?pagina=${p}&por_pagina=40`)
+                .then(r => r.ok ? r.text() : '').catch(() => '')
+            )
+          );
           let found = 0;
-          for (const m of matches) {
-            const norm = normT(m[1]);
-            if (norm && !set.has(norm)) { set.add(norm); found++; }
+          for (const html of htmls) {
+            for (const m of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)) {
+              const norm = normT(m[1]);
+              if (norm && !set.has(norm)) { set.add(norm); found++; }
+            }
           }
           if (!found) break;
-          page++;
+          page += BATCH;
         }
         log.push(`[sync] PingPlay: ${set.size} títulos do catalogo.php`);
       } catch (e) { log.push(`[sync] ERRO PingPlay scrape: ${e.message}`); }
