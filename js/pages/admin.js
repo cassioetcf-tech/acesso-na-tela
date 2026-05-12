@@ -7,6 +7,33 @@
 // ── Config local ──────────────────────────────────────────────────────────────
 var ADMIN_SENHA = 'acesso2025'; // senha local de acesso ao painel
 
+// ── Normalização de títulos para comparação ───────────────────────────────────
+// Nível 1 — normT: remove acentos, pontuação, espaços extras, lowercase
+//   "Zico, O Samurai" e "Zico: O Samurai" → "zico o samurai de quintino"
+// Nível 2 — normFuzzy: além disso, strip artigo inicial comum
+//   "O Batman" e "Batman" → "batman" (mesmo resultado)
+// titlesMatch: retorna true se qualquer nível bater
+
+function normT(t) {
+  return (t || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+
+function normFuzzy(t) {
+  // Remove artigo/numeral inicial (O, A, Os, As, Um, Uma, The, An)
+  return normT(t).replace(/^(o|a|os|as|um|uma|the|an)\s+/, '');
+}
+
+function titlesMatch(a, b) {
+  if (!a || !b) return false;
+  var na = normT(a),    nb = normT(b);
+  if (na === nb) return true;
+  var fa = normFuzzy(a), fb = normFuzzy(b);
+  return fa.length >= 4 && fa === fb;
+}
+
 // ── Estado ────────────────────────────────────────────────────────────────────
 var _filmes        = [];
 var _editId        = null;
@@ -365,11 +392,9 @@ async function saveFilme() {
 
     // 2. Busca por título se não veio ID manual
     if (!tmdbData) {
-      var results  = await searchMovie(titulo);
-      var titleNrm = titulo.toLowerCase().trim();
+      var results = await searchMovie(titulo);
       tmdbData = results.find(function (r) {
-        return (r.title || '').toLowerCase().trim() === titleNrm ||
-               (r.original_title || '').toLowerCase().trim() === titleNrm;
+        return titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo);
       }) || (results[0] && results[0].poster_path ? results[0] : null);
     }
 
@@ -526,13 +551,6 @@ async function runSync() {
   var now        = new Date().toISOString();
   var BATCH      = 8;
 
-  function normT(t) {
-    return (t || '').toLowerCase()
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-z0-9\s]/g, '')
-      .replace(/\s+/g, ' ').trim();
-  }
-
   // ── FASE 1: Ingresso — Descoberta + Verificação de sessões ──────────────────
   addLog('ok', '🎟️', '<strong>Fase 1</strong> — Ingresso.com: descoberta + sessões', null, null);
 
@@ -638,10 +656,8 @@ async function runSync() {
       setProgress(50 + Math.round((t / semDados.length) * 22), 'TMDb ' + (t + 1) + '/' + semDados.length + ': ' + sf.titulo);
       try {
         var tmdbR    = await searchMovie(sf.titulo);
-        var titleNrm = sf.titulo.toLowerCase().trim();
         var tmdbData = tmdbR.find(function (r) {
-          return (r.title || '').toLowerCase().trim() === titleNrm ||
-                 (r.original_title || '').toLowerCase().trim() === titleNrm;
+          return titlesMatch(r.title, sf.titulo) || titlesMatch(r.original_title, sf.titulo);
         });
         if (!tmdbData && tmdbR[0] && tmdbR[0].popularity > 1 && tmdbR[0].poster_path) tmdbData = tmdbR[0];
 
@@ -672,9 +688,13 @@ async function runSync() {
       addLog('err', '✕', 'Fase 3: resposta inválida da função (possível timeout) — ' + pe.message, null, null);
     }
 
-    var mrSet       = new Set((a11yData.moviereading || []).map(normT));
-    var mloadSet    = new Set((a11yData.mload        || []).map(normT));
-    var pingplaySet = new Set((a11yData.pingplay     || []).map(normT));
+    var mrSet         = new Set((a11yData.moviereading || []).map(normT));
+    var mloadSet      = new Set((a11yData.mload        || []).map(normT));
+    var pingplaySet   = new Set((a11yData.pingplay     || []).map(normT));
+    // Nível 2: sem artigo inicial (O/A/Os/As/Um/Uma/The/An)
+    var mrFuzzy       = new Set((a11yData.moviereading || []).map(normFuzzy));
+    var mloadFuzzy    = new Set((a11yData.mload        || []).map(normFuzzy));
+    var pingplayFuzzy = new Set((a11yData.pingplay     || []).map(normFuzzy));
     addLog('ok', '📋',
       'MovieReading: <strong>' + mrSet.size + '</strong> · ' +
       'MLOAD: <strong>' + mloadSet.size + '</strong> · ' +
@@ -685,12 +705,13 @@ async function runSync() {
     var autoCount = 0;
 
     for (var ap = 0; ap < pendentes.length; ap++) {
-      var pf   = pendentes[ap];
-      var norm = normT(pf.titulo);
-      var app  = null;
-      if      (mrSet.has(norm))       app = 'MovieReading';
-      else if (mloadSet.has(norm))    app = 'MLOAD';
-      else if (pingplaySet.has(norm)) app = 'PingPlay';
+      var pf    = pendentes[ap];
+      var norm  = normT(pf.titulo);
+      var fuzzy = normFuzzy(pf.titulo);
+      var app   = null;
+      if      (mrSet.has(norm)       || (fuzzy.length >= 4 && mrFuzzy.has(fuzzy)))       app = 'MovieReading';
+      else if (mloadSet.has(norm)    || (fuzzy.length >= 4 && mloadFuzzy.has(fuzzy)))    app = 'MLOAD';
+      else if (pingplaySet.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy))) app = 'PingPlay';
       if (!app) continue;
       try {
         await supabasePatch('filmes', 'id=eq.' + pf.id, {

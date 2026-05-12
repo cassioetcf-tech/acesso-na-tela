@@ -80,8 +80,9 @@ async function fetchMload() {
   try {
     const homeR  = await fetchWithTimeout('https://gomav.co/', FETCH_TIMEOUT_MS);
     const homeHtml = homeR.ok ? await homeR.text() : '';
-    const m = homeHtml.match(/href="(\/filmes-\d{4}-\d+\/)"/);
-    if (m) pageUrl = 'https://gomav.co' + m[1];
+    // href pode ser relativo ("/filmes-...") ou absoluto ("https://gomav.co/filmes-...")
+    const m = homeHtml.match(/filmes-(\d{4}-\d+)/);
+    if (m) pageUrl = `https://gomav.co/filmes-${m[1]}/`;
   } catch (e) {}
 
   // Fallback: semestre atual baseado na data

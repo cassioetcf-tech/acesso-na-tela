@@ -138,12 +138,28 @@ async function checkHasSessions(eventId) {
   return false;
 }
 
-// ── Normaliza título para comparação ──────────────────────────────────────────
+// ── Normalização de títulos ───────────────────────────────────────────────────
+// Nível 1 — normT: remove acentos, pontuação, espaços extras, lowercase
+// Nível 2 — normFuzzy: além disso, strip artigo inicial (O/A/Os/As/Um/Uma/The/An)
+// titlesMatch: true se qualquer nível bater
+
 function normT(t) {
   return (t || '').toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ').trim();
+}
+
+function normFuzzy(t) {
+  return normT(t).replace(/^(o|a|os|as|um|uma|the|an)\s+/, '');
+}
+
+function titlesMatch(a, b) {
+  if (!a || !b) return false;
+  const na = normT(a), nb = normT(b);
+  if (na === nb) return true;
+  const fa = normFuzzy(a), fb = normFuzzy(b);
+  return fa.length >= 4 && fa === fb;
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -283,11 +299,9 @@ exports.handler = async function () {
 
   for (const f of semDados) {
     try {
-      const results  = await searchMovie(f.titulo || '');
-      const titleNrm = (f.titulo || '').toLowerCase().trim();
-      let   match    = results.find(r =>
-        (r.title || '').toLowerCase().trim() === titleNrm ||
-        (r.original_title || '').toLowerCase().trim() === titleNrm
+      const results = await searchMovie(f.titulo || '');
+      let   match   = results.find(r =>
+        titlesMatch(r.title, f.titulo) || titlesMatch(r.original_title, f.titulo)
       );
       if (!match && results[0] && results[0].popularity > 1 && results[0].poster_path) match = results[0];
 
@@ -347,8 +361,9 @@ exports.handler = async function () {
         try {
           const homeR    = await fetch('https://gomav.co/');
           const homeHtml = homeR.ok ? await homeR.text() : '';
-          const mloadM   = homeHtml.match(/href="(\/filmes-\d{4}-\d+\/)"/);
-          if (mloadM) mloadUrl = 'https://gomav.co' + mloadM[1];
+          // href pode ser relativo ("/filmes-...") ou absoluto ("https://gomav.co/filmes-...")
+          const mloadM   = homeHtml.match(/filmes-(\d{4}-\d+)/);
+          if (mloadM) mloadUrl = `https://gomav.co/filmes-${mloadM[1]}/`;
         } catch (e) { /* fallback abaixo */ }
         if (!mloadUrl) {
           const now2 = new Date();
@@ -401,14 +416,20 @@ exports.handler = async function () {
   ]);
 
   // Cruza com filmes pendentes no Supabase
+  // Constrói Sets de nível 2 (sem artigo inicial) para fuzzy matching
+  const mrFuzzy       = new Set([...mrTitles].map(normFuzzy));
+  const mloadFuzzy    = new Set([...mloadTitles].map(normFuzzy));
+  const pingplayFuzzy = new Set([...pingplayTitles].map(normFuzzy));
+
   try {
     const pendentes = await supaGet('filmes', 'app_status=eq.pendente&select=id,titulo&limit=500');
     for (const f of pendentes) {
-      const norm = normT(f.titulo);
-      let   app  = null;
-      if      (mrTitles.has(norm))       app = 'MovieReading';
-      else if (mloadTitles.has(norm))    app = 'MLOAD';
-      else if (pingplayTitles.has(norm)) app = 'PingPlay';
+      const norm  = normT(f.titulo);
+      const fuzzy = normFuzzy(f.titulo);
+      let   app   = null;
+      if      (mrTitles.has(norm)       || (fuzzy.length >= 4 && mrFuzzy.has(fuzzy)))       app = 'MovieReading';
+      else if (mloadTitles.has(norm)    || (fuzzy.length >= 4 && mloadFuzzy.has(fuzzy)))    app = 'MLOAD';
+      else if (pingplayTitles.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy))) app = 'PingPlay';
       if (!app) continue;
 
       try {
