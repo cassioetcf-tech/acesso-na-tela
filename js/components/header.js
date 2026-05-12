@@ -23,8 +23,8 @@ function renderHeader(activePage) {
     // ── Barra de acessibilidade (fundo escuro) ──
     '<div class="a11y-bar" role="toolbar" aria-label="Ferramentas de acessibilidade">' +
       '<div class="a11y-skip-links">' +
-        '<a class="a11y-skip-btn" href="#main-content">Ir para o conteúdo [1]</a>' +
-        '<a class="a11y-skip-btn" href="#header-mount">Ir para o menu [2]</a>' +
+        '<a class="a11y-skip-btn" href="#main-content">Ir para o conteúdo</a>' +
+        '<a class="a11y-skip-btn" href="#header-nav">Ir para o menu</a>' +
       '</div>' +
       '<div class="a11y-controls">' +
         '<span class="a11y-label">Tamanho do texto:</span>' +
@@ -50,6 +50,6 @@ function renderHeader(activePage) {
       '<a href="index.html" class="logo" aria-label="Acesso na Tela — Página inicial">' +
         '<img src="/assets/logo.png" alt="Acesso na Tela">' +
       '</a>' +
-      '<nav aria-label="Menu principal">' + navLinks + '</nav>' +
+      '<nav id="header-nav" aria-label="Menu principal">' + navLinks + '</nav>' +
     '</header>';
 }

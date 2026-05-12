@@ -411,4 +411,11 @@ footer p { margin: 4px 0; }
   nav a { font-size: 12px; padding: 6px 8px; }
   .a11y-bar { padding: 5px 16px; flex-wrap: wrap; gap: 6px; }
   .a11y-label { display: none; }
+  .breadcrumb { padding: 8px 16px; }
+  footer { padding: 18px 16px; }
+}
+@media (max-width: 400px) {
+  nav a { font-size: 11px; padding: 5px 6px; }
+  .a11y-skip-links { gap: 8px; }
+  .a11y-skip-btn { font-size: 11px; padding: 3px 6px; }
 }

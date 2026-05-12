@@ -44,6 +44,7 @@ var APP_LINKS = {
 };
 
 var _trailerKey = null;
+var _trailerAcessivelId = null;
 var _loadingDismissed = false;
 
 // ── Helpers internos ──────────────────────────────────────────────────────────
@@ -115,6 +116,9 @@ function _renderSupabaseData(f) {
     recursosEl.innerHTML = rhtml;
   }
 
+  // Trailer acessível (sobrescreve o trailer do TMDb quando definido)
+  _trailerAcessivelId = f.trailer_acessivel_id || null;
+
   // Vídeo de sinopse acessível
   var sinopseVideoId = f.sinopse_video_id || null;
   if (sinopseVideoId) {
@@ -140,6 +144,9 @@ function _renderTmdb(d, wp) {
   document.title = title + ' — Acesso na Tela';
   _set('fp-h1',   title);
   _set('bc-film', title);
+  // Anuncia o título para leitores de tela via live region
+  var lr = document.getElementById('live-region');
+  if (lr) lr.textContent = 'Página do filme: ' + title;
 
   // Linha de origem
   var year = (d.release_date || '').slice(0, 4);
@@ -227,6 +234,7 @@ function _renderTmdb(d, wp) {
   // Streaming
   var sgEl = document.getElementById('fp-streaming');
   if (sgEl && wp) {
+    sgEl.setAttribute('role', 'list');
     var seen = {};
     var html = '';
     ['flatrate', 'rent', 'buy'].forEach(function (type) {
@@ -239,7 +247,7 @@ function _renderTmdb(d, wp) {
         var bg   = info ? info.c : '#888';
         var lbl  = type === 'flatrate' ? 'Assinatura' : type === 'rent' ? 'Aluguel' : 'Compra';
         html += '<div class="str-card" role="listitem">' +
-                  '<div class="str-ico" style="background:' + bg + ';color:#fff;font-weight:700;">' + ico + '</div>' +
+                  '<div class="str-ico" style="background:' + bg + ';color:#fff;font-weight:700;" aria-hidden="true">' + ico + '</div>' +
                   '<div class="str-name">' + escHtml(name) + '</div>' +
                   '<div class="str-ok">' + lbl + '</div>' +
                 '</div>';
@@ -251,21 +259,26 @@ function _renderTmdb(d, wp) {
     if (streamSection) streamSection.style.display = '';
   }
 
-  // Trailer
+  // Trailer — usa trailer acessível se definido, caso contrário usa o do TMDb
   var vids = ((d.videos || {}).results || []);
   var tr   = vids.find(function (v) { return v.type === 'Trailer' && v.site === 'YouTube'; });
   if (!tr) tr = vids.find(function (v) { return v.site === 'YouTube'; });
-  if (tr) {
-    _trailerKey = tr.key;
+  var resolvedKey = _trailerAcessivelId || (tr && tr.key) || null;
+  if (resolvedKey) {
+    _trailerKey = resolvedKey;
     var img = document.getElementById('trailer-img');
     if (img) {
-      img.src = 'https://img.youtube.com/vi/' + tr.key + '/hqdefault.jpg';
+      img.src = 'https://img.youtube.com/vi/' + resolvedKey + '/hqdefault.jpg';
       img.alt = 'Capa do trailer de ' + title;
+    }
+    var trailerLabel = document.getElementById('trailer-section');
+    if (trailerLabel) {
+      var blockLbl = trailerLabel.querySelector('.block-label');
+      if (blockLbl) blockLbl.textContent = _trailerAcessivelId ? 'Trailer acessível' : 'Trailer';
     }
     var trailerThumb = document.getElementById('trailer-thumb');
     if (trailerThumb) trailerThumb.style.display = '';
-    var trailerSection = document.getElementById('trailer-section');
-    if (trailerSection) trailerSection.style.display = '';
+    if (trailerLabel) trailerLabel.style.display = '';
   }
 
   _dismissLoading();
@@ -492,11 +505,32 @@ function _renderComentarios(rows, container) {
   }).join('');
 }
 
+function _commentFeedback(msg, isError) {
+  var existing = document.getElementById('comment-feedback');
+  if (!existing) {
+    existing = document.createElement('p');
+    existing.id = 'comment-feedback';
+    existing.className = 'comment-feedback';
+    existing.setAttribute('role', 'alert');
+    existing.setAttribute('aria-live', 'assertive');
+    var form = document.getElementById('comment-form');
+    if (form) form.appendChild(existing);
+  }
+  existing.textContent = msg;
+  existing.className = 'comment-feedback' + (isError ? ' comment-feedback-error' : ' comment-feedback-ok');
+}
+
 async function submitComentario() {
   var urlKey = new URLSearchParams(window.location.search).get('urlKey') || '';
   var autor  = ((document.getElementById('comment-nome')  || {}).value || '').trim();
   var texto  = ((document.getElementById('comment-texto') || {}).value || '').trim();
-  if (!texto) return;
+
+  if (!texto) {
+    _commentFeedback('Escreva seu relato antes de enviar.', true);
+    var ta = document.getElementById('comment-texto');
+    if (ta) ta.focus();
+    return;
+  }
 
   var btn = document.getElementById('btn-comentar');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
@@ -512,9 +546,11 @@ async function submitComentario() {
     var textoEl = document.getElementById('comment-texto');
     if (nomeEl)  nomeEl.value  = '';
     if (textoEl) textoEl.value = '';
+    _commentFeedback('Relato enviado! Será publicado após revisão. Obrigado.', false);
     await initComentarios(urlKey);
   } catch (err) {
     console.error('Erro ao enviar comentário:', err);
+    _commentFeedback('Erro ao enviar. Tente novamente.', true);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Enviar relato'; }
   }

@@ -22,7 +22,7 @@
   font-weight: 800; color: #fff; line-height: 1.05;
   margin-bottom: 6px; letter-spacing: -0.5px;
 }
-.fp-orig { font-size: 12px; color: rgba(255,255,255,0.5); font-style: normal; margin-bottom: 14px; font-weight: 500; }
+.fp-orig { font-size: 12px; color: rgba(255,255,255,0.75); font-style: normal; margin-bottom: 14px; font-weight: 500; }
 
 /* Meta pills */
 .meta-pills { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -58,6 +58,22 @@
 /* ── FILM PAGE BODY ── */
 .fp-body { display: grid; grid-template-columns: minmax(0,1fr) 264px; gap: 24px; padding: 28px 28px 60px; }
 @media (max-width: 680px) { .fp-body { grid-template-columns: 1fr; } }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .fp-hero   { padding: 24px 16px 28px; }
+  .fp-body   { padding: 16px 16px 48px; gap: 0; }
+  .sessoes-ctrl { flex-direction: column; gap: 8px; }
+  .sessoes-ctrl select,
+  .sessoes-ctrl input[type=date] { min-width: unset; width: 100%; box-sizing: border-box; }
+  .block     { padding: 16px 14px; }
+  .app-destaque { padding: 14px 14px; }
+  .str-grid  { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+}
+@media (max-width: 400px) {
+  .fp-inner  { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .fp-poster { width: 80px; }
+}
 
 /* Sinopse text */
 .sinopse { font-size: 14px; line-height: 1.75; color: var(--ink2); }
@@ -166,6 +182,9 @@ body:not(.film-loading) .fp-skeleton { display: none !important; }
 .comment-ta:focus { outline: 3px solid var(--laranja); }
 .comment-send { display: block; width: 100%; margin-top: 9px; background: var(--laranja-cl); color: var(--laranja-esc); border: 2px solid var(--laranja-bdr); border-radius: var(--r-sm); padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .comment-send:hover { background: #FAD5C0; }
+.comment-feedback { font-size: 12px; margin-top: 8px; padding: 7px 10px; border-radius: var(--r-sm); line-height: 1.4; }
+.comment-feedback-ok    { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+.comment-feedback-error { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
 .comments-list { margin-top: 16px; }
 .comment { padding: 11px 0; border-bottom: 1px solid var(--bdr); }
 .comment:last-child { border-bottom: none; }
