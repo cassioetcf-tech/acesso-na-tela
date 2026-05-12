@@ -257,7 +257,10 @@ function renderTable() {
         '<td><span class="status-badge ' + statusCls + '">' + escHtml(statusTxt) + '</span></td>' +
         '<td style="font-size:12px;color:var(--ink3);white-space:nowrap;">' + releaseDate + '</td>' +
         '<td>' +
-          '<div style="display:flex;gap:8px;">' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+            (f.app && _getAppStatusAdmin(f) !== 'confirmado'
+              ? '<button class="btn" style="background:#dcfce7;color:#166534;border:1px solid #86efac;font-size:12px;" onclick="fixAppStatus(\'' + f.id + '\')" title="Corrigir app_status para confirmado">✓ Corrigir</button>'
+              : '') +
             '<button class="btn btn-edit"   onclick="editFilme(\'' + f.id + '\')">Editar</button>' +
             '<button class="btn btn-delete" onclick="deleteFilme(\'' + f.id + '\')">Excluir</button>' +
           '</div>' +
@@ -511,11 +514,14 @@ async function saveFilme() {
     var sinopseVideo    = ((document.getElementById('f-sinopse-video')     || {}).value || '').trim();
     var trailerAcessivel= ((document.getElementById('f-trailer-acessivel') || {}).value || '').trim();
 
+    var appStatus = _semA11yActive ? 'sem_acessibilidade' : (app ? 'confirmado' : 'pendente');
+
     var filme = {
       titulo:       titulo,
       ingresso_url: ingressoUrl,
       url_key:      urlKey,
       app:          _semA11yActive ? null : app,
+      app_status:   appStatus,
       status:       status,
       a11y:         a11yVal,
       tmdb_id:      tmdbData ? tmdbData.id : null,
@@ -561,6 +567,22 @@ async function deleteFilme(id) {
   }
 }
 
+
+// ── Corrigir app_status ───────────────────────────────────────────────────────
+async function fixAppStatus(id) {
+  var f = _filmes.find(function (x) { return x.id === id; });
+  if (!f || !f.app) return;
+  try {
+    await supabasePatch('filmes', 'id=eq.' + id, {
+      app_status: 'confirmado',
+      updated_at: new Date().toISOString(),
+    });
+    await loadFilmes();
+    showToast('Status corrigido para confirmado!', 'success');
+  } catch (e) {
+    showToast('Erro ao corrigir: ' + e.message, 'error');
+  }
+}
 
 // ── Sincronização automática de status ────────────────────────────────────────
 function toggleLog() {
@@ -829,6 +851,27 @@ async function runSync() {
     }
     if (autoCount > 0) discovered += autoCount;
     addLog('ok', '✓', '<strong>' + autoCount + '</strong> filme(s) auto-classificado(s)', null, null);
+
+    // ── Fase 3b: corrige filmes com app definido manualmente mas app_status desatualizado ──
+    var desatualizados = _filmes.filter(function (f) {
+      return f.app && _getAppStatusAdmin(f) !== 'confirmado';
+    });
+    if (desatualizados.length) {
+      addLog('ok', '🔧', '<strong>' + desatualizados.length + '</strong> filme(s) com app definido mas status desatualizado — corrigindo...', null, null);
+      for (var da = 0; da < desatualizados.length; da++) {
+        var df = desatualizados[da];
+        try {
+          await supabasePatch('filmes', 'id=eq.' + df.id, { app_status: 'confirmado', updated_at: now });
+          addLog('ok', '✓', '<strong>' + escHtml(df.titulo) + '</strong> — app_status corrigido → confirmado', df.app, 'tag-cartaz');
+          changed++;
+          var didx = _filmes.findIndex(function (x) { return x.id === df.id; });
+          if (didx > -1) _filmes[didx].app_status = 'confirmado';
+        } catch (e) {
+          addLog('err', '✕', escHtml(df.titulo) + ' — fix: ' + e.message, null, null);
+          errors++;
+        }
+      }
+    }
   } catch (e) {
     addLog('err', '✕', 'Fase 3 erro: ' + e.message, null, null);
   }

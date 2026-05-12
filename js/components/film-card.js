@@ -104,7 +104,7 @@ function buildCard(filme, tmdb) {
         '<div class="film-name">' + escHtml(title) + '</div>' +
         (meta ? '<div class="film-meta">' + escHtml(meta) + '</div>' : '') +
         appLine +
-        '<button class="btn-card">Saiba mais</button>' +
+        '<span class="btn-card" aria-hidden="true">Saiba mais</span>' +
       '</div>' +
     '</article>';
 
@@ -138,7 +138,7 @@ function buildBreveCard(filme, tmdb) {
         '<div class="film-name">' + escHtml(title) + '</div>' +
         '<div class="film-meta">' + escHtml(release) + '</div>' +
         '<div class="film-app film-app-pending">Acessibilidade a confirmar</div>' +
-        '<button class="btn-card">Saiba mais</button>' +
+        '<span class="btn-card" aria-hidden="true">Saiba mais</span>' +
       '</div>' +
     '</article>';
 

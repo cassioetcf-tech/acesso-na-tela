@@ -16,7 +16,7 @@
   line-height: 1.1; letter-spacing: -0.5px;
   margin-bottom: 10px;
 }
-.apps-hero h1 em { color: #FFE5B0; font-style: italic; font-family: 'Fraunces', serif; font-weight: 500; }
+.apps-hero h1 .hl { color: #FFE5B0; font-style: italic; font-family: 'Fraunces', serif; font-weight: 500; }
 .apps-hero p { font-size: 15px; color: rgba(255,255,255,0.85); line-height: 1.65; max-width: 560px; }
 
 /* ── MAIN ── */

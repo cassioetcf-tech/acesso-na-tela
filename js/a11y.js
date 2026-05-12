@@ -30,8 +30,18 @@ function toggleContrastMenu(btn) {
   menu.hidden = isOpen;
   btn.setAttribute('aria-expanded', String(!isOpen));
   if (!isOpen) {
-    var first = menu.querySelector('button');
+    var first = menu.querySelector('[role="menuitem"]');
     if (first) first.focus();
+  }
+}
+
+function _closeContrastMenu() {
+  var menu = document.getElementById('contrast-menu');
+  if (menu) menu.hidden = true;
+  var cbtn = document.querySelector('.a11y-contrast-btn');
+  if (cbtn) {
+    cbtn.setAttribute('aria-expanded', 'false');
+    cbtn.focus();
   }
 }
 
@@ -47,6 +57,37 @@ document.addEventListener('click', function (e) {
     if (menu) menu.hidden = true;
     var cbtn = document.querySelector('.a11y-contrast-btn');
     if (cbtn) cbtn.setAttribute('aria-expanded', 'false');
+  }
+});
+
+// Navegação por teclado no menu de contraste (setas + Escape + Home/End)
+document.addEventListener('keydown', function (e) {
+  var menu = document.getElementById('contrast-menu');
+  if (!menu || menu.hidden) return;
+  if (!menu.contains(document.activeElement) && document.activeElement !== document.querySelector('.a11y-contrast-btn')) return;
+
+  var items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
+  if (!items.length) return;
+  var idx = items.indexOf(document.activeElement);
+
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    _closeContrastMenu();
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    items[(idx + 1) % items.length].focus();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    items[(idx - 1 + items.length) % items.length].focus();
+  } else if (e.key === 'Home') {
+    e.preventDefault();
+    items[0].focus();
+  } else if (e.key === 'End') {
+    e.preventDefault();
+    items[items.length - 1].focus();
+  } else if (e.key === 'Tab') {
+    // Fechar ao sair do menu
+    _closeContrastMenu();
   }
 });
 

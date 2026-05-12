@@ -155,12 +155,48 @@ function doSearch(val) {
 
 // ── Newsletter ────────────────────────────────────────────────────────────────
 
+function _nlError(inputId, msg) {
+  var input = document.getElementById(inputId);
+  if (!input) return;
+  var errId = inputId + '-error';
+  var existing = document.getElementById(errId);
+  if (!existing) {
+    existing = document.createElement('span');
+    existing.id        = errId;
+    existing.className = 'nl-field-error';
+    existing.setAttribute('role', 'alert');
+    input.parentNode.insertBefore(existing, input.nextSibling);
+  }
+  existing.textContent = msg;
+  input.setAttribute('aria-describedby', errId);
+  input.setAttribute('aria-invalid', 'true');
+  input.focus();
+}
+
+function _nlClearErrors(form) {
+  form.querySelectorAll('.nl-field-error').forEach(function (el) { el.remove(); });
+  form.querySelectorAll('[aria-invalid]').forEach(function (el) {
+    el.removeAttribute('aria-invalid');
+    el.removeAttribute('aria-describedby');
+  });
+}
+
 async function submitNewsletter(event) {
   event.preventDefault();
   var form  = event.target;
   var nome  = (document.getElementById('nl-nome')  || {}).value || '';
   var email = (document.getElementById('nl-email') || {}).value || '';
-  if (!email.trim()) return;
+
+  _nlClearErrors(form);
+
+  if (!email.trim()) {
+    _nlError('nl-email', 'Informe seu e-mail para continuar.');
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    _nlError('nl-email', 'Digite um e-mail válido.');
+    return;
+  }
 
   var prefs = Array.from(form.querySelectorAll('input[name="pref"]:checked'))
                    .map(function (el) { return el.value; });
@@ -176,11 +212,17 @@ async function submitNewsletter(event) {
     );
     var wrap    = document.getElementById('nl-form-wrap');
     var success = document.getElementById('nl-success');
-    if (wrap)    wrap.style.display    = 'none';
-    if (success) success.removeAttribute('hidden');
+    if (wrap)    wrap.style.display = 'none';
+    if (success) {
+      success.removeAttribute('hidden');
+      success.setAttribute('tabindex', '-1');
+      success.focus();
+    }
   } catch (err) {
     console.error('Erro newsletter:', err);
     if (btn) { btn.disabled = false; btn.textContent = 'Quero receber'; }
+    var liveRegion = document.getElementById('live-region');
+    if (liveRegion) liveRegion.textContent = 'Erro ao cadastrar. Tente novamente.';
   }
 }
 

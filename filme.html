@@ -15,9 +15,6 @@
   <link rel="stylesheet" href="/css/pages/filme.css">
 </head>
 <body class="film-loading">
-  <a href="#main-content" class="skip-link">Ir para o conteúdo [1]</a>
-  <a href="#header-mount" class="skip-link">Ir para o menu [2]</a>
-
   <div id="a11y-bar-mount"></div>
   <div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
 
@@ -38,28 +35,29 @@
       </div>
     </div>
 
-    <!-- BREADCRUMB -->
-    <nav class="breadcrumb" aria-label="Localização">
-      <a href="index.html">Início</a>
-      <span aria-hidden="true">›</span>
-      <span id="bc-film" aria-current="page">Carregando...</span>
-    </nav>
-
-    <!-- HERO DO FILME -->
-    <section class="fp-hero" aria-labelledby="fp-h1">
-      <div class="fp-inner">
-        <div id="fp-poster-box" class="fp-poster" aria-hidden="true"></div>
-        <div class="fp-info">
-          <h1 class="fp-h1" id="fp-h1"></h1>
-          <p id="fp-orig" class="fp-orig"></p>
-          <div class="meta-pills" id="fp-meta-pills" aria-label="Informações do filme"></div>
-          <div class="a11y-chips" id="fp-a11y-chips" aria-label="Recursos de acessibilidade"></div>
-        </div>
-      </div>
-    </section>
-
     <!-- CONTEÚDO PRINCIPAL -->
     <main id="main-content" tabindex="-1">
+
+      <!-- BREADCRUMB -->
+      <nav class="breadcrumb" aria-label="Localização">
+        <a href="index.html">Início</a>
+        <span aria-hidden="true">›</span>
+        <span id="bc-film" aria-current="page">Carregando...</span>
+      </nav>
+
+      <!-- HERO DO FILME -->
+      <section class="fp-hero" aria-labelledby="fp-h1">
+        <div class="fp-inner">
+          <div id="fp-poster-box" class="fp-poster" aria-hidden="true"></div>
+          <div class="fp-info">
+            <h1 class="fp-h1" id="fp-h1">Carregando...</h1>
+            <p id="fp-orig" class="fp-orig"></p>
+            <div class="meta-pills" id="fp-meta-pills" aria-label="Informações do filme"></div>
+            <div class="a11y-chips" id="fp-a11y-chips" aria-label="Recursos de acessibilidade"></div>
+          </div>
+        </div>
+      </section>
+
       <div class="fp-body">
 
         <!-- COLUNA PRINCIPAL -->

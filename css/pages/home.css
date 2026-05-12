@@ -22,8 +22,8 @@
   font-weight: 800; color: #fff; line-height: 1.05;
   margin-bottom: 14px; letter-spacing: -1px;
 }
-.hero h1 em { color: #FFE5B0; font-style: normal; }
-.hero p { font-size: 16px; color: rgba(255,255,255,0.82); line-height: 1.65; max-width: 520px; margin-bottom: 30px; font-weight: 400; }
+.hero h1 .hl { color: #FFE5B0; }
+.hero p { font-size: 16px; color: #fff; line-height: 1.65; max-width: 520px; margin-bottom: 30px; font-weight: 400; }
 
 /* ── HERO COMO FUNCIONA BOX ── */
 .hero-como {
@@ -135,7 +135,7 @@
 }
 .newsletter-eyebrow {
   font-size: 11px; font-weight: 800;
-  color: rgba(255,255,255,0.65);
+  color: rgba(255,255,255,0.9);
   text-transform: uppercase; letter-spacing: 1.2px;
   margin-bottom: 12px;
 }
@@ -146,9 +146,9 @@
   line-height: 1.1; letter-spacing: -0.5px;
   margin-bottom: 12px;
 }
-.newsletter-title em { color: #FFE5B0; font-style: normal; }
+.newsletter-title .hl { color: #FFE5B0; }
 .newsletter-desc {
-  font-size: 15px; color: rgba(255,255,255,0.82);
+  font-size: 15px; color: #fff;
   line-height: 1.65; margin-bottom: 28px;
 }
 .newsletter-form {
@@ -211,11 +211,36 @@
 }
 .pref-chip:focus-within { outline: 3px solid #FFD600; outline-offset: 2px; border-radius: 20px; }
 
+.nl-field-error {
+  display: block;
+  font-size: 12px;
+  color: #FFE5B0;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
 .newsletter-note {
-  font-size: 11px; color: rgba(255,255,255,0.5);
+  font-size: 11px; color: rgba(255,255,255,0.85);
   line-height: 1.5; margin-top: 4px;
 }
-.newsletter-note a { color: rgba(255,255,255,0.7); text-decoration: underline; }
+.newsletter-note a { color: #fff; text-decoration: underline; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .hero          { padding: 32px 16px 36px; }
+  .main-wrap     { padding: 24px 16px 48px; }
+  .films-grid    { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .coming-grid   { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .apps-grid     { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 32px; }
+  .sec-head      { margin-bottom: 14px; }
+  .newsletter-section { padding: 36px 16px 40px; }
+  .newsletter-desc    { font-size: 14px; }
+  .newsletter-form    { gap: 8px; }
+  .newsletter-row     { flex-direction: column; }
+  .newsletter-input   { min-width: unset; width: 100%; }
+  .newsletter-btn     { width: 100%; }
+  .como-cartaz-row    { gap: 14px; }
+}
 
 .newsletter-success {
   display: none;
