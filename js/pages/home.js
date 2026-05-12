@@ -3,7 +3,7 @@
 //             js/utils.js (escHtml)
 
 var _allCards      = []; // { el, acessivel: bool }
-var _filtroAtivo   = 'todos'; // 'todos' | 'acessivel'
+var _filtroAtivo   = 'acessivel'; // 'todos' | 'acessivel'
 
 // ── Filtro ────────────────────────────────────────────────────────────────────
 
