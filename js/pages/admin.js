@@ -411,17 +411,18 @@ async function saveFilme() {
     var sinopseVideo = ((document.getElementById('f-sinopse-video') || {}).value || '').trim();
 
     var filme = {
-      titulo:          titulo,
-      ingresso_url:    ingressoUrl,
-      url_key:         urlKey,
-      app:             _semA11yActive ? null : app,
-      status:          status,
-      a11y:            a11yVal,
-      sinopse_video_id: sinopseVideo || null,
-      tmdb_id:         tmdbData ? tmdbData.id   : null,
-      tmdb_data:       tmdbData || null,
-      updated_at:      new Date().toISOString(),
+      titulo:      titulo,
+      ingresso_url: ingressoUrl,
+      url_key:     urlKey,
+      app:         _semA11yActive ? null : app,
+      status:      status,
+      a11y:        a11yVal,
+      tmdb_id:     tmdbData ? tmdbData.id   : null,
+      tmdb_data:   tmdbData || null,
+      updated_at:  new Date().toISOString(),
     };
+    // Inclui sinopse_video_id apenas se tiver valor (coluna pode não existir no schema ainda)
+    if (sinopseVideo) filme.sinopse_video_id = sinopseVideo;
 
     if (_editId) {
       await supabasePatch('filmes', 'id=eq.' + _editId, filme);
