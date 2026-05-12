@@ -356,26 +356,39 @@ exports.handler = async function () {
     (async () => {
       const set = new Set();
       try {
-        // Descobre a URL atual pela homepage do GoMAV
+        // 1. Tenta descobrir URL pela homepage
         let mloadUrl = '';
         try {
           const homeR    = await fetch('https://gomav.co/');
           const homeHtml = homeR.ok ? await homeR.text() : '';
-          // href pode ser relativo ("/filmes-...") ou absoluto ("https://gomav.co/filmes-...")
           const mloadM   = homeHtml.match(/filmes-(\d{4}-\d+)/);
           if (mloadM) mloadUrl = `https://gomav.co/filmes-${mloadM[1]}/`;
         } catch (e) { /* fallback abaixo */ }
+
+        // 2. Fallback: testa últimos 4 semestres em ordem decrescente
         if (!mloadUrl) {
           const now2 = new Date();
-          const sem  = now2.getMonth() < 6 ? '1' : '2';
-          mloadUrl   = `https://gomav.co/filmes-${now2.getFullYear()}-${sem}/`;
+          const candidates = [];
+          for (let y = now2.getFullYear(); y >= now2.getFullYear() - 1; y--) {
+            candidates.push(`https://gomav.co/filmes-${y}-2/`);
+            candidates.push(`https://gomav.co/filmes-${y}-1/`);
+          }
+          for (const candidate of candidates) {
+            try {
+              const probe = await fetch(candidate);
+              if (probe && probe.ok) { mloadUrl = candidate; break; }
+            } catch (e) {}
+          }
         }
+
+        if (!mloadUrl) { log.push('[sync] MLOAD: URL não encontrada'); return set; }
         log.push(`[sync] MLOAD URL: ${mloadUrl}`);
         const r    = await fetch(mloadUrl);
         const html = await r.text();
         for (const m of html.matchAll(/<h4[^>]*>([^<]+)<\/h4>/g)) {
           const t = m[1].trim();
-          if (/^\d{2}\/\d{2}/.test(t)) continue;
+          // Filtra datas em qualquer formato: "09/04", "09 DE ABRIL DE 2026", "ABRIL 2026"
+          if (/^\d{2}[\/\s]/.test(t) && /\b(de|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|\d{4})\b/i.test(t)) continue;
           if (/^(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i.test(t)) continue;
           if (t.length >= 3) set.add(normT(t));
         }

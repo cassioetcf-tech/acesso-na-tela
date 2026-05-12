@@ -74,24 +74,35 @@ async function fetchMload() {
   const titles = [];
   const seen   = new Set();
 
-  // URL muda a cada semestre (ex: filmes-2026-1, filmes-2026-2).
-  // Descobre a URL atual pela homepage do GoMAV.
+  // Estratégia de descoberta da URL (muda a cada semestre):
+  // 1. Tenta extrair da homepage do GoMAV (mais confiável)
+  // 2. Fallback: testa URLs de semestres recentes até achar um que exista (200 OK)
   let pageUrl = '';
+
   try {
-    const homeR  = await fetchWithTimeout('https://gomav.co/', FETCH_TIMEOUT_MS);
+    const homeR    = await fetchWithTimeout('https://gomav.co/', 3000); // 3s p/ homepage
     const homeHtml = homeR.ok ? await homeR.text() : '';
-    // href pode ser relativo ("/filmes-...") ou absoluto ("https://gomav.co/filmes-...")
     const m = homeHtml.match(/filmes-(\d{4}-\d+)/);
     if (m) pageUrl = `https://gomav.co/filmes-${m[1]}/`;
   } catch (e) {}
 
-  // Fallback: semestre atual baseado na data
+  // Fallback: testa últimos 4 semestres em ordem decrescente até encontrar 200
   if (!pageUrl) {
     const now = new Date();
-    const sem = now.getMonth() < 6 ? '1' : '2';
-    pageUrl   = `https://gomav.co/filmes-${now.getFullYear()}-${sem}/`;
+    const candidates = [];
+    for (let y = now.getFullYear(); y >= now.getFullYear() - 1; y--) {
+      candidates.push(`https://gomav.co/filmes-${y}-2/`);
+      candidates.push(`https://gomav.co/filmes-${y}-1/`);
+    }
+    for (const candidate of candidates) {
+      try {
+        const probe = await fetchWithTimeout(candidate, 2500);
+        if (probe && probe.ok) { pageUrl = candidate; break; }
+      } catch (e) {}
+    }
   }
 
+  if (!pageUrl) { console.log('[a11y-sources] MLOAD: URL não encontrada'); return titles; }
   console.log(`[a11y-sources] MLOAD URL: ${pageUrl}`);
 
   const r = await fetchWithTimeout(pageUrl, FETCH_TIMEOUT_MS).catch(() => null);
@@ -100,7 +111,8 @@ async function fetchMload() {
 
   for (const m of html.matchAll(/<h4[^>]*>([^<]+)<\/h4>/g)) {
     const text = m[1].trim();
-    if (/^\d{2}\/\d{2}/.test(text)) continue;
+    // Filtra datas em qualquer formato: "09/04", "09 DE ABRIL DE 2026", "ABRIL 2026"
+    if (/^\d{2}[\/\s]/.test(text) && /\b(de|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|\d{4})\b/i.test(text)) continue;
     if (/^(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i.test(text)) continue;
     if (text.length < 3) continue;
 
