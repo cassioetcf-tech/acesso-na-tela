@@ -258,6 +258,14 @@ th {
   letter-spacing: .6px;
   border-bottom: 1px solid var(--bdr);
 }
+th.th-sort {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+th.th-sort:hover { color: var(--laranja); }
+th.th-sort.sort-active { color: var(--laranja); }
+.sort-arrow { font-style: normal; margin-left: 3px; font-size: 10px; opacity: .6; }
 td {
   padding: 14px 16px;
   font-size: 14px;

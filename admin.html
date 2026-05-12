@@ -128,12 +128,6 @@
         <div class="toolbar-right">
           <input type="text" class="search-input" placeholder="Buscar filme..."
                  id="search-input" oninput="filterFilmes()">
-          <select id="sort-select" onchange="filterFilmes()" style="height:38px;padding:0 10px;border:1px solid var(--bdr);border-radius:8px;font-size:13px;background:var(--surface);color:var(--ink1);cursor:pointer;">
-            <option value="recentes">Mais recentes</option>
-            <option value="antigos">Mais antigos</option>
-            <option value="az">Título A→Z</option>
-            <option value="za">Título Z→A</option>
-          </select>
           <button class="btn btn-add" onclick="openModal()">+ Adicionar filme</button>
         </div>
       </div>
@@ -152,7 +146,12 @@
         <table>
           <thead>
             <tr>
-              <th>Filme</th><th>App</th><th>Recursos</th><th>Status</th><th>Ações</th>
+              <th class="th-sort" onclick="setSort('titulo')" id="th-titulo">Filme <span class="sort-arrow" id="arr-titulo"></span></th>
+              <th class="th-sort" onclick="setSort('app')"    id="th-app">App <span class="sort-arrow" id="arr-app"></span></th>
+              <th>Recursos</th>
+              <th class="th-sort" onclick="setSort('status')" id="th-status">Status <span class="sort-arrow" id="arr-status"></span></th>
+              <th class="th-sort" onclick="setSort('data')"   id="th-data">Data <span class="sort-arrow" id="arr-data">↓</span></th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody id="filmes-tbody">

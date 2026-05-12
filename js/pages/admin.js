@@ -46,6 +46,10 @@ var _semA11yActive = false;
 var _syncLog = [];
 var _logOpen = false;
 
+// Ordenação da tabela
+var _sortCol = 'data';   // 'titulo' | 'app' | 'status' | 'data'
+var _sortDir = 'desc';   // 'asc' | 'desc'
+
 // ── Autenticação ──────────────────────────────────────────────────────────────
 function doLogin() {
   var pass = document.getElementById('login-pass').value;
@@ -139,10 +143,38 @@ function setFilter(filter, el) {
 
 function filterFilmes() { renderTable(); }
 
+function setSort(col) {
+  if (_sortCol === col) {
+    _sortDir = _sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    _sortCol = col;
+    _sortDir = col === 'data' ? 'desc' : 'asc';
+  }
+  _updateSortHeaders();
+  renderTable();
+}
+
+function _updateSortHeaders() {
+  var cols = ['titulo', 'app', 'status', 'data'];
+  cols.forEach(function (c) {
+    var th  = document.getElementById('th-' + c);
+    var arr = document.getElementById('arr-' + c);
+    if (!th || !arr) return;
+    if (c === _sortCol) {
+      th.classList.add('sort-active');
+      arr.textContent = _sortDir === 'asc' ? '↑' : '↓';
+      arr.style.opacity = '1';
+    } else {
+      th.classList.remove('sort-active');
+      arr.textContent = '';
+      arr.style.opacity = '.6';
+    }
+  });
+}
+
 function renderTable() {
-  var q      = ((document.getElementById('search-input') || {}).value || '').toLowerCase();
-  var sort   = ((document.getElementById('sort-select')  || {}).value || 'recentes');
-  var tbody  = document.getElementById('filmes-tbody');
+  var q     = ((document.getElementById('search-input') || {}).value || '').toLowerCase();
+  var tbody = document.getElementById('filmes-tbody');
 
   var list = _filmes.filter(function (f) {
     var s = (f.status || '').toLowerCase();
@@ -153,12 +185,29 @@ function renderTable() {
     return matchFilter && matchSearch;
   });
 
-  // Ordenação
+  // Ordenação por coluna
   list = list.slice().sort(function (a, b) {
-    if (sort === 'az')      return (a.titulo || '').localeCompare(b.titulo || '', 'pt-BR');
-    if (sort === 'za')      return (b.titulo || '').localeCompare(a.titulo || '', 'pt-BR');
-    if (sort === 'antigos') return (a.created_at || '') < (b.created_at || '') ? -1 : 1;
-    return (a.created_at || '') > (b.created_at || '') ? -1 : 1; // recentes (default)
+    var va, vb;
+    if (_sortCol === 'titulo') {
+      va = (a.titulo || '').toLowerCase();
+      vb = (b.titulo || '').toLowerCase();
+      return _sortDir === 'asc' ? va.localeCompare(vb, 'pt-BR') : vb.localeCompare(va, 'pt-BR');
+    }
+    if (_sortCol === 'app') {
+      va = (a.app || '').toLowerCase();
+      vb = (b.app || '').toLowerCase();
+      return _sortDir === 'asc' ? va.localeCompare(vb, 'pt-BR') : vb.localeCompare(va, 'pt-BR');
+    }
+    if (_sortCol === 'status') {
+      var ord = { cartaz: 0, breve: 1, catalogo: 2 };
+      va = ord[(a.status || '').toLowerCase()] !== undefined ? ord[(a.status || '').toLowerCase()] : 3;
+      vb = ord[(b.status || '').toLowerCase()] !== undefined ? ord[(b.status || '').toLowerCase()] : 3;
+      return _sortDir === 'asc' ? va - vb : vb - va;
+    }
+    // data (default)
+    va = a.created_at || '';
+    vb = b.created_at || '';
+    return _sortDir === 'desc' ? (va > vb ? -1 : 1) : (va < vb ? -1 : 1);
   });
 
   if (!list.length) {
