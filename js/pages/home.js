@@ -91,19 +91,17 @@ async function loadCatalog() {
     }));
 
     // Ordena: acessíveis primeiro, depois pendentes, depois sem acessibilidade
-    // Dentro de cada grupo, segue ordem da Ingresso.com
-    var orderMap = await _fetchIngressoOrder();
-
+    // Dentro de cada grupo: data de lançamento mais recente primeiro
     enriched.sort(function (a, b) {
       var oa = _statusOrder(a.filme);
       var ob = _statusOrder(b.filme);
       if (oa !== ob) return oa - ob;
-      // Mesmo grupo: segue ordem Ingresso
-      var ia = orderMap[a.filme.url_key];
-      var ib = orderMap[b.filme.url_key];
-      if (ia !== undefined && ib !== undefined) return ia - ib;
-      if (ia !== undefined) return -1;
-      if (ib !== undefined) return 1;
+      // Mesmo grupo: data de lançamento (tmdb release_date), mais recente primeiro
+      var da = (a.tmdb && a.tmdb.release_date) || (a.filme.tmdb_data && a.filme.tmdb_data.release_date) || '';
+      var db = (b.tmdb && b.tmdb.release_date) || (b.filme.tmdb_data && b.filme.tmdb_data.release_date) || '';
+      if (da && db) return da > db ? -1 : da < db ? 1 : 0;
+      if (da) return -1; // filmes com data vêm antes dos sem data
+      if (db) return 1;
       return 0;
     });
 

@@ -204,14 +204,14 @@ function renderTable() {
       vb = ord[(b.status || '').toLowerCase()] !== undefined ? ord[(b.status || '').toLowerCase()] : 3;
       return _sortDir === 'asc' ? va - vb : vb - va;
     }
-    // data (default)
-    va = a.created_at || '';
-    vb = b.created_at || '';
+    // data lançamento (tmdb_data.release_date), fallback created_at
+    va = (a.tmdb_data && a.tmdb_data.release_date) || a.created_at || '';
+    vb = (b.tmdb_data && b.tmdb_data.release_date) || b.created_at || '';
     return _sortDir === 'desc' ? (va > vb ? -1 : 1) : (va < vb ? -1 : 1);
   });
 
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>' +
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>' +
       (_filmes.length === 0
         ? 'Nenhum filme cadastrado ainda. Clique em "+ Adicionar filme" para começar.'
         : 'Nenhum filme encontrado com esses filtros.') +
@@ -242,6 +242,10 @@ function renderTable() {
       ? '<span title="Aguardando classificação de acessibilidade" style="display:inline-block;margin-left:4px;font-size:11px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:1px 5px;vertical-align:middle;cursor:default;">Pendente</span>'
       : '';
 
+    var releaseDate = (f.tmdb_data && f.tmdb_data.release_date)
+      ? new Date(f.tmdb_data.release_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '—';
+
     html +=
       '<tr>' +
         '<td>' +
@@ -251,6 +255,7 @@ function renderTable() {
         '<td>' + (f.app ? '<span class="app-badge">' + escHtml(f.app) + '</span>' : '<span style="color:var(--ink3);font-size:12px">—</span>') + '</td>' +
         '<td><div class="a11y-chips">' + a11yHtml + '</div></td>' +
         '<td><span class="status-badge ' + statusCls + '">' + escHtml(statusTxt) + '</span></td>' +
+        '<td style="font-size:12px;color:var(--ink3);white-space:nowrap;">' + releaseDate + '</td>' +
         '<td>' +
           '<div style="display:flex;gap:8px;">' +
             '<button class="btn btn-edit"   onclick="editFilme(\'' + f.id + '\')">Editar</button>' +
