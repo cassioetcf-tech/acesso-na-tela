@@ -271,7 +271,12 @@ function openModal(id) {
     }
 
     setSemA11y(!!(f.a11y && f.a11y.ad === false && f.a11y.lse === false && f.a11y.libras === false));
-    if (f.tmdb_data) showPreview(f.tmdb_data);
+    if (f.tmdb_data) {
+      showPreview(f.tmdb_data);
+    } else {
+      // Sem dados do TMDb — mostra alerta e campo de ID manual
+      _setTmdbAlert(true);
+    }
     var svEl = document.getElementById('f-sinopse-video');
     if (svEl) svEl.value = f.sinopse_video_id || '';
   } else {
@@ -296,12 +301,37 @@ function clearForm() {
   document.getElementById('f-status').value           = 'cartaz';
   document.getElementById('urlkey-preview').textContent = '—';
   document.getElementById('tmdb-preview').innerHTML   = '<div class="preview-loading">Digite o título para buscar dados do filme</div>';
+  var manualEl = document.getElementById('f-tmdb-id-manual');
+  if (manualEl) manualEl.value = '';
+  _setTmdbAlert(false);
   document.querySelectorAll('.app-option').forEach(function (el) {
     el.classList.remove('selected');
     var r = el.querySelector('input[type=radio]');
     if (r) r.checked = false;
   });
   setSemA11y(false);
+}
+
+function _setTmdbAlert(show) {
+  var alertField  = document.getElementById('tmdb-alert-field');
+  var manualField = document.getElementById('tmdb-id-manual-field');
+  if (alertField)  alertField.style.display  = show ? '' : 'none';
+  if (manualField) manualField.style.display = show ? '' : 'none';
+}
+
+async function onManualTmdbId() {
+  var raw = ((document.getElementById('f-tmdb-id-manual') || {}).value || '').trim();
+  var id  = parseInt(raw, 10);
+  if (!id) return;
+  var preview = document.getElementById('tmdb-preview');
+  if (preview) preview.innerHTML = '<div class="preview-loading">Buscando TMDb ID ' + id + '...</div>';
+  try {
+    var data = await getMovie(id);
+    if (data && data.id) { showPreview(data); _setTmdbAlert(false); }
+    else if (preview) preview.innerHTML = '<div class="preview-loading">ID não encontrado no TMDb</div>';
+  } catch (e) {
+    if (preview) preview.innerHTML = '<div class="preview-loading">Erro ao buscar ID no TMDb</div>';
+  }
 }
 
 function selectApp(name, el) {
@@ -396,15 +426,25 @@ async function saveFilme() {
   btn.disabled  = true;
 
   try {
-    // Busca TMDb: tenta match exato de título primeiro, depois resultado 1
-    var results  = await searchMovie(titulo);
-    var titleNrm = titulo.toLowerCase().trim();
-    var tmdbData = results.find(function (r) {
-      return (r.title || '').toLowerCase().trim() === titleNrm ||
-             (r.original_title || '').toLowerCase().trim() === titleNrm;
-    }) || (results[0] && results[0].poster_path ? results[0] : null);
+    var tmdbData = null;
 
-    // Se estamos editando e a busca não encontrou nada, preserva o tmdb_id já salvo
+    // 1. ID manual tem prioridade — busca direta pelo ID no TMDb
+    var manualId = parseInt(((document.getElementById('f-tmdb-id-manual') || {}).value || '').trim(), 10);
+    if (manualId) {
+      try { tmdbData = await getMovie(manualId); } catch (e) {}
+    }
+
+    // 2. Busca por título se não veio ID manual
+    if (!tmdbData) {
+      var results  = await searchMovie(titulo);
+      var titleNrm = titulo.toLowerCase().trim();
+      tmdbData = results.find(function (r) {
+        return (r.title || '').toLowerCase().trim() === titleNrm ||
+               (r.original_title || '').toLowerCase().trim() === titleNrm;
+      }) || (results[0] && results[0].poster_path ? results[0] : null);
+    }
+
+    // 3. Edição: preserva tmdb_id já existente se nenhuma das buscas acima encontrou
     var existingFilme = _editId ? _filmes.find(function (x) { return x.id === _editId; }) : null;
     if (!tmdbData && existingFilme && existingFilme.tmdb_id) {
       tmdbData = existingFilme.tmdb_data || { id: existingFilme.tmdb_id };
@@ -464,154 +504,6 @@ async function deleteFilme(id) {
   }
 }
 
-
-// ── TMDb Cleanup ──────────────────────────────────────────────────────────────
-async function runTmdbCleanup() {
-  var btn      = document.getElementById('btn-tmdb-scan');
-  var resultEl = document.getElementById('tmdb-cleanup-result');
-  btn.disabled    = true;
-  btn.textContent = 'Verificando...';
-  if (resultEl) resultEl.innerHTML = '<div style="padding:12px;font-size:13px;color:#64748b;">Verificando filmes no TMDb...</div>';
-
-  var semMatch = [];
-  for (var i = 0; i < _filmes.length; i++) {
-    var f = _filmes[i];
-    btn.textContent = 'Verificando ' + (i + 1) + '/' + _filmes.length + '...';
-    if (f.tmdb_id) continue;
-    try {
-      var results  = await searchMovie(f.titulo || '');
-      var titleNrm = (f.titulo || '').toLowerCase().trim();
-      var match    = results.find(function (r) {
-        return (r.title || '').toLowerCase().trim() === titleNrm ||
-               (r.original_title || '').toLowerCase().trim() === titleNrm;
-      });
-      if (!match && results[0] && results[0].popularity > 1 && results[0].poster_path) match = results[0];
-      if (!match) semMatch.push(f);
-    } catch (e) { semMatch.push(f); }
-  }
-
-  btn.disabled    = false;
-  btn.textContent = 'Verificar agora';
-
-  if (!semMatch.length) {
-    if (resultEl) resultEl.innerHTML = '<div style="padding:12px 14px;background:#f0fdf4;border-top:1px solid #bbf7d0;font-size:13px;color:#166534;">&#10003; Todos os filmes têm correspondência no TMDb.</div>';
-    return;
-  }
-
-  var allIds  = JSON.stringify(semMatch.map(function (f) { return f.id; }));
-  var listHtml = semMatch.map(function (f) {
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">' +
-      '<div><div style="font-size:13px;font-weight:600;color:#1e293b;">' + escHtml(f.titulo) + '</div>' +
-      '<div style="font-size:11px;font-family:monospace;color:#94a3b8;">' + escHtml(f.url_key || f.id) + ' · ' + escHtml(f.status || '') + '</div></div>' +
-      '<button onclick="excluirFilmeSemTmdb(\'' + f.id + '\', this)" style="font-size:12px;padding:5px 12px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-family:inherit;">Excluir</button>' +
-    '</div>';
-  }).join('');
-
-  if (resultEl) resultEl.innerHTML =
-    '<div style="padding:14px 16px;border-top:1px solid #e2e8f0;">' +
-    '<div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:12px;">&#9888; ' + semMatch.length + ' filme(s) sem match no TMDb:</div>' +
-    '<div style="max-height:280px;overflow-y:auto;">' + listHtml + '</div>' +
-    '<div style="margin-top:12px;display:flex;justify-content:flex-end;">' +
-    '<button onclick="excluirTodosSemTmdb(' + allIds + ', this)" style="font-size:13px;font-weight:700;padding:8px 18px;background:#dc2626;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;">Excluir todos (' + semMatch.length + ')</button>' +
-    '</div></div>';
-}
-
-async function excluirFilmeSemTmdb(id, btn) {
-  if (!confirm('Excluir este filme do Supabase?')) return;
-  btn.disabled    = true;
-  btn.textContent = 'Excluindo...';
-  try {
-    await supabaseDelete('filmes', 'id=eq.' + id);
-    btn.closest('div').parentElement.remove();
-    _filmes = _filmes.filter(function (f) { return f.id !== id; });
-    renderTable();
-    showToast('Filme removido.', 'success');
-  } catch (e) {
-    btn.disabled    = false;
-    btn.textContent = 'Excluir';
-    showToast('Erro: ' + e.message, 'error');
-  }
-}
-
-async function excluirTodosSemTmdb(ids, btn) {
-  if (!confirm('Excluir ' + ids.length + ' filmes sem match no TMDb? Esta ação não pode ser desfeita.')) return;
-  btn.disabled    = true;
-  btn.textContent = 'Excluindo...';
-  var erros = 0;
-  for (var i = 0; i < ids.length; i++) {
-    try {
-      await supabaseDelete('filmes', 'id=eq.' + ids[i]);
-      _filmes = _filmes.filter(function (f) { return f.id !== ids[i]; });
-    } catch (e) { erros++; }
-  }
-  renderTable();
-  showToast((ids.length - erros) + ' filmes removidos.', 'success');
-}
-
-// ── Corrigir TMDb em lote ─────────────────────────────────────────────────────
-async function runTmdbFix() {
-  var btn      = document.getElementById('btn-tmdb-fix');
-  var resultEl = document.getElementById('tmdb-cleanup-result');
-  btn.disabled    = true;
-  btn.textContent = 'Verificando...';
-  if (resultEl) resultEl.innerHTML = '<div style="padding:12px;font-size:13px;color:#64748b;">Buscando filmes sem tmdb_id...</div>';
-
-  var semId = _filmes.filter(function (f) { return !f.tmdb_id; });
-  if (!semId.length) {
-    btn.disabled    = false;
-    btn.textContent = '🔧 Corrigir TMDb';
-    if (resultEl) resultEl.innerHTML = '<div style="padding:12px 14px;background:#f0fdf4;border-top:1px solid #bbf7d0;font-size:13px;color:#166534;">&#10003; Todos os filmes já têm tmdb_id.</div>';
-    return;
-  }
-
-  var corrigidos = 0;
-  var semMatch   = [];
-
-  for (var i = 0; i < semId.length; i++) {
-    var f = semId[i];
-    btn.textContent = 'Corrigindo ' + (i + 1) + '/' + semId.length + '...';
-    try {
-      var results  = await searchMovie(f.titulo || '');
-      var titleNrm = (f.titulo || '').toLowerCase().trim();
-      var match    = results.find(function (r) {
-        return (r.title || '').toLowerCase().trim() === titleNrm ||
-               (r.original_title || '').toLowerCase().trim() === titleNrm;
-      });
-      if (!match && results[0] && results[0].popularity > 1 && results[0].poster_path) match = results[0];
-
-      if (match) {
-        await supabasePatch('filmes', 'id=eq.' + f.id, {
-          tmdb_id:   match.id,
-          tmdb_data: match,
-          updated_at: new Date().toISOString(),
-        });
-        // Atualiza cache local
-        var idx = _filmes.findIndex(function (x) { return x.id === f.id; });
-        if (idx > -1) { _filmes[idx].tmdb_id = match.id; _filmes[idx].tmdb_data = match; }
-        corrigidos++;
-      } else {
-        semMatch.push(f.titulo);
-      }
-    } catch (e) { semMatch.push(f.titulo); }
-  }
-
-  btn.disabled    = false;
-  btn.textContent = '🔧 Corrigir TMDb';
-  renderTable();
-  updateStats();
-
-  var html = '<div style="padding:14px 16px;border-top:1px solid #e2e8f0;">';
-  if (corrigidos > 0) {
-    html += '<div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:8px;">&#10003; ' + corrigidos + ' filme(s) corrigido(s) com tmdb_id.</div>';
-  }
-  if (semMatch.length > 0) {
-    html += '<div style="font-size:13px;font-weight:700;color:#854d0e;margin-bottom:6px;">&#9888; ' + semMatch.length + ' sem match no TMDb (precisam de revisão manual):</div>' +
-      '<div style="font-size:12px;color:#92400e;">' + semMatch.map(escHtml).join(', ') + '</div>';
-  }
-  html += '</div>';
-  if (resultEl) resultEl.innerHTML = html;
-  showToast(corrigidos + ' filmes com TMDb corrigido(s).', corrigidos > 0 ? 'success' : 'error');
-}
 
 // ── Sincronização automática de status ────────────────────────────────────────
 function toggleLog() {

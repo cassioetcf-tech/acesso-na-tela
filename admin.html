@@ -117,24 +117,6 @@
         </div>
       </div>
 
-      <!-- LIMPEZA TMDb -->
-      <div class="auto-panel" id="tmdb-cleanup-panel" style="margin-bottom:16px;">
-        <div class="auto-panel-header" style="margin-bottom:0;">
-          <div class="auto-panel-left">
-            <div class="auto-icon">🧹</div>
-            <div>
-              <div class="auto-title">Gerenciar filmes sem dados do TMDb</div>
-              <div class="auto-sub">Corrige ou remove filmes sem <code>tmdb_id</code> — filmes sem esse dado não aparecem no site público</div>
-            </div>
-          </div>
-          <div class="auto-right">
-            <button class="btn-auto" id="btn-tmdb-fix" onclick="runTmdbFix()" style="background:#0369a1;margin-right:8px;">🔧 Corrigir TMDb</button>
-            <button class="btn-auto" id="btn-tmdb-scan" onclick="runTmdbCleanup()" style="background:#dc2626;">🗑 Remover sem match</button>
-          </div>
-        </div>
-        <div id="tmdb-cleanup-result" style="margin-top:0;"></div>
-      </div>
-
       <!-- COMENTÁRIOS -->
       <div class="auto-panel" id="comentarios-panel" style="margin-bottom:16px;">
         <div class="auto-panel-header" style="margin-bottom:0;">
@@ -209,11 +191,29 @@
         <div class="field-hint">urlKey extraído: <strong id="urlkey-preview" style="color:var(--laranja)">—</strong></div>
       </div>
 
+      <div class="field" id="tmdb-alert-field" style="display:none;">
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;">
+          <span style="font-size:18px;line-height:1.3;">⚠️</span>
+          <div style="font-size:13px;color:#92400e;line-height:1.5;">
+            <strong>Filme sem dados do TMDb.</strong> O título pode ter uma pequena diferença de ortografia entre o Ingresso e o TMDb
+            (ex: vírgula vs. dois pontos). Busque o filme em
+            <a href="https://www.themoviedb.org/search" target="_blank" rel="noopener" style="color:#d97706;font-weight:600;">themoviedb.org</a>
+            e cole o ID abaixo para corrigir.
+          </div>
+        </div>
+      </div>
+
       <div class="field">
         <label>Preview TMDb</label>
         <div class="preview-wrap" id="tmdb-preview">
           <div class="preview-loading">Digite o título para buscar dados do filme</div>
         </div>
+      </div>
+
+      <div class="field" id="tmdb-id-manual-field" style="display:none;">
+        <label>ID do TMDb (manual)</label>
+        <input type="text" id="f-tmdb-id-manual" placeholder="Ex: 12345" oninput="onManualTmdbId()">
+        <div class="field-hint">Cole o ID numérico do TMDb para forçar o vínculo correto</div>
       </div>
 
       <div class="field">
