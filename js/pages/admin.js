@@ -293,8 +293,9 @@ function openModal(id) {
     if (f.tmdb_data) {
       showPreview(f.tmdb_data);
     } else {
-      // Sem dados do TMDb — mostra alerta e campo de ID manual
+      // Sem dados do TMDb — mostra alerta, campo de ID manual, e já busca automaticamente
       _setTmdbAlert(true);
+      setTimeout(fetchPreview, 200); // dispara busca com o título já preenchido
     }
     var svEl = document.getElementById('f-sinopse-video');
     if (svEl) svEl.value = f.sinopse_video_id || '';
@@ -391,6 +392,41 @@ function debouncePreview() {
   _previewTimer = setTimeout(fetchPreview, 800);
 }
 
+/**
+ * Busca o melhor match no TMDb em 3 níveis:
+ *  1. normT / normFuzzy exato
+ *  2. busca com título base (sem subtítulo após ":" ou " - ")
+ *  3. fallback: 1º resultado com poster (sem threshold de popularidade)
+ */
+async function searchMovieBest(titulo) {
+  if (!titulo || titulo.length < 2) return null;
+  try {
+    // Nível 1+2: busca pelo título completo + match exato/fuzzy
+    var r1 = await searchMovie(titulo);
+    var match = r1.find(function (r) {
+      return titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo);
+    });
+    if (match) return match;
+
+    // Nível 3: busca sem subtítulo (ex: "Título: Subtítulo" → "Título")
+    var base = titulo.replace(/\s*[:\-–—]\s*.+$/, '').trim();
+    if (base && base !== titulo && base.length >= 3) {
+      var r2 = await searchMovie(base);
+      match = r2.find(function (r) {
+        return titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo) ||
+               titlesMatch(r.title, base)   || titlesMatch(r.original_title, base);
+      });
+      if (match) return match;
+      // Fallback da busca base: 1º com poster (sem checar popularidade)
+      if (r2[0] && r2[0].poster_path) return r2[0];
+    }
+
+    // Fallback da busca original: 1º com poster
+    if (r1[0] && r1[0].poster_path) return r1[0];
+  } catch (e) {}
+  return null;
+}
+
 async function fetchPreview() {
   var title = (document.getElementById('f-titulo') || {}).value || '';
   title = title.trim();
@@ -400,12 +436,12 @@ async function fetchPreview() {
   if (preview) preview.innerHTML = '<div class="preview-loading">Buscando no TMDb...</div>';
 
   try {
-    var results = await searchMovie(title);
-    if (!results[0]) {
+    var result = await searchMovieBest(title);
+    if (!result) {
       if (preview) preview.innerHTML = '<div class="preview-loading">Filme não encontrado no TMDb</div>';
       return;
     }
-    showPreview(results[0]);
+    showPreview(result);
   } catch (e) {
     if (preview) preview.innerHTML = '<div class="preview-loading">Erro ao buscar no TMDb</div>';
   }
@@ -457,12 +493,9 @@ async function saveFilme() {
       try { tmdbData = await getMovie(manualId); } catch (e) {}
     }
 
-    // 2. Busca por título se não veio ID manual
+    // 2. Busca por título se não veio ID manual (3 níveis via searchMovieBest)
     if (!tmdbData) {
-      var results = await searchMovie(titulo);
-      tmdbData = results.find(function (r) {
-        return titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo);
-      }) || (results[0] && results[0].poster_path ? results[0] : null);
+      tmdbData = await searchMovieBest(titulo);
     }
 
     // 3. Edição: preserva tmdb_id já existente se nenhuma das buscas acima encontrou
@@ -725,11 +758,7 @@ async function runSync() {
       var sf = semDados[t];
       setProgress(50 + Math.round((t / semDados.length) * 22), 'TMDb ' + (t + 1) + '/' + semDados.length + ': ' + sf.titulo);
       try {
-        var tmdbR    = await searchMovie(sf.titulo);
-        var tmdbData = tmdbR.find(function (r) {
-          return titlesMatch(r.title, sf.titulo) || titlesMatch(r.original_title, sf.titulo);
-        });
-        if (!tmdbData && tmdbR[0] && tmdbR[0].popularity > 1 && tmdbR[0].poster_path) tmdbData = tmdbR[0];
+        var tmdbData = await searchMovieBest(sf.titulo);
 
         if (tmdbData) {
           await supabasePatch('filmes', 'id=eq.' + sf.id, { tmdb_id: tmdbData.id, tmdb_data: tmdbData, updated_at: now });

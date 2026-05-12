@@ -162,6 +162,34 @@ function titlesMatch(a, b) {
   return fa.length >= 4 && fa === fb;
 }
 
+/**
+ * Busca o melhor match no TMDb em 3 níveis:
+ *  1. normT/normFuzzy exato na lista de resultados
+ *  2. busca com título base (sem subtítulo após ":" ou " - ")
+ *  3. fallback: 1º resultado com poster (sem threshold de popularidade)
+ */
+async function searchMovieBest(titulo) {
+  if (!titulo || titulo.length < 2) return null;
+  try {
+    const r1    = await searchMovie(titulo);
+    const match = r1.find(r => titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo));
+    if (match) return match;
+
+    const base = titulo.replace(/\s*[:\-–—]\s*.+$/, '').trim();
+    if (base && base !== titulo && base.length >= 3) {
+      const r2 = await searchMovie(base);
+      const m2 = r2.find(r =>
+        titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo) ||
+        titlesMatch(r.title, base)   || titlesMatch(r.original_title, base)
+      );
+      if (m2) return m2;
+      if (r2[0] && r2[0].poster_path) return r2[0];
+    }
+    if (r1[0] && r1[0].poster_path) return r1[0];
+  } catch (e) {}
+  return null;
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 exports.handler = async function () {
@@ -299,11 +327,7 @@ exports.handler = async function () {
 
   for (const f of semDados) {
     try {
-      const results = await searchMovie(f.titulo || '');
-      let   match   = results.find(r =>
-        titlesMatch(r.title, f.titulo) || titlesMatch(r.original_title, f.titulo)
-      );
-      if (!match && results[0] && results[0].popularity > 1 && results[0].poster_path) match = results[0];
+      const match = await searchMovieBest(f.titulo || '');
 
       if (match) {
         await supaPatch(f.id, { tmdb_id: match.id, tmdb_data: match, updated_at: now });
