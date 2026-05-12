@@ -845,7 +845,11 @@ async function runSync() {
 
   try {
     var a11yResp = await fetch('/.netlify/functions/a11y-sources');
-    var a11yData = await a11yResp.json();
+    var a11yText = await a11yResp.text();
+    var a11yData = {};
+    try { a11yData = a11yText ? JSON.parse(a11yText) : {}; } catch (pe) {
+      addLog('err', '✕', 'Fase 3: resposta inválida da função (possível timeout) — ' + pe.message, null, null);
+    }
 
     var mrSet       = new Set((a11yData.moviereading || []).map(normT));
     var mloadSet    = new Set((a11yData.mload        || []).map(normT));
