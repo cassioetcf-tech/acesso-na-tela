@@ -464,156 +464,6 @@ async function deleteFilme(id) {
   }
 }
 
-// ── Descobrir filmes novos (auto-discovery) ───────────────────────────────────
-// Busca filmes no TMDb now_playing?region=BR, verifica cada um no Ingresso.com,
-// e insere automaticamente os confirmados com app_status='pendente'.
-// Sem seleção manual — totalmente automático.
-
-function _titleToUrlKey(title) {
-  return (title || '')
-    .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
-}
-
-async function runDiscovery() {
-  var btn      = document.getElementById('btn-discovery');
-  var progress = document.getElementById('auto-progress');
-  var summary  = document.getElementById('auto-summary');
-
-  _syncLog = [];
-  _logOpen = true;
-
-  btn.disabled  = true;
-  btn.innerHTML = '<span class="spinner"></span> Buscando...';
-  if (progress) progress.classList.add('open');
-  if (summary)  summary.classList.remove('open');
-
-  var logEl  = document.getElementById('auto-log');
-  var header = document.getElementById('auto-header');
-  var togBtn = document.getElementById('btn-toggle-log');
-  if (logEl)  logEl.classList.add('open');
-  if (header) header.classList.add('open');
-  if (togBtn) togBtn.style.display = 'none';
-  renderLog();
-
-  var discovered = 0;
-  var skipped    = 0;
-  var errors     = 0;
-
-  try {
-    // ── 1. Busca TMDb now_playing?region=BR ──────────────────────────────────
-    setProgress(5, 'Buscando filmes no TMDb...');
-    var data  = await getNowPlaying();
-    var lista = Array.isArray(data) ? data : [];
-
-    if (!lista.length) throw new Error('TMDb não retornou filmes.');
-    addLog('ok', '🎬', 'TMDb retornou <strong>' + lista.length + '</strong> filmes em cartaz no Brasil', null, null);
-
-    // ── 2. Filtra novos (não cadastrados ainda) ──────────────────────────────
-    var keysExistentes = new Set(_filmes.map(function (f) { return f.url_key; }).filter(Boolean));
-    var novos = lista.filter(function (f) {
-      return f.urlKey && f.title && !keysExistentes.has(f.urlKey);
-    });
-
-    if (!novos.length) {
-      addLog('ok', '✓', 'Nenhum filme novo — banco já está atualizado', null, null);
-      setProgress(100, 'Concluído.');
-      if (summary) { summary.classList.add('open'); summary.textContent = 'Nenhum filme novo encontrado.'; }
-      if (progress) progress.classList.remove('open');
-      if (togBtn)   togBtn.style.display = '';
-      btn.disabled  = false;
-      btn.innerHTML = '🔍 Descobrir filmes novos';
-      return;
-    }
-
-    addLog('ok', '🆕', '<strong>' + novos.length + '</strong> filme(s) não cadastrado(s) — verificando no Ingresso.com...', null, null);
-
-    // ── 3. Verifica cada novo filme no Ingresso (lotes de 8) ─────────────────
-    var BATCH = 8;
-    var now   = new Date().toISOString();
-
-    for (var i = 0; i < novos.length; i += BATCH) {
-      var pct   = 10 + Math.round((i / novos.length) * 75);
-      setProgress(pct, 'Ingresso ' + Math.min(i + BATCH, novos.length) + '/' + novos.length + '...');
-
-      var batch   = novos.slice(i, i + BATCH);
-      var results = await Promise.all(batch.map(function (f) {
-        return getEventId(f.urlKey)
-          .then(function (d) { return (d && d.id) ? d.id : null; })
-          .catch(function ()  { return null; });
-      }));
-
-      for (var j = 0; j < batch.length; j++) {
-        var f       = batch[j];
-        var eventId = results[j];
-
-        if (!eventId) {
-          addLog('skip', '—', escHtml(f.title) + ' <span style="color:#94a3b8;font-size:11px;">não encontrado no Ingresso</span>', null, null);
-          skipped++;
-          continue;
-        }
-
-        // ── 4. Enriquece com TMDb e salva ────────────────────────────────────
-        var tmdbData = null;
-        try {
-          var tmdbResults = await searchMovie(f.title);
-          var titleNrm    = f.title.toLowerCase().trim();
-          tmdbData = tmdbResults.find(function (r) {
-            return (r.title || '').toLowerCase().trim() === titleNrm ||
-                   (r.original_title || '').toLowerCase().trim() === titleNrm;
-          });
-          if (!tmdbData && tmdbResults[0] && tmdbResults[0].popularity > 1 && tmdbResults[0].poster_path) {
-            tmdbData = tmdbResults[0];
-          }
-        } catch (e) { /* sem TMDb, tudo bem */ }
-
-        try {
-          var novoFilme = {
-            id:           'film_' + f.urlKey,
-            titulo:       f.title,
-            url_key:      f.urlKey,
-            ingresso_url: 'https://www.ingresso.com/filme/' + f.urlKey,
-            status:       'CARTAZ',
-            app_status:   'pendente',
-            app:          null,
-            a11y:         { ad: false, lse: false, libras: false },
-            tmdb_id:      tmdbData ? tmdbData.id   : null,
-            tmdb_data:    tmdbData ? tmdbData       : null,
-            created_at:   now,
-            updated_at:   now,
-          };
-          await supabasePost('filmes', novoFilme, 'resolution=ignore-duplicates,return=minimal');
-          addLog('ok', '✓', '<strong>' + escHtml(f.title) + '</strong> adicionado à triagem', 'Novo', 'tag-cartaz');
-          discovered++;
-        } catch (e) {
-          addLog('err', '✕', escHtml(f.title) + ' — erro ao salvar: ' + e.message, null, null);
-          errors++;
-        }
-      }
-    }
-  } catch (e) {
-    addLog('err', '✕', 'Erro: ' + e.message, null, null);
-    errors++;
-  }
-
-  setProgress(100, 'Concluído.');
-  btn.disabled  = false;
-  btn.innerHTML = '🔍 Descobrir filmes novos';
-  if (progress) progress.classList.remove('open');
-  if (togBtn)   togBtn.style.display = '';
-
-  var summaryText = discovered + ' filme(s) novo(s) adicionado(s)' +
-    (skipped  > 0 ? ' · ' + skipped  + ' não encontrado(s) no Ingresso' : '') +
-    (errors   > 0 ? ' · ' + errors   + ' erro(s)' : '');
-  if (summary) { summary.classList.add('open'); summary.textContent = summaryText; }
-
-  await loadFilmes(); // recarrega tabela e fila de triagem
-  showToast(discovered > 0 ? discovered + ' filme(s) novo(s) na fila de triagem!' : 'Nenhum filme novo.', discovered > 0 ? 'success' : null);
-}
 
 // ── TMDb Cleanup ──────────────────────────────────────────────────────────────
 async function runTmdbCleanup() {
@@ -822,9 +672,13 @@ async function _checkFilmHasSessions(urlKey) {
   return false;
 }
 
+// ── Sincronização completa ────────────────────────────────────────────────────
+// FASE 1 — Descoberta: busca filmes novos no TMDb, verifica no Ingresso, insere.
+// FASE 2 — Status: checa sessões dos filmes em cartaz/breve, atualiza status.
+// Equivalente ao que roda automaticamente às 6h UTC (sync-status.js).
+
 async function runSync() {
   var btn      = document.getElementById('btn-sync');
-  var btnDisc  = document.getElementById('btn-discovery');
   var progress = document.getElementById('auto-progress');
   var summary  = document.getElementById('auto-summary');
 
@@ -832,10 +686,10 @@ async function runSync() {
   _logOpen = true;
 
   btn.disabled  = true;
-  btn.innerHTML = '<span class="spinner"></span> Verificando...';
-  if (btnDisc) btnDisc.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Sincronizando...';
   if (progress) progress.classList.add('open');
   if (summary)  summary.classList.remove('open');
+
   var logEl  = document.getElementById('auto-log');
   var header = document.getElementById('auto-header');
   var togBtn = document.getElementById('btn-toggle-log');
@@ -844,78 +698,157 @@ async function runSync() {
   if (togBtn) togBtn.style.display = 'none';
   renderLog();
 
+  var discovered = 0;
+  var changed    = 0;
+  var errors     = 0;
+  var now        = new Date().toISOString();
+  var BATCH      = 8;
+
+  // ── FASE 1: Descoberta ───────────────────────────────────────────────────────
+  addLog('ok', '🔍', '<strong>Fase 1</strong> — Descobrindo filmes novos', null, null);
+
+  try {
+    setProgress(3, 'Buscando filmes no TMDb...');
+    var data  = await getNowPlaying();
+    var lista = Array.isArray(data) ? data : [];
+
+    if (!lista.length) throw new Error('TMDb não retornou filmes.');
+    addLog('ok', '🎬', 'TMDb: <strong>' + lista.length + '</strong> filmes em cartaz no Brasil', null, null);
+
+    var keysExistentes = new Set(_filmes.map(function (f) { return f.url_key; }).filter(Boolean));
+    var novos = lista.filter(function (f) {
+      return f.urlKey && f.title && !keysExistentes.has(f.urlKey);
+    });
+
+    if (!novos.length) {
+      addLog('ok', '✓', 'Nenhum filme novo para adicionar', null, null);
+    } else {
+      addLog('ok', '🆕', '<strong>' + novos.length + '</strong> novo(s) — verificando no Ingresso...', null, null);
+
+      for (var i = 0; i < novos.length; i += BATCH) {
+        setProgress(5 + Math.round((i / novos.length) * 35), 'Verificando Ingresso ' + Math.min(i + BATCH, novos.length) + '/' + novos.length + '...');
+        var batch   = novos.slice(i, i + BATCH);
+        var ingResults = await Promise.all(batch.map(function (f) {
+          return getEventId(f.urlKey)
+            .then(function (d) { return (d && d.id) ? d.id : null; })
+            .catch(function ()  { return null; });
+        }));
+
+        for (var j = 0; j < batch.length; j++) {
+          var nf      = batch[j];
+          var eventId = ingResults[j];
+
+          if (!eventId) {
+            addLog('skip', '—', escHtml(nf.title) + ' <span style="color:#94a3b8;font-size:11px;">não encontrado no Ingresso</span>', null, null);
+            continue;
+          }
+
+          var tmdbData = null;
+          try {
+            var tmdbR    = await searchMovie(nf.title);
+            var titleNrm = nf.title.toLowerCase().trim();
+            tmdbData = tmdbR.find(function (r) {
+              return (r.title || '').toLowerCase().trim() === titleNrm ||
+                     (r.original_title || '').toLowerCase().trim() === titleNrm;
+            });
+            if (!tmdbData && tmdbR[0] && tmdbR[0].popularity > 1 && tmdbR[0].poster_path) tmdbData = tmdbR[0];
+          } catch (e) { /* sem TMDb, ok */ }
+
+          try {
+            await supabasePost('filmes', {
+              id:           'film_' + nf.urlKey,
+              titulo:       nf.title,
+              url_key:      nf.urlKey,
+              ingresso_url: 'https://www.ingresso.com/filme/' + nf.urlKey,
+              status:       'CARTAZ',
+              app_status:   'pendente',
+              app:          null,
+              a11y:         { ad: false, lse: false, libras: false },
+              tmdb_id:      tmdbData ? tmdbData.id : null,
+              tmdb_data:    tmdbData || null,
+              created_at:   now,
+              updated_at:   now,
+            }, 'resolution=ignore-duplicates,return=minimal');
+            addLog('ok', '✓', '<strong>' + escHtml(nf.title) + '</strong> adicionado à triagem', 'Novo', 'tag-cartaz');
+            discovered++;
+          } catch (e) {
+            addLog('err', '✕', escHtml(nf.title) + ' — ' + e.message, null, null);
+            errors++;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    addLog('err', '✕', 'Fase 1 erro: ' + e.message, null, null);
+    errors++;
+  }
+
+  // Recarrega filmes para Fase 2 ter a lista atualizada
+  try { _filmes = await supabaseGet('filmes', 'order=created_at.desc&limit=500'); } catch (e) { /* continua */ }
+
+  // ── FASE 2: Verificação de status ────────────────────────────────────────────
+  addLog('ok', '🎟️', '<strong>Fase 2</strong> — Verificando sessões', null, null);
+
   var toCheck = _filmes.filter(function (f) {
     var s = (f.status || '').toLowerCase();
     return (s === 'cartaz' || s === 'breve') && f.url_key;
   });
 
-  _filmes.filter(function (f) {
-    var s = (f.status || '').toLowerCase();
-    return (s === 'cartaz' || s === 'breve') && !f.url_key;
-  }).forEach(function (f) {
-    addLog('skip', '&#9888;', '<strong>' + escHtml(f.titulo) + '</strong> — sem URL Ingresso, ignorado', null, null);
-  });
-
   if (!toCheck.length) {
-    setProgress(100, 'Nenhum filme para verificar.');
-    btn.disabled  = false;
-    btn.innerHTML = '&#9654; Sincronizar agora';
-    if (summary)  { summary.classList.add('open'); summary.textContent = 'Nenhum filme em cartaz ou em breve com URL Ingresso.'; }
-    if (progress) progress.classList.remove('open');
-    if (togBtn)   togBtn.style.display = '';
-    return;
-  }
+    addLog('ok', '✓', 'Nenhum filme em cartaz/breve para verificar', null, null);
+  } else {
+    for (var k = 0; k < toCheck.length; k++) {
+      var cf = toCheck[k];
+      setProgress(40 + Math.round((k / toCheck.length) * 58), 'Sessões ' + (k + 1) + '/' + toCheck.length + ': ' + cf.titulo);
 
-  var changed = 0;
-  var errors  = 0;
+      var currentStatus = (cf.status || '').toLowerCase();
+      var hasSessions   = false;
 
-  for (var i = 0; i < toCheck.length; i++) {
-    var f = toCheck[i];
-    setProgress(Math.round((i / toCheck.length) * 100), 'Verificando ' + (i + 1) + ' de ' + toCheck.length + ': ' + f.titulo);
-
-    var currentStatus = (f.status || '').toLowerCase();
-    var hasSessions   = false;
-
-    try {
-      hasSessions = await _checkFilmHasSessions(f.url_key);
-    } catch (e) {
-      addLog('err', '&#10060;', '<strong>' + escHtml(f.titulo) + '</strong> — erro ao consultar Ingresso: ' + e.message, null, null);
-      errors++;
-      continue;
-    }
-
-    var newStatus = null;
-    if (currentStatus === 'cartaz' && !hasSessions) newStatus = 'CATALOGO';
-    else if (currentStatus === 'breve' && hasSessions)  newStatus = 'CARTAZ';
-
-    if (newStatus) {
       try {
-        await supabasePatch('filmes', 'id=eq.' + f.id, { status: newStatus, updated_at: new Date().toISOString() });
-        var oldLabel = currentStatus === 'cartaz' ? 'Em cartaz' : 'Em breve';
-        var newLabel = newStatus === 'CATALOGO'   ? 'Catálogo'  : 'Em cartaz';
-        addLog('ok', '&#10003;', '<strong>' + escHtml(f.titulo) + '</strong> — ' + oldLabel + ' &#8594; ' + newLabel, newLabel, 'tag-' + newStatus.toLowerCase());
-        changed++;
-        f.status = newStatus;
+        hasSessions = await _checkFilmHasSessions(cf.url_key);
       } catch (e) {
-        addLog('err', '&#10060;', '<strong>' + escHtml(f.titulo) + '</strong> — erro ao atualizar: ' + e.message, null, null);
+        addLog('err', '✕', '<strong>' + escHtml(cf.titulo) + '</strong> — erro: ' + e.message, null, null);
         errors++;
+        continue;
       }
-    } else {
-      addLog('ok', '&#10003;', '<strong>' + escHtml(f.titulo) + '</strong> — status correto, sem alteração', null, null);
+
+      var newStatus = null;
+      if (currentStatus === 'cartaz' && !hasSessions) newStatus = 'CATALOGO';
+      else if (currentStatus === 'breve' && hasSessions) newStatus = 'CARTAZ';
+
+      if (newStatus) {
+        try {
+          await supabasePatch('filmes', 'id=eq.' + cf.id, { status: newStatus, updated_at: now });
+          var oldLbl = currentStatus === 'cartaz' ? 'Em cartaz' : 'Em breve';
+          var newLbl = newStatus === 'CATALOGO'   ? 'Catálogo'  : 'Em cartaz';
+          addLog('ok', '→', '<strong>' + escHtml(cf.titulo) + '</strong> — ' + oldLbl + ' → ' + newLbl, newLbl, 'tag-' + newStatus.toLowerCase());
+          changed++;
+          cf.status = newStatus;
+        } catch (e) {
+          addLog('err', '✕', '<strong>' + escHtml(cf.titulo) + '</strong> — erro ao atualizar: ' + e.message, null, null);
+          errors++;
+        }
+      }
     }
   }
 
+  // ── Finaliza ─────────────────────────────────────────────────────────────────
   setProgress(100, 'Concluído.');
   btn.disabled  = false;
-  btn.innerHTML = '&#9654; Verificar sessões';
-  if (btnDisc) btnDisc.disabled = false;
-  if (summary)  { summary.classList.add('open'); summary.textContent = changed + ' alteração(ões) · ' + errors + ' erro(s).'; }
+  btn.innerHTML = '🔄 Sincronizar';
   if (progress) progress.classList.remove('open');
   if (togBtn)   togBtn.style.display = '';
 
-  renderTable();
-  updateStats();
-  showToast('Verificação concluída: ' + changed + ' atualização(ões).', 'success');
+  var summaryParts = [];
+  if (discovered > 0) summaryParts.push(discovered + ' novo(s) adicionado(s)');
+  if (changed    > 0) summaryParts.push(changed    + ' status atualizado(s)');
+  if (errors     > 0) summaryParts.push(errors     + ' erro(s)');
+  if (!summaryParts.length) summaryParts.push('Tudo em dia — nenhuma alteração necessária');
+
+  if (summary) { summary.classList.add('open'); summary.textContent = summaryParts.join(' · '); }
+
+  await loadFilmes();
+  showToast(summaryParts[0], discovered > 0 || changed > 0 ? 'success' : null);
 }
 
 // ── Moderação de comentários ──────────────────────────────────────────────────
