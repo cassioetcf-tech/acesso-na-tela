@@ -25,16 +25,31 @@
 
       <section class="hero" aria-labelledby="hero-h1">
         <div class="hero-inner">
-          <h1 id="hero-h1">Nada sobre nós, sem nós.</h1>
-          <div class="hero-body">
-            <p>Aqui você encontra os aplicativos de acessibilidade disponíveis para filmes nos cinemas, as sessões acessíveis e as plataformas de streaming para onde esses filmes foram depois da exibição nas salas.</p>
-            <p>Este também é um espaço para comentar sobre os filmes, avaliar a qualidade dos recursos de acessibilidade — audiodescrição, legendas e LIBRAS — e compartilhar sua experiência com os aplicativos e os cinemas.</p>
+          <div class="hero-left">
+            <h1 id="hero-h1">Nada sobre nós, sem nós.</h1>
+            <div class="hero-body">
+              <p>Aqui você encontra os aplicativos de acessibilidade disponíveis para filmes nos cinemas, as sessões acessíveis e as plataformas de streaming para onde esses filmes foram depois da exibição nas salas.</p>
+              <p>Este também é um espaço para comentar sobre os filmes, avaliar a qualidade dos recursos de acessibilidade — audiodescrição, legendas e LIBRAS — e compartilhar sua experiência com os aplicativos e os cinemas.</p>
+            </div>
+            <div class="search-wrap" role="search">
+              <label for="s-inp" class="sr-only">Buscar filme, cinema ou cidade</label>
+              <input class="search-input" type="search" id="s-inp" placeholder="Buscar filme, cinema ou cidade..." autocomplete="off" oninput="doSearch(this.value)">
+              <button class="search-btn" onclick="doSearch(document.getElementById('s-inp').value)" aria-label="Buscar">Buscar</button>
+            </div>
           </div>
-          <div class="search-wrap" role="search">
-            <label for="s-inp" class="sr-only">Buscar filme, cinema ou cidade</label>
-            <input class="search-input" type="search" id="s-inp" placeholder="Buscar filme, cinema ou cidade..." autocomplete="off" oninput="doSearch(this.value)">
-            <button class="search-btn" onclick="doSearch(document.getElementById('s-inp').value)" aria-label="Buscar">Buscar</button>
-          </div>
+          <aside class="hero-cadastro" aria-label="Fique por dentro">
+            <div class="hero-cadastro-title">Fique por dentro</div>
+            <form name="cadastro" class="hero-cadastro-form" method="POST" data-netlify="true" netlify-honeypot="bot-field" onsubmit="heroFormSubmit(event)">
+              <input type="hidden" name="form-name" value="cadastro">
+              <input type="hidden" name="bot-field">
+              <label for="cad-email" class="sr-only">E-mail</label>
+              <input type="email" id="cad-email" name="email" class="cad-input" placeholder="Seu e-mail" required autocomplete="email">
+              <label for="cad-cel" class="sr-only">Celular</label>
+              <input type="tel" id="cad-cel" name="celular" class="cad-input" placeholder="Seu celular" autocomplete="tel">
+              <button type="submit" class="cad-btn">Cadastrar</button>
+              <p class="cad-feedback" id="cad-feedback" aria-live="polite"></p>
+            </form>
+          </aside>
         </div>
       </section>
 

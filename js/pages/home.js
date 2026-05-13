@@ -2,6 +2,33 @@
 // Depende de: js/api/supabase.js, js/api/tmdb.js, js/components/film-card.js,
 //             js/utils.js (escHtml)
 
+// ── Formulários de cadastro (Netlify Forms) ───────────────────────────────────
+async function _submitCadastro(formEl, feedbackId) {
+  var feedback = document.getElementById(feedbackId);
+  var btn      = formEl.querySelector('button[type=submit]');
+  var data     = new FormData(formEl);
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  if (feedback) feedback.textContent = '';
+
+  try {
+    var resp = await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(data).toString() });
+    if (resp.ok) {
+      if (feedback) feedback.textContent = '✓ Cadastrado com sucesso!';
+      formEl.reset();
+    } else {
+      if (feedback) feedback.textContent = 'Erro ao enviar. Tente novamente.';
+    }
+  } catch (e) {
+    if (feedback) feedback.textContent = 'Erro ao enviar. Tente novamente.';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar'; }
+  }
+}
+
+function heroFormSubmit(e)   { e.preventDefault(); _submitCadastro(e.target, 'cad-feedback'); }
+function footerFormSubmit(e) { e.preventDefault(); _submitCadastro(e.target, 'fcad-feedback'); }
+
 var _allCards = []; // { el, acessivel: bool }
 
 // ── Legenda ───────────────────────────────────────────────────────────────────

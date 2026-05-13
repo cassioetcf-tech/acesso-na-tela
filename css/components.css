@@ -397,12 +397,31 @@ a.film-card-link:hover .film-poster img { transform: scale(1.04); }
 .empty-state p  { font-size: 13px; margin-top: 8px; }
 
 /* ── FOOTER ── */
-footer { background: var(--bg2); border-top: 1px solid var(--bdr); padding: 22px 28px; text-align: center; font-size: 12px; color: var(--ink3); }
+footer { background: var(--bg2); border-top: 1px solid var(--bdr); padding: 28px 28px 22px; font-size: 12px; color: var(--ink3); }
 footer a { color: var(--laranja); text-decoration: none; font-weight: 600; }
 footer a:hover { text-decoration: underline; }
 footer strong { color: var(--ink2); font-weight: 700; }
-footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 10px; }
 footer p { margin: 4px 0; }
+.footer-inner { display: grid; grid-template-columns: 1fr 220px; gap: 32px; align-items: center; max-width: 900px; margin: 0 auto; }
+@media (max-width: 600px) { .footer-inner { grid-template-columns: 1fr; } }
+.footer-info nav { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 10px; }
+.footer-cad-title { font-size: 11px; font-weight: 800; color: var(--laranja); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+.footer-cad-form { display: flex; flex-direction: column; gap: 6px; }
+.fcad-input {
+  width: 100%; box-sizing: border-box;
+  background: var(--bg); border: 1.5px solid var(--bdr);
+  border-radius: var(--r-sm); padding: 8px 10px;
+  font-size: 12px; font-family: inherit; color: var(--ink);
+}
+.fcad-input:focus { outline: 2px solid var(--laranja); border-color: var(--laranja); }
+.fcad-input::placeholder { color: var(--ink3); }
+.fcad-btn {
+  background: var(--laranja); color: #fff; border: none;
+  border-radius: var(--r-sm); padding: 9px;
+  font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.fcad-btn:hover { opacity: 0.88; }
+.fcad-feedback { font-size: 11px; color: var(--laranja); margin: 2px 0 0; min-height: 16px; }
 
 /* ── HEADER RESPONSIVE ── */
 @media (max-width: 640px) {
