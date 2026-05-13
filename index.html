@@ -25,19 +25,17 @@
 
       <section class="hero" aria-labelledby="hero-h1">
         <div class="hero-inner">
-          <div class="hero-left">
-            <h1 id="hero-h1">Cinema acessível<br>para <span class="hl">toda</span> pessoa</h1>
-            <p>Encontre filmes acessíveis perto de você — com audiodescrição, legenda para surdos e Libras.</p>
-            <div class="search-wrap" role="search">
-              <label for="s-inp" class="sr-only">Buscar filme, cinema ou cidade</label>
-              <input class="search-input" type="search" id="s-inp" placeholder="Buscar filme, cinema ou cidade..." autocomplete="off" oninput="doSearch(this.value)">
-              <button class="search-btn" onclick="doSearch(document.getElementById('s-inp').value)" aria-label="Buscar">Buscar</button>
-            </div>
+          <h1 id="hero-h1">Cinema acessível<br>para <span class="hl">toda</span> pessoa</h1>
+          <div class="hero-body">
+            <p>Aqui você encontra os aplicativos de acessibilidade disponíveis para filmes nos cinemas, as sessões acessíveis e as plataformas de streaming para onde esses filmes foram depois da exibição nas salas.</p>
+            <p>Este também é um espaço para comentar sobre os filmes, avaliar a qualidade dos recursos de acessibilidade — audiodescrição, legendas e LIBRAS — e compartilhar sua experiência com os aplicativos e os cinemas.</p>
+            <p class="hero-quote">"Nada sobre nós, sem nós."</p>
           </div>
-          <aside class="hero-como" aria-label="Como funciona">
-            <div class="hero-como-title">Como funciona</div>
-            <p class="hero-como-text">Pesquise um filme ou cidade e veja onde passa com acessibilidade, qual app usar no cinema e quando chega no streaming.</p>
-          </aside>
+          <div class="search-wrap" role="search">
+            <label for="s-inp" class="sr-only">Buscar filme, cinema ou cidade</label>
+            <input class="search-input" type="search" id="s-inp" placeholder="Buscar filme, cinema ou cidade..." autocomplete="off" oninput="doSearch(this.value)">
+            <button class="search-btn" onclick="doSearch(document.getElementById('s-inp').value)" aria-label="Buscar">Buscar</button>
+          </div>
         </div>
       </section>
 

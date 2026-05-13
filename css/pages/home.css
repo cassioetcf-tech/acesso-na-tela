@@ -8,60 +8,43 @@
 /* ── HERO ── */
 .hero { background: var(--laranja); padding: 48px 28px 52px; }
 .hero-inner {
-  display: grid;
-  grid-template-columns: 1fr 260px;
-  gap: 32px;
-  align-items: start;
-}
-@media (max-width: 720px) {
-  .hero-inner { grid-template-columns: 1fr; }
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 680px;
 }
 .hero h1 {
   font-family: 'Inter', sans-serif;
-  font-size: clamp(28px, 5vw, 44px);
+  font-size: clamp(26px, 4.5vw, 40px);
   font-weight: 800; color: #fff; line-height: 1.05;
-  margin-bottom: 14px; letter-spacing: -1px;
+  margin-bottom: 22px; letter-spacing: -1px;
 }
 .hero h1 .hl { color: #FFE5B0; }
-.hero p { font-size: 16px; color: #fff; line-height: 1.65; max-width: 520px; margin-bottom: 30px; font-weight: 400; }
-
-/* ── HERO COMO FUNCIONA BOX ── */
-.hero-como {
-  background: rgba(255,255,255,0.13);
-  border: 1.5px solid rgba(255,255,255,0.28);
-  border-radius: var(--r);
-  padding: 20px 22px;
-  margin-top: 6px;
-  align-self: center;
+.hero-body { margin-bottom: 28px; }
+.hero-body p {
+  font-size: 16px; color: rgba(255,255,255,0.93);
+  line-height: 1.7; margin-bottom: 14px; font-weight: 400;
 }
-.hero-como-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: #FFE5B0;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 10px;
-}
-.hero-como-text {
-  font-size: 13px;
-  color: rgba(255,255,255,0.85);
-  line-height: 1.65;
+.hero-body p:last-child { margin-bottom: 0; }
+.hero-quote {
+  font-size: 16px; font-style: italic; font-weight: 600;
+  color: #FFE5B0; margin-top: 18px !important;
 }
 
 /* ── SEARCH ── */
-.search-wrap { display: flex; gap: 8px; max-width: 600px; flex-wrap: wrap; }
+.search-wrap { display: flex; gap: 8px; max-width: 480px; flex-wrap: wrap; }
 .search-input {
-  flex: 1; min-width: 200px;
-  background: #fff; border: 3px solid #fff; border-radius: var(--r-sm);
-  padding: 13px 16px; font-size: 15px; font-family: inherit; color: var(--ink);
+  flex: 1; min-width: 180px;
+  background: #fff; border: 2px solid #fff; border-radius: var(--r-sm);
+  padding: 10px 14px; font-size: 14px; font-family: inherit; color: var(--ink);
   font-weight: 500;
 }
 .search-input:focus { outline: 3px solid #FFD600; outline-offset: 2px; border-color: #FFD600; }
 .search-input::placeholder { color: #999; }
 .search-btn {
   background: #1A1A1A; color: #fff; border: none;
-  border-radius: var(--r-sm); padding: 13px 24px;
-  font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+  border-radius: var(--r-sm); padding: 10px 20px;
+  font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
   letter-spacing: 0.1px;
 }
 .search-btn:hover { background: #333; }
