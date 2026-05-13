@@ -483,7 +483,6 @@ async function initComentarios(urlKey) {
     var rows = await supabaseGet(
       'comentarios',
       'filme_url_key=eq.' + encodeURIComponent(urlKey) +
-      '&or=(aprovado.is.null,aprovado.eq.true)' +
       '&order=created_at.desc&limit=50'
     );
     _renderComentarios(rows || []);
