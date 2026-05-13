@@ -816,21 +816,31 @@ async function runSync() {
     var mrFuzzy       = new Set((a11yData.moviereading || []).map(normFuzzy));
     var mloadFuzzy    = new Set((a11yData.mload        || []).map(normFuzzy));
     var pingplayFuzzy = new Set((a11yData.pingplay     || []).map(normFuzzy));
-    // PingPlay: mapa por ingresso_url para match exato (mais confiável que normalização de título)
-    var ppDetails     = a11yData.pingplay_details || [];
-    var ppByUrl       = {};
-    var ppByNorm      = {};
+
+    // MLOAD: mapa por título normalizado para dados ricos (AD/Libras/SRT)
+    var mlDetails = a11yData.mload_details || [];
+    var mlByNorm  = {};
+    mlDetails.forEach(function (d) {
+      mlByNorm[normT(d.name)]    = d;
+      mlByNorm[normFuzzy(d.name)] = d;
+    });
+
+    // PingPlay: mapa por ingresso_url (match exato) + título normalizado (fallback)
+    var ppDetails = a11yData.pingplay_details || [];
+    var ppByUrl   = {};
+    var ppByNorm  = {};
     ppDetails.forEach(function (d) {
       if (d.ingressoUrl) ppByUrl[d.ingressoUrl] = d;
-      ppByNorm[normT(d.name)] = d;
+      ppByNorm[normT(d.name)]    = d;
       ppByNorm[normFuzzy(d.name)] = d;
     });
 
     addLog('ok', '📋',
       'MovieReading: <strong>' + mrSet.size + '</strong> · ' +
-      'MLOAD: <strong>' + mloadSet.size + '</strong> · ' +
-      'PingPlay: <strong>' + pingplaySet.size + '</strong> títulos' +
-      (ppDetails.length ? ' (API ✓, ' + ppDetails.filter(function(d){return d.ad;}).length + ' AD · ' + ppDetails.filter(function(d){return d.libras;}).length + ' Libras)' : ''),
+      'MLOAD: <strong>' + mloadSet.size + '</strong>' +
+      (mlDetails.length ? ' (API ✓)' : '') + ' · ' +
+      'PingPlay: <strong>' + pingplaySet.size + '</strong>' +
+      (ppDetails.length ? ' (API ✓)' : '') + ' títulos',
       null, null);
 
     var pendentes = _filmes.filter(function (f) { return _getAppStatusAdmin(f) === 'pendente'; });
@@ -841,37 +851,39 @@ async function runSync() {
       var norm  = normT(pf.titulo);
       var fuzzy = normFuzzy(pf.titulo);
       var app   = null;
-      var ppDet = null;
+      var appDet = null;
 
       if (mrSet.has(norm) || (fuzzy.length >= 4 && mrFuzzy.has(fuzzy))) {
         app = 'MovieReading';
       } else if (mloadSet.has(norm) || (fuzzy.length >= 4 && mloadFuzzy.has(fuzzy))) {
-        app = 'MLOAD';
+        app    = 'MLOAD';
+        appDet = mlByNorm[norm] || mlByNorm[fuzzy] || null;
       } else if (
-        // PingPlay: tenta match exato por ingresso_url primeiro
         (pf.ingresso_url && ppByUrl[pf.ingresso_url]) ||
-        // Fallback: match por título normalizado
         pingplaySet.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy))
       ) {
-        app   = 'PingPlay';
-        ppDet = (pf.ingresso_url && ppByUrl[pf.ingresso_url])
-              || ppByNorm[norm]
-              || ppByNorm[fuzzy]
-              || null;
+        app    = 'PingPlay';
+        appDet = (pf.ingresso_url && ppByUrl[pf.ingresso_url])
+               || ppByNorm[norm] || ppByNorm[fuzzy] || null;
       }
 
       if (!app) continue;
       try {
         var a11yData3 = { ad: true, lse: true, libras: true };
-        // Se temos dados reais do PingPlay, usa eles
-        if (ppDet) a11yData3 = { ad: !!ppDet.ad, lse: !!ppDet.legenda, libras: !!ppDet.libras };
+        if (appDet) {
+          a11yData3 = {
+            ad:     !!appDet.ad,
+            lse:    !!(appDet.srt || appDet.legenda),
+            libras: !!appDet.libras,
+          };
+        }
         await supabasePatch('filmes', 'id=eq.' + pf.id, {
           app: app, app_status: 'confirmado',
           a11y: a11yData3,
           updated_at: now,
         });
-        var a11yTag = ppDet
-          ? ' <span style="font-size:11px;color:#555">' + (ppDet.ad ? '🎧AD ' : '') + (ppDet.libras ? '🤟Libras ' : '') + (ppDet.legenda ? '💬Leg' : '') + '</span>'
+        var a11yTag = appDet
+          ? ' <span style="font-size:11px;color:#555">' + (appDet.ad ? '🎧AD ' : '') + (appDet.libras ? '🤟Libras ' : '') + ((appDet.srt || appDet.legenda) ? '💬Leg' : '') + '</span>'
           : '';
         addLog('ok', '🎯', '<strong>' + escHtml(pf.titulo) + '</strong> → ' + app + a11yTag, app, 'tag-cartaz');
         autoCount++;

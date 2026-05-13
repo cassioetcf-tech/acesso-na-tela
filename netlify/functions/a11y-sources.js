@@ -70,61 +70,111 @@ async function fetchMovieReading() {
   return titles;
 }
 
-async function fetchMload() {
-  const titles = [];
-  const seen   = new Set();
+// MLOAD: usa a API REST oficial em vez de scraping do GoMAV
+// Fluxo: POST /auth/login (anon) → token → POST /search → filmes com available[]
+//   available pode conter: "ad" | "srt" | "libras"
+// firstToken e x-auth-token-x são constantes públicas extraídas do bundle do app
+const MLOAD_BASE       = 'https://app.mobiload.net/rest/v2';
+const MLOAD_FIRST_TOKEN = 'efe031b155f4c451eac53909a5e620adaaf9dca598a184926594f06481161639';
 
-  // Estratégia de descoberta da URL (muda a cada semestre):
-  // 1. Tenta extrair da homepage do GoMAV (mais confiável)
-  // 2. Fallback: testa URLs de semestres recentes até achar um que exista (200 OK)
-  let pageUrl = '';
-
+async function fetchMloadAPI() {
+  // 1. Login anônimo
+  let loginR;
   try {
-    const homeR    = await fetchWithTimeout('https://gomav.co/', 3000); // 3s p/ homepage
-    const homeHtml = homeR.ok ? await homeR.text() : '';
-    const m = homeHtml.match(/filmes-(\d{4}-\d+)/);
-    if (m) pageUrl = `https://gomav.co/filmes-${m[1]}/`;
+    loginR = await fetchWithTimeout(MLOAD_BASE + '/auth/login', FETCH_TIMEOUT_MS);
+    // login requer POST com headers e body — fetchWithTimeout só faz GET; usa fetch diretamente
+    loginR = null; // descarta — faz POST manual abaixo
   } catch (e) {}
 
-  // Fallback: testa últimos 4 semestres em ordem decrescente até encontrar 200
-  if (!pageUrl) {
-    const now = new Date();
-    const candidates = [];
-    for (let y = now.getFullYear(); y >= now.getFullYear() - 1; y--) {
-      candidates.push(`https://gomav.co/filmes-${y}-2/`);
-      candidates.push(`https://gomav.co/filmes-${y}-1/`);
+  let authToken = '';
+  try {
+    const loginResp = await fetch(MLOAD_BASE + '/auth/login', {
+      method: 'POST',
+      headers: {
+        'x-auth-token-x': MLOAD_FIRST_TOKEN,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        deviceId: 'netlify-func-001',
+        token:    MLOAD_FIRST_TOKEN,
+        email:    '%NOLOGIN%',
+        pass:     '%NOLOGIN%',
+        os:       'android',
+        sv:       '11',
+        jb:       'N',
+        ml:       'N',
+      }),
+    });
+    if (!loginResp.ok) {
+      console.log('[a11y-sources] MLOAD login HTTP ' + loginResp.status);
+      return { titles: [], details: [] };
     }
-    for (const candidate of candidates) {
-      try {
-        const probe = await fetchWithTimeout(candidate, 2500);
-        if (probe && probe.ok) { pageUrl = candidate; break; }
-      } catch (e) {}
-    }
+    const loginJson = await loginResp.json();
+    authToken = loginJson.token || '';
+  } catch (e) {
+    console.log('[a11y-sources] MLOAD login error: ' + e.message);
+    return { titles: [], details: [] };
   }
 
-  if (!pageUrl) { console.log('[a11y-sources] MLOAD: URL não encontrada'); return titles; }
-  console.log(`[a11y-sources] MLOAD URL: ${pageUrl}`);
-
-  const r = await fetchWithTimeout(pageUrl, FETCH_TIMEOUT_MS).catch(() => null);
-  if (!r || !r.ok) return titles;
-  const html = await r.text();
-
-  for (const m of html.matchAll(/<h4[^>]*>([^<]+)<\/h4>/g)) {
-    const text = m[1].trim();
-    // Filtra datas em qualquer formato: "09/04", "09 DE ABRIL DE 2026", "ABRIL 2026"
-    if (/^\d{2}[\/\s]/.test(text) && /\b(de|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|\d{4})\b/i.test(text)) continue;
-    if (/^(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i.test(text)) continue;
-    if (text.length < 3) continue;
-
-    const norm = normalizeTitle(text);
-    if (norm && !seen.has(norm)) {
-      seen.add(norm);
-      titles.push(text);
-    }
+  if (!authToken) {
+    console.log('[a11y-sources] MLOAD: token vazio após login');
+    return { titles: [], details: [] };
   }
 
-  console.log(`[a11y-sources] MLOAD: ${titles.length} títulos`);
-  return titles;
+  // 2. Busca catálogo completo (todos os filmes numa única chamada)
+  let searchResp;
+  try {
+    searchResp = await fetch(MLOAD_BASE + '/search/?userLang=pt', {
+      method: 'POST',
+      headers: {
+        'x-auth-token-x': authToken,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({}),
+    });
+  } catch (e) {
+    console.log('[a11y-sources] MLOAD search error: ' + e.message);
+    return { titles: [], details: [] };
+  }
+
+  if (!searchResp.ok) {
+    console.log('[a11y-sources] MLOAD search HTTP ' + searchResp.status);
+    return { titles: [], details: [] };
+  }
+
+  const films = await searchResp.json();
+  if (!Array.isArray(films)) {
+    console.log('[a11y-sources] MLOAD search: resposta não é array');
+    return { titles: [], details: [] };
+  }
+
+  // 3. Deduplica e extrai dados de acessibilidade
+  const seen    = new Set();
+  const details = [];
+  for (var i = 0; i < films.length; i++) {
+    var f    = films[i];
+    var nome = (f.nome || '').trim();
+    if (!nome) continue;
+    var norm = normalizeTitle(nome);
+    if (!norm || seen.has(norm)) continue;
+    seen.add(norm);
+    var avail = Array.isArray(f.available) ? f.available : [];
+    details.push({
+      name:   nome,
+      id:     f.id || null,
+      ad:     avail.indexOf('ad')     > -1,
+      libras: avail.indexOf('libras') > -1,
+      srt:    avail.indexOf('srt')    > -1,
+    });
+  }
+
+  var adCount     = details.filter(function (d) { return d.ad; }).length;
+  var librasCount = details.filter(function (d) { return d.libras; }).length;
+  console.log('[a11y-sources] MLOAD API: ' + details.length + ' filmes — AD: ' + adCount + ' · Libras: ' + librasCount);
+
+  return { titles: details.map(function (d) { return d.name; }), details: details };
 }
 
 // PingPlay: usa a API REST oficial em vez de scraping HTML
@@ -192,21 +242,22 @@ async function fetchPingPlayAPI() {
 exports.handler = async function () {
   try {
     // Todas as 3 fontes em paralelo
-    const [moviereading, mload, pingplayResult] = await Promise.all([
+    const [moviereading, mloadResult, pingplayResult] = await Promise.all([
       fetchMovieReading().catch(function (e) { console.error('MR error:',  e.message); return []; }),
-      fetchMload().catch(function (e)         { console.error('ML error:',  e.message); return []; }),
-      fetchPingPlayAPI().catch(function (e)   { console.error('PP error:',  e.message); return { titles: [], details: [] }; }),
+      fetchMloadAPI().catch(function (e)     { console.error('ML error:',  e.message); return { titles: [], details: [] }; }),
+      fetchPingPlayAPI().catch(function (e)  { console.error('PP error:',  e.message); return { titles: [], details: [] }; }),
     ]);
 
-    console.log('[a11y-sources] total: MR=' + moviereading.length + ' ML=' + mload.length + ' PP=' + pingplayResult.titles.length);
+    console.log('[a11y-sources] total: MR=' + moviereading.length + ' ML=' + mloadResult.titles.length + ' PP=' + pingplayResult.titles.length);
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify({
         moviereading,
-        mload,
-        pingplay:         pingplayResult.titles,   // lista plana de nomes (compatibilidade)
+        mload:            mloadResult.titles,      // lista plana (compatibilidade)
+        mload_details:    mloadResult.details,     // dados ricos com AD/Libras/SRT
+        pingplay:         pingplayResult.titles,   // lista plana (compatibilidade)
         pingplay_details: pingplayResult.details,  // dados ricos com AD/Libras/ingressoUrl
       }),
     };
@@ -215,7 +266,7 @@ exports.handler = async function () {
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ moviereading: [], mload: [], pingplay: [], pingplay_details: [], error: e.message }),
+      body: JSON.stringify({ moviereading: [], mload: [], mload_details: [], pingplay: [], pingplay_details: [], error: e.message }),
     };
   }
 };
