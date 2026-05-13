@@ -397,33 +397,25 @@ a.film-card-link:hover .film-poster img { transform: scale(1.04); }
 .empty-state p  { font-size: 13px; margin-top: 8px; }
 
 /* ── FOOTER ── */
-footer { background: var(--bg2); border-top: 1px solid var(--bdr); padding: 28px 28px 22px; font-size: 12px; color: var(--ink3); }
+footer {
+  background: var(--bg2);
+  border-top: 1px solid var(--bdr);
+  padding: 28px 28px 24px;
+  font-size: 12px;
+  color: var(--ink3);
+  text-align: center;
+}
+footer nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin-bottom: 14px;
+}
 footer a { color: var(--laranja); text-decoration: none; font-weight: 600; }
 footer a:hover { text-decoration: underline; }
 footer strong { color: var(--ink2); font-weight: 700; }
-footer p { margin: 4px 0; }
-.footer-inner { display: grid; grid-template-columns: 1fr 220px; gap: 32px; align-items: center; max-width: 900px; margin: 0 auto; }
-@media (max-width: 600px) { .footer-inner { grid-template-columns: 1fr; } }
-.footer-info nav { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 10px; }
-.footer-cad-title { font-size: 11px; font-weight: 800; color: var(--laranja); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
-.footer-cad-form { display: flex; flex-direction: column; gap: 6px; }
-.fcad-input {
-  width: 100%; box-sizing: border-box;
-  background: var(--bg); border: 1.5px solid var(--bdr);
-  border-radius: var(--r-sm); padding: 8px 10px;
-  font-size: 12px; font-family: inherit; color: var(--ink);
-}
-.fcad-input:focus { outline: 2px solid var(--laranja); border-color: var(--laranja); }
-.fcad-input::placeholder { color: var(--ink3); }
-.fcad-btn {
-  background: var(--laranja); color: #fff; border: none;
-  border-radius: var(--r-sm); padding: 9px;
-  font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
-}
-.fcad-btn:hover { opacity: 0.88; }
-.fcad-feedback      { font-size: 11px; margin: 6px 0 0; min-height: 16px; border-radius: var(--r-sm); padding: 0; }
-.fcad-feedback.fcad-ok  { color: #2E7D32; font-weight: 600; }
-.fcad-feedback.fcad-err { background: #FEF2F2; color: #991B1B; padding: 6px 9px; border: 1px solid #FECACA; }
+footer p { margin: 0; line-height: 1.6; }
 
 /* ── HEADER RESPONSIVE ── */
 @media (max-width: 640px) {
@@ -433,7 +425,7 @@ footer p { margin: 4px 0; }
   .a11y-bar { padding: 5px 16px; flex-wrap: wrap; gap: 6px; }
   .a11y-label { display: none; }
   .breadcrumb { padding: 8px 16px; }
-  footer { padding: 18px 16px; }
+  footer { padding: 20px 16px; }
 }
 @media (max-width: 400px) {
   nav a { font-size: 11px; padding: 5px 6px; }
