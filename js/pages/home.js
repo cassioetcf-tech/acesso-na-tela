@@ -20,10 +20,10 @@ async function _submitCadastro(formEl, feedbackId) {
 
   var ok = false;
   try {
-    // 1. Salva no Supabase (fonte principal)
+    // 1. Salva no Supabase (reutiliza newsletter_subscribers — só e-mail)
     await supabasePost(
-      'cadastros',
-      { email: email, celular: celular || null, origem: formEl.getAttribute('name') || 'hero', created_at: new Date().toISOString() },
+      'newsletter_subscribers',
+      { email: email, subscribed_at: new Date().toISOString() },
       'resolution=ignore-duplicates,return=minimal'
     );
     ok = true;
