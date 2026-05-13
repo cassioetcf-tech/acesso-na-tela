@@ -152,25 +152,39 @@
         <!-- SIDEBAR — apenas relatos -->
         <aside class="fp-sidebar" role="complementary" aria-label="Relatos da comunidade">
 
-          <div class="relatos-header">
-            <h2 class="relatos-title" id="relatos-title">💬 Relatos da comunidade</h2>
-            <span class="relatos-count" id="relatos-count"></span>
-          </div>
+          <div class="relatos-panel">
 
-          <div id="comentarios-list" aria-live="polite" aria-label="Lista de relatos"></div>
+            <div class="relatos-header">
+              <h2 class="relatos-title" id="relatos-title">Relatos da comunidade</h2>
+              <span class="relatos-count" id="relatos-count"></span>
+            </div>
 
-          <div class="relatos-form-wrap" id="relatos-form-wrap">
-            <h3 class="relatos-form-title">Deixe seu relato</h3>
-            <p class="relatos-form-desc">É necessário ser cadastrado. O e-mail será verificado.</p>
-            <label for="comment-nome" class="relatos-label">Nome</label>
-            <input type="text" id="comment-nome" class="relatos-input" placeholder="Seu nome" autocomplete="given-name">
-            <label for="comment-email" class="relatos-label" style="margin-top:10px;">E-mail cadastrado <span class="relatos-req">*</span></label>
-            <input type="email" id="comment-email" class="relatos-input" placeholder="Seu e-mail" autocomplete="email" required>
-            <label for="comment-texto" class="relatos-label" style="margin-top:10px;">Relato</label>
-            <textarea id="comment-texto" class="relatos-ta" placeholder="Sua experiência de acessibilidade neste filme..." rows="4"></textarea>
-            <button class="relatos-btn" onclick="submitComentario()" id="btn-comentar">Enviar relato</button>
-            <a href="index.html#newsletter" class="relatos-cadastro-link">Ainda não é cadastrado? Cadastre-se →</a>
-            <div id="comment-feedback" role="alert" aria-live="assertive"></div>
+            <div id="comentarios-list" aria-live="polite" aria-label="Lista de relatos"></div>
+
+            <div class="relatos-form-wrap" id="relatos-form-wrap">
+              <h3 class="relatos-form-title">Deixe seu relato</h3>
+              <p class="relatos-form-desc">Somente cadastrados podem comentar. Seu e-mail será verificado.</p>
+
+              <div class="relatos-field">
+                <label for="comment-nome" class="relatos-label">Nome</label>
+                <input type="text" id="comment-nome" class="relatos-input" placeholder="Seu nome" autocomplete="given-name">
+              </div>
+
+              <div class="relatos-field">
+                <label for="comment-email" class="relatos-label">E-mail cadastrado <span class="relatos-req">*</span></label>
+                <input type="email" id="comment-email" class="relatos-input" placeholder="seu@email.com" autocomplete="email" required>
+              </div>
+
+              <div class="relatos-field">
+                <label for="comment-texto" class="relatos-label">Relato</label>
+                <textarea id="comment-texto" class="relatos-ta" placeholder="Como foi sua experiência de acessibilidade neste filme?" rows="4"></textarea>
+              </div>
+
+              <button class="relatos-btn" onclick="submitComentario()" id="btn-comentar">Enviar relato</button>
+              <a href="index.html#newsletter" class="relatos-cadastro-link">Ainda não é cadastrado? Cadastre-se aqui →</a>
+              <div id="comment-feedback" role="alert" aria-live="assertive"></div>
+            </div>
+
           </div>
 
         </aside>
