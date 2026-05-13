@@ -482,7 +482,7 @@ async function initComentarios(urlKey) {
   try {
     var rows = await supabaseGet(
       'comentarios',
-      'url_key=eq.' + encodeURIComponent(urlKey) +
+      'filme_url_key=eq.' + encodeURIComponent(urlKey) +
       '&or=(aprovado.is.null,aprovado.eq.true)' +
       '&order=created_at.desc&limit=50'
     );
@@ -567,10 +567,10 @@ async function submitComentario() {
 
   try {
     await supabasePost('comentarios', {
-      url_key:    urlKey,
-      autor:      autor || 'Anônimo',
-      texto:      texto,
-      created_at: new Date().toISOString(),
+      filme_url_key: urlKey,
+      autor:         autor || 'Anônimo',
+      texto:         texto,
+      created_at:    new Date().toISOString(),
     }, 'return=minimal');
     var nomeEl  = document.getElementById('comment-nome');
     var emailEl = document.getElementById('comment-email');
