@@ -571,7 +571,7 @@ async function submitComentario() {
       autor:      autor || 'Anônimo',
       texto:      texto,
       created_at: new Date().toISOString(),
-    });
+    }, 'return=minimal');
     var nomeEl  = document.getElementById('comment-nome');
     var emailEl = document.getElementById('comment-email');
     var textoEl = document.getElementById('comment-texto');
