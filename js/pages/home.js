@@ -7,23 +7,41 @@ async function _submitCadastro(formEl, feedbackId) {
   var feedback = document.getElementById(feedbackId);
   var btn      = formEl.querySelector('button[type=submit]');
   var data     = new FormData(formEl);
+  var email    = (data.get('email') || '').trim();
+  var celular  = (data.get('celular') || '').trim();
+
+  if (!email) {
+    if (feedback) feedback.textContent = 'Informe seu e-mail.';
+    return;
+  }
 
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
   if (feedback) feedback.textContent = '';
 
+  var ok = false;
   try {
-    var resp = await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(data).toString() });
-    if (resp.ok) {
-      if (feedback) feedback.textContent = '✓ Cadastrado com sucesso!';
-      formEl.reset();
-    } else {
-      if (feedback) feedback.textContent = 'Erro ao enviar. Tente novamente.';
-    }
-  } catch (e) {
+    // 1. Salva no Supabase (fonte principal)
+    await supabasePost(
+      'cadastros',
+      { email: email, celular: celular || null, origem: formEl.getAttribute('name') || 'hero', created_at: new Date().toISOString() },
+      'resolution=ignore-duplicates,return=minimal'
+    );
+    ok = true;
+  } catch (e) { console.warn('Supabase cadastro:', e.message); }
+
+  try {
+    // 2. Netlify Forms (backup — garante notificação por e-mail)
+    await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(data).toString() });
+    ok = true;
+  } catch (e) { console.warn('Netlify form cadastro:', e.message); }
+
+  if (ok) {
+    if (feedback) feedback.textContent = '✓ Cadastrado com sucesso!';
+    formEl.reset();
+  } else {
     if (feedback) feedback.textContent = 'Erro ao enviar. Tente novamente.';
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar'; }
   }
+  if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar'; }
 }
 
 function heroFormSubmit(e)   { e.preventDefault(); _submitCadastro(e.target, 'cad-feedback'); }
