@@ -6,30 +6,25 @@
 ═══════════════════════════════════════ */
 
 /* ── HERO ── */
-.hero { background: var(--laranja); padding: 48px 28px 52px; }
+.hero { background: var(--laranja); padding: 36px 28px 40px; }
 .hero-inner {
   display: flex;
   flex-direction: column;
   gap: 0;
-  max-width: 680px;
+  max-width: 640px;
 }
 .hero h1 {
   font-family: 'Inter', sans-serif;
-  font-size: clamp(26px, 4.5vw, 40px);
-  font-weight: 800; color: #fff; line-height: 1.05;
-  margin-bottom: 22px; letter-spacing: -1px;
+  font-size: clamp(24px, 4vw, 34px);
+  font-weight: 800; color: #FFE5B0; line-height: 1.15;
+  margin-bottom: 20px; letter-spacing: -0.5px;
 }
-.hero h1 .hl { color: #FFE5B0; }
-.hero-body { margin-bottom: 28px; }
+.hero-body { margin-bottom: 24px; }
 .hero-body p {
-  font-size: 16px; color: rgba(255,255,255,0.93);
-  line-height: 1.7; margin-bottom: 14px; font-weight: 400;
+  font-size: 15px; color: #fff;
+  line-height: 1.7; margin-bottom: 12px; font-weight: 400;
 }
 .hero-body p:last-child { margin-bottom: 0; }
-.hero-quote {
-  font-size: 16px; font-style: italic; font-weight: 600;
-  color: #FFE5B0; margin-top: 18px !important;
-}
 
 /* ── SEARCH ── */
 .search-wrap { display: flex; gap: 8px; max-width: 480px; flex-wrap: wrap; }
