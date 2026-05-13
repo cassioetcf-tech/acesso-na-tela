@@ -2,50 +2,60 @@
 // Depende de: js/api/supabase.js, js/api/tmdb.js, js/components/film-card.js,
 //             js/utils.js (escHtml)
 
-// ── Formulários de cadastro (Netlify Forms) ───────────────────────────────────
-async function _submitCadastro(formEl, feedbackId) {
-  var feedback = document.getElementById(feedbackId);
+// ── Formulário hero "Fique por dentro" ───────────────────────────────────────
+async function heroFormSubmit(e) {
+  e.preventDefault();
+  var formEl   = e.target;
+  var feedback = document.getElementById('cad-feedback');
   var btn      = formEl.querySelector('button[type=submit]');
   var data     = new FormData(formEl);
   var email    = (data.get('email') || '').trim();
-  var celular  = (data.get('celular') || '').trim();
 
   if (!email) {
-    if (feedback) feedback.textContent = 'Informe seu e-mail.';
+    _cadMsg(feedback, 'Informe seu e-mail.', true);
+    formEl.querySelector('[name=email]').focus();
     return;
   }
 
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
-  if (feedback) feedback.textContent = '';
+  if (feedback) { feedback.textContent = ''; feedback.className = 'cad-feedback'; }
 
-  var ok = false;
+  var saved = false;
+
+  // 1. Supabase
   try {
-    // 1. Salva no Supabase (reutiliza newsletter_subscribers — só e-mail)
     await supabasePost(
       'newsletter_subscribers',
       { email: email, subscribed_at: new Date().toISOString() },
       'resolution=ignore-duplicates,return=minimal'
     );
-    ok = true;
-  } catch (e) { console.warn('Supabase cadastro:', e.message); }
+    saved = true;
+  } catch (e) { console.warn('Supabase hero form:', e.message); }
 
+  // 2. Netlify Forms (gera notificação de e-mail no dashboard)
   try {
-    // 2. Netlify Forms (backup — garante notificação por e-mail)
-    await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(data).toString() });
-    ok = true;
-  } catch (e) { console.warn('Netlify form cadastro:', e.message); }
+    var r = await fetch('/', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    new URLSearchParams(data).toString(),
+    });
+    if (r.ok) saved = true;
+  } catch (e) { console.warn('Netlify hero form:', e.message); }
 
-  if (ok) {
-    if (feedback) feedback.textContent = '✓ Cadastrado com sucesso!';
+  if (saved) {
+    _cadMsg(feedback, '✓ Cadastrado com sucesso!', false);
     formEl.reset();
   } else {
-    if (feedback) feedback.textContent = 'Erro ao enviar. Tente novamente.';
+    _cadMsg(feedback, 'Erro ao enviar. Tente novamente.', true);
   }
   if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar'; }
 }
 
-function heroFormSubmit(e)   { e.preventDefault(); _submitCadastro(e.target, 'cad-feedback'); }
-function footerFormSubmit(e) { e.preventDefault(); _submitCadastro(e.target, 'fcad-feedback'); }
+function _cadMsg(el, msg, isError) {
+  if (!el) return;
+  el.textContent = msg;
+  el.className   = 'cad-feedback ' + (isError ? 'cad-err' : 'cad-ok');
+}
 
 var _allCards = []; // { el, acessivel: bool }
 

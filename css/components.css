@@ -421,7 +421,9 @@ footer p { margin: 4px 0; }
   font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
 }
 .fcad-btn:hover { opacity: 0.88; }
-.fcad-feedback { font-size: 11px; color: var(--laranja); margin: 2px 0 0; min-height: 16px; }
+.fcad-feedback      { font-size: 11px; margin: 6px 0 0; min-height: 16px; border-radius: var(--r-sm); padding: 0; }
+.fcad-feedback.fcad-ok  { color: #2E7D32; font-weight: 600; }
+.fcad-feedback.fcad-err { background: #FEF2F2; color: #991B1B; padding: 6px 9px; border: 1px solid #FECACA; }
 
 /* ── HEADER RESPONSIVE ── */
 @media (max-width: 640px) {
