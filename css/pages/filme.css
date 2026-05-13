@@ -56,8 +56,39 @@
 .btn-sec:focus-visible { outline: 3px solid #FFD600; }
 
 /* ── FILM PAGE BODY ── */
-.fp-body { display: grid; grid-template-columns: minmax(0,1fr) 264px; gap: 24px; padding: 28px 28px 60px; }
+.fp-body { display: grid; grid-template-columns: 1fr; gap: 24px; padding: 28px 28px 0; max-width: 860px; }
 @media (max-width: 680px) { .fp-body { grid-template-columns: 1fr; } }
+
+/* ── RELATOS DA COMUNIDADE ── */
+.relatos-section { background: var(--bg2); border-top: 1px solid var(--bdr); padding: 36px 28px 56px; }
+.relatos-inner   { max-width: 800px; }
+.relatos-header  { display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px; }
+.relatos-title   { font-size: 20px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; margin: 0; }
+.relatos-count   { font-size: 13px; color: var(--ink3); font-weight: 500; }
+.relatos-empty   { font-size: 14px; color: var(--ink3); margin: 0 0 28px; }
+.relato-card     { background: var(--bg); border: 1.5px solid var(--bdr); border-radius: var(--r); padding: 16px 20px; margin-bottom: 12px; }
+.relato-meta     { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.relato-autor    { font-size: 13px; font-weight: 700; color: var(--ink); }
+.relato-data     { font-size: 12px; color: var(--ink3); }
+.relato-texto    { font-size: 14px; color: var(--ink2); line-height: 1.65; margin: 0; }
+.relatos-form-wrap   { border-top: 1.5px solid var(--bdr); margin-top: 28px; padding-top: 28px; }
+.relatos-form-title  { font-size: 16px; font-weight: 800; color: var(--ink); margin: 0 0 6px; }
+.relatos-form-desc   { font-size: 13px; color: var(--ink3); margin: 0 0 20px; }
+.relatos-form-row    { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+@media (max-width: 560px) { .relatos-form-row { grid-template-columns: 1fr; } }
+.relatos-form-col    { display: flex; flex-direction: column; }
+.relatos-label       { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.relatos-req         { color: var(--laranja); }
+.relatos-input       { background: var(--bg); border: 1.5px solid var(--bdr); border-radius: var(--r-sm); padding: 10px 13px; font-size: 14px; font-family: inherit; color: var(--ink); }
+.relatos-input:focus { outline: 3px solid var(--laranja); border-color: var(--laranja); }
+.relatos-ta          { width: 100%; box-sizing: border-box; background: var(--bg); border: 1.5px solid var(--bdr); border-radius: var(--r-sm); padding: 11px 13px; font-size: 14px; font-family: inherit; color: var(--ink); resize: vertical; min-height: 100px; margin-bottom: 14px; }
+.relatos-ta:focus    { outline: 3px solid var(--laranja); border-color: var(--laranja); }
+.relatos-form-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+.relatos-btn         { background: var(--laranja); color: #fff; border: none; border-radius: var(--r-sm); padding: 11px 24px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.relatos-btn:hover   { opacity: 0.88; }
+.relatos-cadastro-link { font-size: 13px; color: var(--laranja); text-decoration: none; font-weight: 600; }
+.relatos-cadastro-link:hover { text-decoration: underline; }
+@media (max-width: 480px) { .relatos-section { padding: 28px 16px 48px; } }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 640px) {

@@ -486,45 +486,59 @@ async function initComentarios(urlKey) {
       '&or=(aprovado.is.null,aprovado.eq.true)' +
       '&order=created_at.desc&limit=50'
     );
-    _renderComentarios(rows || [], container);
+    _renderComentarios(rows || []);
   } catch (err) {
     console.warn('Erro ao carregar comentários:', err);
   }
 }
 
-function _renderComentarios(rows, container) {
+function _fmtData(iso) {
+  if (!iso) return '';
+  try {
+    var d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch (e) { return ''; }
+}
+
+function _renderComentarios(rows) {
+  var container = document.getElementById('comentarios-list');
+  var countEl   = document.getElementById('relatos-count');
+  if (!container) return;
+  if (countEl) countEl.textContent = rows.length ? rows.length + ' relato' + (rows.length > 1 ? 's' : '') : '';
   if (!rows.length) {
-    container.innerHTML = '<p style="font-size:13px;color:var(--ink3);margin-top:12px;">Nenhum relato ainda. Seja o primeiro!</p>';
+    container.innerHTML = '<p class="relatos-empty">Nenhum relato ainda. Seja o primeiro!</p>';
     return;
   }
   container.innerHTML = rows.map(function (c) {
-    return '<div class="comment">' +
-      '<div class="cu">' + escHtml(c.autor || 'Anônimo') + '</div>' +
-      '<div class="ct">' + escHtml(c.texto || '') + '</div>' +
-      '</div>';
+    return '<article class="relato-card">' +
+      '<div class="relato-meta">' +
+        '<span class="relato-autor">' + escHtml(c.autor || 'Anônimo') + '</span>' +
+        (c.created_at ? '<span class="relato-data">' + _fmtData(c.created_at) + '</span>' : '') +
+      '</div>' +
+      '<p class="relato-texto">' + escHtml(c.texto || '') + '</p>' +
+    '</article>';
   }).join('');
 }
 
 function _commentFeedback(msg, isError) {
-  var existing = document.getElementById('comment-feedback');
-  if (!existing) {
-    existing = document.createElement('p');
-    existing.id = 'comment-feedback';
-    existing.className = 'comment-feedback';
-    existing.setAttribute('role', 'alert');
-    existing.setAttribute('aria-live', 'assertive');
-    var form = document.getElementById('comment-form');
-    if (form) form.appendChild(existing);
-  }
-  existing.textContent = msg;
-  existing.className = 'comment-feedback' + (isError ? ' comment-feedback-error' : ' comment-feedback-ok');
+  var el = document.getElementById('comment-feedback');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'comment-feedback ' + (isError ? 'comment-feedback-error' : 'comment-feedback-ok');
 }
 
 async function submitComentario() {
   var urlKey = new URLSearchParams(window.location.search).get('urlKey') || '';
   var autor  = ((document.getElementById('comment-nome')  || {}).value || '').trim();
+  var email  = ((document.getElementById('comment-email') || {}).value || '').trim();
   var texto  = ((document.getElementById('comment-texto') || {}).value || '').trim();
 
+  if (!email) {
+    _commentFeedback('Informe seu e-mail cadastrado para enviar um relato.', true);
+    var eEl = document.getElementById('comment-email');
+    if (eEl) eEl.focus();
+    return;
+  }
   if (!texto) {
     _commentFeedback('Escreva seu relato antes de enviar.', true);
     var ta = document.getElementById('comment-texto');
@@ -533,7 +547,23 @@ async function submitComentario() {
   }
 
   var btn = document.getElementById('btn-comentar');
-  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
+  _commentFeedback('', false);
+
+  try {
+    // Verifica se e-mail está cadastrado
+    var cadastros = await supabaseGet('newsletter_subscribers', 'email=eq.' + encodeURIComponent(email) + '&limit=1');
+    if (!cadastros || !cadastros.length) {
+      _commentFeedback('E-mail não encontrado. Cadastre-se primeiro no portal para enviar relatos.', true);
+      if (btn) { btn.disabled = false; btn.textContent = 'Enviar relato'; }
+      return;
+    }
+  } catch (err) {
+    // Se falhar a verificação, permite envio (não bloqueia por erro técnico)
+    console.warn('Verificação de cadastro falhou, prosseguindo:', err.message);
+  }
+
+  if (btn) btn.textContent = 'Enviando...';
 
   try {
     await supabasePost('comentarios', {
@@ -543,10 +573,12 @@ async function submitComentario() {
       created_at: new Date().toISOString(),
     });
     var nomeEl  = document.getElementById('comment-nome');
+    var emailEl = document.getElementById('comment-email');
     var textoEl = document.getElementById('comment-texto');
     if (nomeEl)  nomeEl.value  = '';
+    if (emailEl) emailEl.value = '';
     if (textoEl) textoEl.value = '';
-    _commentFeedback('Relato enviado! Será publicado após revisão. Obrigado.', false);
+    _commentFeedback('✓ Relato publicado! Obrigado por contribuir.', false);
     await initComentarios(urlKey);
   } catch (err) {
     console.error('Erro ao enviar comentário:', err);

@@ -149,29 +149,43 @@
 
         </div><!-- /.fp-col-main -->
 
-        <!-- SIDEBAR -->
-        <aside role="complementary" aria-label="Informações adicionais">
-
-          <div class="sb-card" id="fp-ficha-card" style="display:none;">
-            <div class="sb-title">Ficha técnica</div>
-            <div id="fp-ficha"></div>
-          </div>
-
-          <div class="sb-card">
-            <div class="sb-title">Relatos da comunidade</div>
-            <div class="comment-form" id="comment-form">
-              <label for="comment-nome" class="sr-only">Seu nome</label>
-              <input type="text" id="comment-nome" class="comment-input" placeholder="Seu nome" autocomplete="given-name">
-              <label for="comment-texto" class="sr-only">Relato</label>
-              <textarea id="comment-texto" class="comment-ta" placeholder="Compartilhe sua experiência de acessibilidade neste filme..." rows="3"></textarea>
-              <button class="comment-send" onclick="submitComentario()" id="btn-comentar">Enviar relato</button>
-            </div>
-            <div id="comentarios-list" aria-live="polite" aria-label="Lista de relatos"></div>
-          </div>
-
-        </aside>
-
       </div><!-- /.fp-body -->
+
+      <!-- RELATOS DA COMUNIDADE — largura total -->
+      <section class="relatos-section" aria-labelledby="relatos-title">
+        <div class="relatos-inner">
+
+          <div class="relatos-header">
+            <h2 class="relatos-title" id="relatos-title">💬 Relatos da comunidade</h2>
+            <span class="relatos-count" id="relatos-count"></span>
+          </div>
+
+          <div id="comentarios-list" aria-live="polite" aria-label="Lista de relatos"></div>
+
+          <div class="relatos-form-wrap" id="relatos-form-wrap">
+            <h3 class="relatos-form-title">Deixe seu relato</h3>
+            <p class="relatos-form-desc">É necessário ser cadastrado no portal. O e-mail informado será verificado.</p>
+            <div class="relatos-form-row">
+              <div class="relatos-form-col">
+                <label for="comment-nome" class="relatos-label">Nome</label>
+                <input type="text" id="comment-nome" class="relatos-input" placeholder="Seu nome" autocomplete="given-name">
+              </div>
+              <div class="relatos-form-col">
+                <label for="comment-email" class="relatos-label">E-mail cadastrado <span class="relatos-req">*</span></label>
+                <input type="email" id="comment-email" class="relatos-input" placeholder="Seu e-mail" autocomplete="email" required>
+              </div>
+            </div>
+            <label for="comment-texto" class="relatos-label">Seu relato</label>
+            <textarea id="comment-texto" class="relatos-ta" placeholder="Compartilhe sua experiência de acessibilidade neste filme..." rows="4"></textarea>
+            <div class="relatos-form-actions">
+              <button class="relatos-btn" onclick="submitComentario()" id="btn-comentar">Enviar relato</button>
+              <a href="index.html#newsletter" class="relatos-cadastro-link">Ainda não é cadastrado? Cadastre-se →</a>
+            </div>
+            <div id="comment-feedback" role="alert" aria-live="assertive"></div>
+          </div>
+
+        </div>
+      </section>
     </main>
 
     <!-- ESTADO DE ERRO -->
