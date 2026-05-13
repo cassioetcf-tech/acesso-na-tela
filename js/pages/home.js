@@ -243,6 +243,7 @@ async function submitNewsletter(event) {
     return;
   }
 
+  var celular = ((document.getElementById('nl-cel') || {}).value || '').trim();
   var prefs = Array.from(form.querySelectorAll('input[name="pref"]:checked'))
                    .map(function (el) { return el.value; });
 
@@ -252,7 +253,7 @@ async function submitNewsletter(event) {
   try {
     await supabasePost(
       'newsletter_subscribers',
-      { nome: nome.trim(), email: email.trim(), prefs: prefs, subscribed_at: new Date().toISOString() },
+      { nome: nome.trim(), email: email.trim(), celular: celular || null, prefs: prefs, subscribed_at: new Date().toISOString() },
       'resolution=ignore-duplicates,return=minimal'
     );
     var wrap    = document.getElementById('nl-form-wrap');
