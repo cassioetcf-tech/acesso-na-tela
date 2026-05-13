@@ -581,8 +581,8 @@ async function submitComentario() {
     _commentFeedback('✓ Relato publicado! Obrigado por contribuir.', false);
     await initComentarios(urlKey);
   } catch (err) {
-    console.error('Erro ao enviar comentário:', err);
-    _commentFeedback('Erro ao enviar. Tente novamente.', true);
+    console.error('Erro ao enviar comentário:', err.message || err);
+    _commentFeedback('Erro: ' + (err.message || 'falha ao salvar. Tente novamente.'), true);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Enviar relato'; }
   }

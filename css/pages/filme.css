@@ -56,8 +56,9 @@
 .btn-sec:focus-visible { outline: 3px solid #FFD600; }
 
 /* ── FILM PAGE BODY ── */
-.fp-body { display: grid; grid-template-columns: 1fr; gap: 24px; padding: 28px 28px 0; max-width: 860px; }
-@media (max-width: 680px) { .fp-body { grid-template-columns: 1fr; } }
+.fp-body { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; padding: 28px 28px 60px; }
+@media (max-width: 720px) { .fp-body { grid-template-columns: 1fr; } }
+.fp-sidebar { display: flex; flex-direction: column; gap: 0; }
 
 /* ── RELATOS DA COMUNIDADE ── */
 .relatos-section { background: var(--bg2); border-top: 1px solid var(--bdr); padding: 36px 28px 56px; }
