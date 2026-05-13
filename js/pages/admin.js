@@ -816,10 +816,21 @@ async function runSync() {
     var mrFuzzy       = new Set((a11yData.moviereading || []).map(normFuzzy));
     var mloadFuzzy    = new Set((a11yData.mload        || []).map(normFuzzy));
     var pingplayFuzzy = new Set((a11yData.pingplay     || []).map(normFuzzy));
+    // PingPlay: mapa por ingresso_url para match exato (mais confiável que normalização de título)
+    var ppDetails     = a11yData.pingplay_details || [];
+    var ppByUrl       = {};
+    var ppByNorm      = {};
+    ppDetails.forEach(function (d) {
+      if (d.ingressoUrl) ppByUrl[d.ingressoUrl] = d;
+      ppByNorm[normT(d.name)] = d;
+      ppByNorm[normFuzzy(d.name)] = d;
+    });
+
     addLog('ok', '📋',
       'MovieReading: <strong>' + mrSet.size + '</strong> · ' +
       'MLOAD: <strong>' + mloadSet.size + '</strong> · ' +
-      'PingPlay: <strong>' + pingplaySet.size + '</strong> títulos',
+      'PingPlay: <strong>' + pingplaySet.size + '</strong> títulos' +
+      (ppDetails.length ? ' (API ✓, ' + ppDetails.filter(function(d){return d.ad;}).length + ' AD · ' + ppDetails.filter(function(d){return d.libras;}).length + ' Libras)' : ''),
       null, null);
 
     var pendentes = _filmes.filter(function (f) { return _getAppStatusAdmin(f) === 'pendente'; });
@@ -830,20 +841,42 @@ async function runSync() {
       var norm  = normT(pf.titulo);
       var fuzzy = normFuzzy(pf.titulo);
       var app   = null;
-      if      (mrSet.has(norm)       || (fuzzy.length >= 4 && mrFuzzy.has(fuzzy)))       app = 'MovieReading';
-      else if (mloadSet.has(norm)    || (fuzzy.length >= 4 && mloadFuzzy.has(fuzzy)))    app = 'MLOAD';
-      else if (pingplaySet.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy))) app = 'PingPlay';
+      var ppDet = null;
+
+      if (mrSet.has(norm) || (fuzzy.length >= 4 && mrFuzzy.has(fuzzy))) {
+        app = 'MovieReading';
+      } else if (mloadSet.has(norm) || (fuzzy.length >= 4 && mloadFuzzy.has(fuzzy))) {
+        app = 'MLOAD';
+      } else if (
+        // PingPlay: tenta match exato por ingresso_url primeiro
+        (pf.ingresso_url && ppByUrl[pf.ingresso_url]) ||
+        // Fallback: match por título normalizado
+        pingplaySet.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy))
+      ) {
+        app   = 'PingPlay';
+        ppDet = (pf.ingresso_url && ppByUrl[pf.ingresso_url])
+              || ppByNorm[norm]
+              || ppByNorm[fuzzy]
+              || null;
+      }
+
       if (!app) continue;
       try {
+        var a11yData3 = { ad: true, lse: true, libras: true };
+        // Se temos dados reais do PingPlay, usa eles
+        if (ppDet) a11yData3 = { ad: !!ppDet.ad, lse: !!ppDet.legenda, libras: !!ppDet.libras };
         await supabasePatch('filmes', 'id=eq.' + pf.id, {
           app: app, app_status: 'confirmado',
-          a11y: { ad: true, lse: true, libras: true },
+          a11y: a11yData3,
           updated_at: now,
         });
-        addLog('ok', '🎯', '<strong>' + escHtml(pf.titulo) + '</strong> → ' + app, app, 'tag-cartaz');
+        var a11yTag = ppDet
+          ? ' <span style="font-size:11px;color:#555">' + (ppDet.ad ? '🎧AD ' : '') + (ppDet.libras ? '🤟Libras ' : '') + (ppDet.legenda ? '💬Leg' : '') + '</span>'
+          : '';
+        addLog('ok', '🎯', '<strong>' + escHtml(pf.titulo) + '</strong> → ' + app + a11yTag, app, 'tag-cartaz');
         autoCount++;
         var pidx = _filmes.findIndex(function (x) { return x.id === pf.id; });
-        if (pidx > -1) { _filmes[pidx].app = app; _filmes[pidx].app_status = 'confirmado'; _filmes[pidx].a11y = { ad: true, lse: true, libras: true }; }
+        if (pidx > -1) { _filmes[pidx].app = app; _filmes[pidx].app_status = 'confirmado'; _filmes[pidx].a11y = a11yData3; }
       } catch (e) {
         addLog('err', '✕', escHtml(pf.titulo) + ' — ' + e.message, null, null);
         errors++;

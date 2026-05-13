@@ -127,68 +127,95 @@ async function fetchMload() {
   return titles;
 }
 
-async function fetchPingPlay() {
-  const titles = [];
-  const seen   = new Set();
-  // Busca em lotes paralelos para não estourar o timeout da função (10s)
-  const BATCH  = 8;
-  const MAX    = 40; // 40 páginas × 40 por página = até 1600 filmes
+// PingPlay: usa a API REST oficial em vez de scraping HTML
+// GET /api/v1/catalog?all=true&limit=500  → lista com IDs
+// GET /api/v1/catalog/{id}                → detalhes com acessibilityContents
+//   type 1 = Legenda  |  type 2 = Audiodescrição  |  type 3 = Libras
+async function fetchPingPlayAPI() {
+  const BASE = 'https://etc.prod.api.locomotiva.dev.br/api/v1';
 
-  let page = 1;
-  while (page <= MAX) {
-    const pageNums = Array.from({ length: BATCH }, (_, i) => page + i);
-    const htmls    = await Promise.all(
-      pageNums.map(p =>
-        fetchWithTimeout(`https://pingplay.com.br/catalogo.php?pagina=${p}&por_pagina=40`, FETCH_TIMEOUT_MS)
-          .then(r => r.ok ? r.text() : '')
-          .catch(() => '')
-      )
-    );
-
-    let found = 0;
-    for (const html of htmls) {
-      if (!html) continue;
-      for (const m of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)) {
-        const orig = m[1].trim();
-        const norm = normalizeTitle(orig);
-        if (norm && !seen.has(norm)) {
-          seen.add(norm);
-          titles.push(orig);
-          found++;
-        }
-      }
-    }
-
-    if (!found) break;
-    page += BATCH;
+  // 1. Catálogo completo (sem detalhes de acessibilidade)
+  let listR;
+  try {
+    listR = await fetchWithTimeout(BASE + '/catalog?all=true&limit=500', FETCH_TIMEOUT_MS);
+  } catch (e) {
+    console.log('[a11y-sources] PingPlay API list error: ' + e.message);
+    return { titles: [], details: [] };
+  }
+  if (!listR || !listR.ok) {
+    console.log('[a11y-sources] PingPlay API list HTTP ' + (listR ? listR.status : 'fail'));
+    return { titles: [], details: [] };
   }
 
-  console.log(`[a11y-sources] PingPlay: ${titles.length} títulos`);
-  return titles;
+  const listJson = await listR.json();
+  // Suporta envelope { content: { data: [...] } } e array direto
+  const films = (listJson.content && Array.isArray(listJson.content.data) ? listJson.content.data : null)
+    || (Array.isArray(listJson.data) ? listJson.data : null)
+    || (Array.isArray(listJson) ? listJson : []);
+
+  console.log('[a11y-sources] PingPlay API: ' + films.length + ' filmes na lista');
+  if (!films.length) return { titles: [], details: [] };
+
+  // 2. Detalhes individuais em paralelo (todos de uma vez — REST é rápido)
+  const rawResults = await Promise.all(
+    films.map(function (f) {
+      return fetchWithTimeout(BASE + '/catalog/' + f.id, 5000)
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
+    })
+  );
+
+  const details = [];
+  for (var i = 0; i < rawResults.length; i++) {
+    var res = rawResults[i];
+    if (!res) continue;
+    var d = (res.content && res.content.data) || res.data || res;
+    if (!d || !d.name) continue;
+    var contents = Array.isArray(d.acessibilityContents) ? d.acessibilityContents : [];
+    details.push({
+      name:        d.name,
+      id:          d.id,
+      ad:          contents.some(function (c) { return c.type === 2; }),
+      libras:      contents.some(function (c) { return c.type === 3; }),
+      legenda:     contents.some(function (c) { return c.type === 1; }),
+      ingressoUrl: d.ingressoUrl || null,
+    });
+  }
+
+  var adCount     = details.filter(function (d) { return d.ad; }).length;
+  var librasCount = details.filter(function (d) { return d.libras; }).length;
+  console.log('[a11y-sources] PingPlay API: ' + details.length + ' filmes — AD: ' + adCount + ' · Libras: ' + librasCount);
+
+  return { titles: details.map(function (d) { return d.name; }), details: details };
 }
 
 exports.handler = async function () {
   try {
-    // Todas as 3 fontes em paralelo — cada fetch individual já tem timeout de 4s
-    const [moviereading, mload, pingplay] = await Promise.all([
-      fetchMovieReading().catch(e => { console.error('MR error:',  e.message); return []; }),
-      fetchMload().catch(e        => { console.error('ML error:',  e.message); return []; }),
-      fetchPingPlay().catch(e     => { console.error('PP error:',  e.message); return []; }),
+    // Todas as 3 fontes em paralelo
+    const [moviereading, mload, pingplayResult] = await Promise.all([
+      fetchMovieReading().catch(function (e) { console.error('MR error:',  e.message); return []; }),
+      fetchMload().catch(function (e)         { console.error('ML error:',  e.message); return []; }),
+      fetchPingPlayAPI().catch(function (e)   { console.error('PP error:',  e.message); return { titles: [], details: [] }; }),
     ]);
 
-    console.log(`[a11y-sources] total: MR=${moviereading.length} ML=${mload.length} PP=${pingplay.length}`);
+    console.log('[a11y-sources] total: MR=' + moviereading.length + ' ML=' + mload.length + ' PP=' + pingplayResult.titles.length);
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ moviereading, mload, pingplay }),
+      body: JSON.stringify({
+        moviereading,
+        mload,
+        pingplay:         pingplayResult.titles,   // lista plana de nomes (compatibilidade)
+        pingplay_details: pingplayResult.details,  // dados ricos com AD/Libras/ingressoUrl
+      }),
     };
   } catch (e) {
     console.error('[a11y-sources] erro geral:', e.message);
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ moviereading: [], mload: [], pingplay: [], error: e.message }),
+      body: JSON.stringify({ moviereading: [], mload: [], pingplay: [], pingplay_details: [], error: e.message }),
     };
   }
 };
