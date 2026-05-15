@@ -851,9 +851,23 @@ async function runSync() {
       var app   = null;
       var appDet = null;
 
-      // Prioridade: PingPlay URL (exato) → MLOAD (API) → PingPlay título (API) → MovieReading (scraping geral)
-      // MovieReading vem por último pois usa cineacessivel.com.br — catálogo geral,
-      // não exclusivo do app, causando falsos positivos quando o filme está no PingPlay/MLOAD.
+      // Prioridade de match — conflito entre apps:
+      //
+      // 1. PingPlay por ingresso_url  — match EXATO por URL (máxima confiança, definitivo)
+      //    Um filme com ingresso_url no Supabase que bate com ingressoUrl da API PingPlay
+      //    é definitivamente PingPlay, mesmo que apareça em outra fonte.
+      //
+      // 2. MLOAD — API oficial, alta confiança
+      //
+      // 3. MovieReading — cineacessivel.com.br é exclusivo do app MovieReading (confiável)
+      //    Mas match por título pode ter colisões quando o mesmo título está em múltiplos apps.
+      //
+      // 4. PingPlay por título — fallback quando não há ingresso_url mapeado
+      //
+      // Exemplo do problema que motivou esta ordem:
+      //   "O Gênio do Crime" está no PingPlay (com ingresso_url mapeado).
+      //   Sem o check de URL primeiro, o match por título no MovieReading ganhava.
+
       var ppUrlDet   = pf.ingresso_url ? ppByUrl[pf.ingresso_url] : null;
       var ppTitleDet = ppByNorm[norm] || ppByNorm[fuzzy] || null;
       var mlDet      = mlByNorm[norm] || mlByNorm[fuzzy] || null;
@@ -862,21 +876,21 @@ async function runSync() {
       var inMR       = mrSet.has(norm) || (fuzzy.length >= 4 && mrFuzzy.has(fuzzy));
 
       if (ppUrlDet) {
-        // 1. PingPlay — match exato por ingresso_url (máxima confiança)
+        // 1. PingPlay — match exato por ingresso_url (definitivo)
         app    = 'PingPlay';
         appDet = ppUrlDet;
       } else if (inMload) {
         // 2. MLOAD — API oficial
         app    = 'MLOAD';
         appDet = mlDet;
-      } else if (inPPTitle) {
-        // 3. PingPlay — match por título (API oficial, boa confiança)
-        app    = 'PingPlay';
-        appDet = ppTitleDet;
       } else if (inMR) {
-        // 4. MovieReading — scraping de site geral (menor confiança, sem dados ricos)
+        // 3. MovieReading — cineacessivel.com.br (exclusivo MR)
         app    = 'MovieReading';
         appDet = null;
+      } else if (inPPTitle) {
+        // 4. PingPlay por título — fallback (sem ingresso_url mapeado)
+        app    = 'PingPlay';
+        appDet = ppTitleDet;
       }
 
       if (!app) continue;
@@ -909,37 +923,22 @@ async function runSync() {
     if (autoCount > 0) discovered += autoCount;
     addLog('ok', '✓', '<strong>' + autoCount + '</strong> filme(s) auto-classificado(s)', null, null);
 
-    // ── Fase 3b: re-valida filmes classificados como MovieReading ────────────────
-    // Filmes salvos como MovieReading são re-verificados contra PingPlay/MLOAD.
-    // Se encontrados em fonte mais confiável, corrige o app.
-    var mrClassificados = _filmes.filter(function (f) { return f.app === 'MovieReading'; });
-    if (mrClassificados.length) {
-      addLog('ok', '🔍', '<strong>' + mrClassificados.length + '</strong> filme(s) MovieReading — re-validando contra PingPlay/MLOAD...', null, null);
-      for (var rv = 0; rv < mrClassificados.length; rv++) {
-        var rf    = mrClassificados[rv];
-        var rnorm = normT(rf.titulo);
-        var rfuzz = normFuzzy(rf.titulo);
-        var rApp  = null;
-        var rDet  = null;
-
-        var rPpUrl = rf.ingresso_url ? ppByUrl[rf.ingresso_url] : null;
-        if (rPpUrl) {
-          rApp = 'PingPlay'; rDet = rPpUrl;
-        } else if (mloadSet.has(rnorm) || (rfuzz.length >= 4 && mloadFuzzy.has(rfuzz))) {
-          rApp = 'MLOAD'; rDet = mlByNorm[rnorm] || mlByNorm[rfuzz] || null;
-        } else if (pingplaySet.has(rnorm) || (rfuzz.length >= 4 && pingplayFuzzy.has(rfuzz))) {
-          rApp = 'PingPlay'; rDet = ppByNorm[rnorm] || ppByNorm[rfuzz] || null;
-        }
-
-        if (!rApp || rApp === 'MovieReading') continue; // sem mudança
+    // ── Fase 3b: re-valida filmes MovieReading com ingresso_url mapeado ─────────
+    // Caso específico: filme salvo como MovieReading mas que possui ingresso_url
+    // correspondente ao PingPlay API → corrige para PingPlay (URL match é definitivo).
+    var mrComUrl = _filmes.filter(function (f) { return f.app === 'MovieReading' && f.ingresso_url && ppByUrl[f.ingresso_url]; });
+    if (mrComUrl.length) {
+      addLog('ok', '🔍', '<strong>' + mrComUrl.length + '</strong> filme(s) MovieReading com URL PingPlay — corrigindo...', null, null);
+      for (var rv = 0; rv < mrComUrl.length; rv++) {
+        var rf   = mrComUrl[rv];
+        var rDet = ppByUrl[rf.ingresso_url];
+        var rA11y = { ad: !!rDet.ad, lse: !!(rDet.srt || rDet.legenda), libras: !!rDet.libras };
         try {
-          var rA11y = { ad: true, lse: true, libras: true };
-          if (rDet) rA11y = { ad: !!rDet.ad, lse: !!(rDet.srt || rDet.legenda), libras: !!rDet.libras };
-          await supabasePatch('filmes', 'id=eq.' + rf.id, { app: rApp, app_status: 'confirmado', a11y: rA11y, updated_at: now });
-          addLog('ok', '✏️', '<strong>' + escHtml(rf.titulo) + '</strong>: MovieReading → <strong>' + rApp + '</strong>', rApp, 'tag-cartaz');
+          await supabasePatch('filmes', 'id=eq.' + rf.id, { app: 'PingPlay', app_status: 'confirmado', a11y: rA11y, updated_at: now });
+          addLog('ok', '✏️', '<strong>' + escHtml(rf.titulo) + '</strong>: MovieReading → PingPlay (URL match)', 'PingPlay', 'tag-cartaz');
           changed++;
           var ridx = _filmes.findIndex(function (x) { return x.id === rf.id; });
-          if (ridx > -1) { _filmes[ridx].app = rApp; _filmes[ridx].app_status = 'confirmado'; _filmes[ridx].a11y = rA11y; }
+          if (ridx > -1) { _filmes[ridx].app = 'PingPlay'; _filmes[ridx].a11y = rA11y; }
         } catch (e) {
           addLog('err', '✕', escHtml(rf.titulo) + ' re-val: ' + e.message, null, null);
         }
@@ -948,7 +947,7 @@ async function runSync() {
 
     // ── Fase 3c: corrige filmes com app definido manualmente mas app_status desatualizado ──
     var desatualizados = _filmes.filter(function (f) {
-      return f.app && _getAppStatusAdmin(f) !== 'confirmado' && f.app !== 'MovieReading';
+      return f.app && _getAppStatusAdmin(f) !== 'confirmado';
     });
     if (desatualizados.length) {
       addLog('ok', '🔧', '<strong>' + desatualizados.length + '</strong> filme(s) com app definido mas status desatualizado — corrigindo...', null, null);
