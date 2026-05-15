@@ -77,6 +77,44 @@ function _applyFilter() {
   if (empty) empty.style.display = (!visiveis && _allCards.length) ? '' : 'none';
 }
 
+// ── Semana atual (seg → dom) ──────────────────────────────────────────────────
+
+// Retorna o domingo (23h59) da semana corrente
+function _thisWeekSunday() {
+  var now = new Date();
+  var day = now.getDay(); // 0=Dom, 1=Seg … 6=Sáb
+  var daysUntilSunday = day === 0 ? 0 : 7 - day;
+  var sun = new Date(now);
+  sun.setDate(now.getDate() + daysUntilSunday);
+  sun.setHours(23, 59, 59, 0);
+  return sun;
+}
+
+// Extrai a data de lançamento do item enriquecido
+function _releaseStr(item) {
+  return (item.tmdb && item.tmdb.release_date) ||
+         (item.filme.tmdb_data && item.filme.tmdb_data.release_date) || '';
+}
+
+// Retorna true se o filme já estreou ou estreia até o domingo desta semana
+function _isThisWeek(item) {
+  var dt = _releaseStr(item);
+  if (!dt) return true; // sem data → exibe (não sabemos quando estreia)
+  return new Date(dt + 'T12:00:00') <= _thisWeekSunday();
+}
+
+// Formata intervalo "Seg 12/05 – Dom 18/05" para exibir na página
+function _weekRangeLabel() {
+  var now  = new Date();
+  var day  = now.getDay();
+  var mon  = new Date(now); mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  var sun  = new Date(now); sun.setDate(mon.getDate() + 6);
+  var fmt  = function (d) {
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  };
+  return fmt(mon) + ' a ' + fmt(sun);
+}
+
 // ── Ordenação ─────────────────────────────────────────────────────────────────
 
 function _getAppStatus(filme) {
@@ -145,20 +183,33 @@ async function loadCatalog() {
       return { filme: filme, tmdb: tmdb };
     }));
 
+    // Filtra: somente filmes com estreia até o domingo desta semana
+    enriched = enriched.filter(_isThisWeek);
+
+    if (!enriched.length) {
+      grid.innerHTML = '<p style="color:var(--ink3);font-size:14px;padding:24px 0;">Nenhum filme com acessibilidade confirmada em cartaz esta semana.</p>';
+      return;
+    }
+
     // Ordena: acessíveis primeiro, depois pendentes, depois sem acessibilidade
     // Dentro de cada grupo: data de lançamento mais recente primeiro
     enriched.sort(function (a, b) {
       var oa = _statusOrder(a.filme);
       var ob = _statusOrder(b.filme);
       if (oa !== ob) return oa - ob;
-      // Mesmo grupo: data de lançamento (tmdb release_date), mais recente primeiro
-      var da = (a.tmdb && a.tmdb.release_date) || (a.filme.tmdb_data && a.filme.tmdb_data.release_date) || '';
-      var db = (b.tmdb && b.tmdb.release_date) || (b.filme.tmdb_data && b.filme.tmdb_data.release_date) || '';
+      var da = _releaseStr(a);
+      var db = _releaseStr(b);
       if (da && db) return da > db ? -1 : da < db ? 1 : 0;
-      if (da) return -1; // filmes com data vêm antes dos sem data
+      if (da) return -1;
       if (db) return 1;
       return 0;
     });
+
+    // Atualiza o título da seção com o intervalo da semana
+    var secTitle = document.getElementById('h-cartaz');
+    if (secTitle) {
+      secTitle.innerHTML = 'Em cartaz com acessibilidade <span class="sec-week">' + _weekRangeLabel() + '</span>';
+    }
 
     // Renderiza
     grid.innerHTML = '';
