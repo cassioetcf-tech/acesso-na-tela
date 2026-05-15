@@ -1,17 +1,18 @@
 // ── a11y-sources — Fontes de acessibilidade por app ──────────────────────────
 // GET /.netlify/functions/a11y-sources
-// Retorna { moviereading: [...títulos], mload: [...títulos], pingplay: [...títulos] }
+// Retorna { moviereading: [...títulos], mload: [...títulos], mload_details: [...],
+//           pingplay: [...títulos], pingplay_details: [...] }
 //
-// Fontes:
-//   MovieReading → https://cineacessivel.com.br/em-cartaz       (paginado, <h3>)
-//   MLOAD        → https://gomav.co/filmes-2025-2/              (página única, <h4>)
-//   PingPlay     → https://pingplay.com.br/catalogo.php?pagina=N (paginado, <h3>)
-//   GRETA        → paramountpictures.com.br/filmes — JS-rendered, não scrapeável
+// Fontes (apenas filmes recentes — em cartaz):
+//   MovieReading → cineacessivel.com.br/em-cartaz  (scraping HTML, página 1 somente)
+//   MLOAD        → app.mobiload.net/rest/v2         (API REST oficial)
+//   PingPlay     → locomotiva.dev.br/api/v1         (API REST oficial)
 //
-// Timeout: Netlify Functions têm limite de 10s (plano gratuito).
-// Cada fetch externo tem AbortController com 4s. As 3 fontes rodam em paralelo.
+// Estratégia: busca apenas os filmes mais recentes de cada fonte (em cartaz),
+// sem percorrer catálogos históricos completos. Isso mantém a função rápida
+// e focada nos filmes que realmente precisam de classificação.
 
-const FETCH_TIMEOUT_MS = 7000; // 7s por requisição HTTP externa
+const FETCH_TIMEOUT_MS = 7000;
 
 function normalizeTitle(title) {
   return (title || '')
@@ -30,43 +31,36 @@ function fetchWithTimeout(url, ms) {
     .finally(() => clearTimeout(id));
 }
 
+// MovieReading: scraping da página 1 do cineacessivel.com.br
+// A página lista os filmes mais recentes (em cartaz) — apenas página 1 é suficiente
+// para cobrir os lançamentos da semana sem percorrer o catálogo histórico inteiro.
 async function fetchMovieReading() {
   const titles = [];
   const seen   = new Set();
-  // Títulos estão em <h2> (não <h3>) — confirmado inspecionando o HTML do site
-  const BATCH  = 8; // páginas em paralelo por vez
-  const MAX    = 32; // máximo 32 páginas (site mostra até ~320 filmes)
 
-  let page = 1;
-  while (page <= MAX) {
-    const pageNums = Array.from({ length: BATCH }, (_, i) => page + i);
-    const htmls    = await Promise.all(
-      pageNums.map(p =>
-        fetchWithTimeout(`https://cineacessivel.com.br/em-cartaz?page=${p}`, FETCH_TIMEOUT_MS)
-          .then(r => r.ok ? r.text() : '')
-          .catch(() => '')
-      )
-    );
+  // Busca as 3 primeiras páginas em paralelo (cobre ~30 filmes recentes)
+  const PAGES = [1, 2, 3];
+  const htmls = await Promise.all(
+    PAGES.map(p =>
+      fetchWithTimeout(`https://cineacessivel.com.br/em-cartaz?page=${p}`, FETCH_TIMEOUT_MS)
+        .then(r => r.ok ? r.text() : '')
+        .catch(() => '')
+    )
+  );
 
-    let found = 0;
-    for (const html of htmls) {
-      if (!html) continue;
-      for (const m of html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)) {
-        const orig = m[1].trim();
-        const norm = normalizeTitle(orig);
-        if (norm && !seen.has(norm)) {
-          seen.add(norm);
-          titles.push(orig);
-          found++;
-        }
+  for (const html of htmls) {
+    if (!html) continue;
+    for (const m of html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)) {
+      const orig = m[1].trim();
+      const norm = normalizeTitle(orig);
+      if (norm && !seen.has(norm)) {
+        seen.add(norm);
+        titles.push(orig);
       }
     }
-
-    if (!found) break;
-    page += BATCH;
   }
 
-  console.log(`[a11y-sources] MovieReading: ${titles.length} títulos`);
+  console.log(`[a11y-sources] MovieReading: ${titles.length} títulos (págs 1-3)`);
   return titles;
 }
 
@@ -150,13 +144,17 @@ async function fetchMloadAPI() {
     return { titles: [], details: [] };
   }
 
-  // 3. Deduplica e extrai dados de acessibilidade
+  // 3. Ordena por ID desc (mais recentes), pega os 15 primeiros, deduplica
+  const sorted = films
+    .filter(function (f) { return f.nome && f.nome.trim(); })
+    .sort(function (a, b) { return (b.id || 0) - (a.id || 0); })
+    .slice(0, 15);
+
   const seen    = new Set();
   const details = [];
-  for (var i = 0; i < films.length; i++) {
-    var f    = films[i];
-    var nome = (f.nome || '').trim();
-    if (!nome) continue;
+  for (var i = 0; i < sorted.length; i++) {
+    var f    = sorted[i];
+    var nome = f.nome.trim();
     var norm = normalizeTitle(nome);
     if (!norm || seen.has(norm)) continue;
     seen.add(norm);
@@ -172,7 +170,7 @@ async function fetchMloadAPI() {
 
   var adCount     = details.filter(function (d) { return d.ad; }).length;
   var librasCount = details.filter(function (d) { return d.libras; }).length;
-  console.log('[a11y-sources] MLOAD API: ' + details.length + ' filmes — AD: ' + adCount + ' · Libras: ' + librasCount);
+  console.log('[a11y-sources] MLOAD API: ' + details.length + ' filmes recentes — AD: ' + adCount + ' · Libras: ' + librasCount);
 
   return { titles: details.map(function (d) { return d.name; }), details: details };
 }
@@ -184,10 +182,12 @@ async function fetchMloadAPI() {
 async function fetchPingPlayAPI() {
   const BASE = 'https://etc.prod.api.locomotiva.dev.br/api/v1';
 
-  // 1. Catálogo completo (sem detalhes de acessibilidade)
+  // 1. Catálogo recente — filmes com IDs mais altos são os mais recentes
+  //    Buscamos 50 e ordenamos por ID desc para pegar os lançamentos atuais.
+  //    Isso evita percorrer centenas de filmes históricos.
   let listR;
   try {
-    listR = await fetchWithTimeout(BASE + '/catalog?all=true&limit=500', FETCH_TIMEOUT_MS);
+    listR = await fetchWithTimeout(BASE + '/catalog?all=true&limit=50', FETCH_TIMEOUT_MS);
   } catch (e) {
     console.log('[a11y-sources] PingPlay API list error: ' + e.message);
     return { titles: [], details: [] };
@@ -198,15 +198,20 @@ async function fetchPingPlayAPI() {
   }
 
   const listJson = await listR.json();
-  // Suporta envelope { content: { data: [...] } } e array direto
-  const films = (listJson.content && Array.isArray(listJson.content.data) ? listJson.content.data : null)
+  const allFilms = (listJson.content && Array.isArray(listJson.content.data) ? listJson.content.data : null)
     || (Array.isArray(listJson.data) ? listJson.data : null)
     || (Array.isArray(listJson) ? listJson : []);
 
-  console.log('[a11y-sources] PingPlay API: ' + films.length + ' filmes na lista');
+  // Ordena por ID decrescente (mais recentes primeiro) e pega os 15 mais novos
+  const films = allFilms
+    .slice()
+    .sort(function (a, b) { return (b.id || 0) - (a.id || 0); })
+    .slice(0, 15);
+
+  console.log('[a11y-sources] PingPlay API: ' + films.length + ' filmes recentes (de ' + allFilms.length + ' total)');
   if (!films.length) return { titles: [], details: [] };
 
-  // 2. Detalhes individuais em paralelo (todos de uma vez — REST é rápido)
+  // 2. Detalhes individuais em paralelo
   const rawResults = await Promise.all(
     films.map(function (f) {
       return fetchWithTimeout(BASE + '/catalog/' + f.id, 5000)

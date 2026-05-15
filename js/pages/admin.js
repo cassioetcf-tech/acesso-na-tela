@@ -841,11 +841,23 @@ async function runSync() {
       'MovieReading: <strong>' + mrSet.size + '</strong> (scraping)',
       null, null);
 
-    var pendentes = _filmes.filter(function (f) { return _getAppStatusAdmin(f) === 'pendente'; });
+    // Processa apenas filmes "em cartaz" — pendentes OU já classificados pelos 3 apps rastreáveis.
+    // Filmes GRETA/TrioCinema (manuais) e sem_acessibilidade são ignorados.
+    var APPS_RASTRAVEIS = ['MovieReading', 'MLOAD', 'PingPlay'];
+    var emCartaz = _filmes.filter(function (f) {
+      var status = (f.status || '').toLowerCase();
+      if (status !== 'cartaz') return false; // só "em cartaz"
+      var appStatus = _getAppStatusAdmin(f);
+      if (appStatus === 'pendente') return true; // ainda não classificado
+      // Re-verifica os 3 apps rastreáveis (pode ter mudado de app ou nova info)
+      if (appStatus === 'confirmado' && APPS_RASTRAVEIS.indexOf(f.app) > -1) return true;
+      return false;
+    });
+    addLog('ok', '🎬', '<strong>' + emCartaz.length + '</strong> filme(s) em cartaz para verificar', null, null);
     var autoCount = 0;
 
-    for (var ap = 0; ap < pendentes.length; ap++) {
-      var pf    = pendentes[ap];
+    for (var ap = 0; ap < emCartaz.length; ap++) {
+      var pf    = emCartaz[ap];
       var norm  = normT(pf.titulo);
       var fuzzy = normFuzzy(pf.titulo);
       var app   = null;
@@ -893,7 +905,18 @@ async function runSync() {
         appDet = ppTitleDet;
       }
 
-      if (!app) continue;
+      // Sem match em nenhum dos 3 apps rastreáveis
+      if (!app) {
+        // Se já estava classificado em um app rastreável e sumiu das fontes → mantém (pode ser lag)
+        if (pf.app && APPS_RASTRAVEIS.indexOf(pf.app) > -1) {
+          addLog('ok', '⚠️', '<strong>' + escHtml(pf.titulo) + '</strong> — não encontrado nas fontes (mantém ' + pf.app + ')', pf.app, null);
+        }
+        continue;
+      }
+
+      // Sem mudança real → pula atualização desnecessária
+      if (pf.app === app && _getAppStatusAdmin(pf) === 'confirmado') continue;
+
       try {
         var a11yData3 = { ad: true, lse: true, libras: true };
         if (appDet) {
@@ -911,7 +934,8 @@ async function runSync() {
         var a11yTag = appDet
           ? ' <span style="font-size:11px;color:#555">' + (appDet.ad ? '🎧AD ' : '') + (appDet.libras ? '🤟Libras ' : '') + ((appDet.srt || appDet.legenda) ? '💬Leg' : '') + '</span>'
           : '';
-        addLog('ok', '🎯', '<strong>' + escHtml(pf.titulo) + '</strong> → ' + app + a11yTag, app, 'tag-cartaz');
+        var mudou = (pf.app && pf.app !== app) ? escHtml(pf.app) + ' → ' : '';
+        addLog('ok', '🎯', '<strong>' + escHtml(pf.titulo) + '</strong> — ' + mudou + app + a11yTag, app, 'tag-cartaz');
         autoCount++;
         var pidx = _filmes.findIndex(function (x) { return x.id === pf.id; });
         if (pidx > -1) { _filmes[pidx].app = app; _filmes[pidx].app_status = 'confirmado'; _filmes[pidx].a11y = a11yData3; }
