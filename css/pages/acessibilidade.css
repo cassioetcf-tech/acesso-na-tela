@@ -1,0 +1,107 @@
+/* ═══════════════════════════════════════
+   ACESSIBILIDADE — Declaração de acessibilidade
+═══════════════════════════════════════ */
+
+/* ── HERO ── */
+.a11y-decl-hero {
+  background: var(--laranja);
+  padding: 40px 28px 44px;
+}
+.a11y-decl-hero-inner { max-width: 680px; }
+.a11y-decl-hero h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 800; color: #fff;
+  line-height: 1.1; margin-bottom: 14px; letter-spacing: -0.5px;
+}
+.a11y-decl-hero p { font-size: 15px; color: rgba(255,255,255,0.9); line-height: 1.7; margin: 0; }
+
+/* ── BODY ── */
+.a11y-decl-body { max-width: 860px; margin: 0 auto; padding: 48px 28px 72px; }
+
+/* ── SEÇÕES ── */
+.decl-section { margin-bottom: 52px; }
+.decl-section:last-child { margin-bottom: 0; }
+.decl-section h2 {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px; font-weight: 800; color: var(--ink);
+  letter-spacing: -0.3px; margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 2px solid var(--bdr);
+}
+.decl-section p { font-size: 14px; color: var(--ink2); line-height: 1.75; margin-bottom: 12px; }
+.decl-section p:last-child { margin-bottom: 0; }
+
+/* ── BADGES WCAG ── */
+.decl-badge-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.decl-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border-radius: 8px;
+  font-size: 14px; font-weight: 800; letter-spacing: 0.3px;
+}
+.decl-badge-a   { background: #E8F5E9; color: #1B5E20; border: 2px solid #A5D6A7; }
+.decl-badge-aa  { background: #E3F2FD; color: #0D47A1; border: 2px solid #90CAF9; }
+.decl-badge-aaa { background: var(--bg2); color: var(--ink3); border: 2px solid var(--bdr); }
+.decl-badge-partial { opacity: 0.75; }
+.decl-badge-note { font-size: 10px; font-weight: 500; margin-left: 4px; }
+
+/* ── CARDS DE RECURSOS ── */
+.decl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.decl-card {
+  background: var(--bg);
+  border: 1.5px solid var(--bdr);
+  border-radius: var(--r);
+  padding: 20px;
+}
+.decl-card-icon { font-size: 24px; margin-bottom: 10px; display: block; }
+.decl-card h3 { font-size: 14px; font-weight: 800; color: var(--ink); margin-bottom: 8px; }
+.decl-card p  { font-size: 13px; color: var(--ink2); line-height: 1.65; margin: 0; }
+.decl-card code { font-size: 11px; background: var(--bg2); border: 1px solid var(--bdr); border-radius: 4px; padding: 1px 5px; color: var(--laranja-esc); font-family: monospace; }
+
+/* ── LISTA ── */
+.decl-list { margin: 12px 0 0 0; padding-left: 20px; }
+.decl-list li { font-size: 14px; color: var(--ink2); line-height: 1.7; margin-bottom: 8px; }
+
+/* ── COMPATIBILIDADE ── */
+.decl-compat-grid {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px;
+}
+.decl-compat {
+  background: var(--bg2); border: 1.5px solid var(--bdr);
+  border-radius: var(--r-sm); padding: 8px 14px;
+  font-size: 13px; color: var(--ink2);
+}
+.decl-compat strong { color: var(--ink); }
+
+/* ── CONTATO ── */
+.decl-section-contact {
+  background: var(--laranja-cl);
+  border: 2px solid var(--laranja-bdr);
+  border-radius: var(--r);
+  padding: 28px 32px;
+  margin-bottom: 0;
+}
+.decl-section-contact h2 { border-bottom-color: var(--laranja-bdr); color: var(--laranja-esc); }
+.decl-contact-btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--laranja); color: #fff;
+  border-radius: var(--r-sm); padding: 12px 22px;
+  font-size: 14px; font-weight: 700; text-decoration: none;
+  font-family: inherit; margin: 16px 0 20px;
+  transition: opacity .12s;
+}
+.decl-contact-btn:hover { opacity: 0.88; }
+.decl-contact-btn:focus-visible { outline: 3px solid var(--laranja-esc); outline-offset: 2px; }
+.decl-update { font-size: 12px; color: var(--laranja); font-weight: 500; margin: 0 !important; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .a11y-decl-hero { padding: 28px 16px 32px; }
+  .a11y-decl-body { padding: 32px 16px 56px; }
+  .decl-grid { grid-template-columns: 1fr; }
+  .decl-section-contact { padding: 20px 18px; }
+}

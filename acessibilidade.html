@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acessibilidade — Acesso na Tela</title>
+  <meta name="description" content="Declaração de acessibilidade do portal Acesso na Tela. Conheça os recursos disponíveis, o nível de conformidade e como nos contatar.">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/a11y.css">
+  <link rel="stylesheet" href="/css/pages/acessibilidade.css">
+</head>
+<body>
+  <div id="a11y-bar-mount"></div>
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
+
+  <div class="shell">
+    <div id="header-mount"></div>
+
+    <main id="main-content" tabindex="-1">
+
+      <!-- HERO -->
+      <section class="a11y-decl-hero" aria-labelledby="decl-h1">
+        <div class="a11y-decl-hero-inner">
+          <h1 id="decl-h1">Declaração de <span class="hl">Acessibilidade</span></h1>
+          <p>O Acesso na Tela é um portal sobre cinema e streaming acessíveis. Nosso compromisso com a acessibilidade não se limita ao conteúdo que publicamos — ele se estende à forma como construímos o próprio site.</p>
+        </div>
+      </section>
+
+      <div class="a11y-decl-body">
+
+        <!-- CONFORMIDADE -->
+        <section class="decl-section" aria-labelledby="decl-conformidade">
+          <h2 id="decl-conformidade">Nível de conformidade</h2>
+          <p>Este site busca conformidade com as <strong>Diretrizes de Acessibilidade para Conteúdo Web (WCAG) 2.1, nível AA</strong>, publicadas pelo World Wide Web Consortium (W3C).</p>
+          <p>Estamos em processo contínuo de melhoria. Algumas seções ainda estão sendo aprimoradas para atingir conformidade completa.</p>
+          <div class="decl-badge-row" aria-label="Nível de conformidade WCAG 2.1 AA">
+            <div class="decl-badge decl-badge-a">A</div>
+            <div class="decl-badge decl-badge-aa">AA</div>
+            <div class="decl-badge decl-badge-aaa decl-badge-partial">AAA <span class="decl-badge-note">parcial</span></div>
+          </div>
+        </section>
+
+        <!-- RECURSOS IMPLEMENTADOS -->
+        <section class="decl-section" aria-labelledby="decl-recursos">
+          <h2 id="decl-recursos">Recursos de acessibilidade implementados</h2>
+
+          <div class="decl-grid">
+
+            <div class="decl-card">
+              <div class="decl-card-icon" aria-hidden="true">⌨️</div>
+              <h3>Navegação por teclado</h3>
+              <p>Todas as funcionalidades estão acessíveis via teclado. Indicadores visuais de foco (<code>:focus-visible</code>) estão presentes em todos os elementos interativos.</p>
+            </div>
+
+            <div class="decl-card">
+              <div class="decl-card-icon" aria-hidden="true">📢</div>
+              <h3>Leitores de tela</h3>
+              <p>O site é compatível com leitores de tela como NVDA, JAWS e VoiceOver. Utilizamos WAI-ARIA para comunicar estados e regiões de forma semântica.</p>
+            </div>
+
+            <div class="decl-card">
+              <div class="decl-card-icon" aria-hidden="true">🏷️</div>
+              <h3>Rótulos e alternativas textuais</h3>
+              <p>Imagens têm textos alternativos descritivos. Ícones decorativos são ocultados de tecnologias assistivas com <code>aria-hidden</code>.</p>
+            </div>
+
+            <div class="decl-card">
+              <div class="decl-card-icon" aria-hidden="true">📍</div>
+              <h3>Estrutura semântica</h3>
+              <p>Hierarquia de títulos (<code>h1</code>–<code>h3</code>) consistente em todas as páginas. Landmarks ARIA (<code>main</code>, <code>nav</code>, <code>aside</code>, <code>footer</code>) delimitam as regiões do conteúdo.</p>
+            </div>
+
+            <div class="decl-card">
+              <div class="decl-card-icon" aria-hidden="true">🔴</div>
+              <h3>Regiões ao vivo</h3>
+              <p>Atualizações dinâmicas de conteúdo (busca, carregamento de filmes, envio de formulários) são anunciadas via <code>aria-live</code> para usuários de leitores de tela.</p>
+            </div>
+
+            <div class="decl-card">
+              <div class="decl-card-icon" aria-hidden="true">🌈</div>
+              <h3>Contraste de cores</h3>
+              <p>Textos e elementos interativos atendem às proporções mínimas de contraste WCAG 2.1 AA (4,5:1 para texto normal, 3:1 para texto grande).</p>
+            </div>
+
+            <div class="decl-card">
+              <div class="decl-card-icon" aria-hidden="true">📋</div>
+              <h3>Formulários acessíveis</h3>
+              <p>Todos os campos de formulário têm rótulos (<code>label</code>) associados, mensagens de erro claras e suporte a autocomplete para facilitar o preenchimento.</p>
+            </div>
+
+            <div class="decl-card">
+              <div class="decl-card-icon" aria-hidden="true">🤟</div>
+              <h3>Widget VLibras</h3>
+              <p>Integração com o <strong>VLibras</strong> (ferramenta do Governo Federal) disponível em todas as páginas, oferecendo tradução automática de conteúdo para Libras.</p>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- LIMITAÇÕES CONHECIDAS -->
+        <section class="decl-section" aria-labelledby="decl-limitacoes">
+          <h2 id="decl-limitacoes">Limitações conhecidas</h2>
+          <p>Trabalhamos continuamente para melhorar, mas reconhecemos que algumas áreas ainda estão em aprimoramento:</p>
+          <ul class="decl-list">
+            <li>Vídeos de trailers incorporados do YouTube podem não ter legendas em todos os casos — dependem da disponibilidade no próprio YouTube.</li>
+            <li>Conteúdo carregado dinamicamente (filmes em cartaz, sessões, relatos) pode ter um pequeno atraso antes de ser anunciado por leitores de tela.</li>
+            <li>O widget VLibras é uma ferramenta de terceiros — sua cobertura e precisão dependem do Governo Federal.</li>
+          </ul>
+        </section>
+
+        <!-- TECNOLOGIAS COMPATÍVEIS -->
+        <section class="decl-section" aria-labelledby="decl-tecnologias">
+          <h2 id="decl-tecnologias">Tecnologias compatíveis</h2>
+          <p>O site foi testado e é compatível com as seguintes combinações de navegador e tecnologia assistiva:</p>
+          <div class="decl-compat-grid" role="list" aria-label="Combinações compatíveis">
+            <div class="decl-compat" role="listitem"><strong>Chrome</strong> + NVDA (Windows)</div>
+            <div class="decl-compat" role="listitem"><strong>Firefox</strong> + NVDA (Windows)</div>
+            <div class="decl-compat" role="listitem"><strong>Safari</strong> + VoiceOver (macOS / iOS)</div>
+            <div class="decl-compat" role="listitem"><strong>Chrome</strong> + TalkBack (Android)</div>
+            <div class="decl-compat" role="listitem"><strong>Edge</strong> + Narrador (Windows)</div>
+          </div>
+          <p style="margin-top:16px;font-size:13px;color:var(--ink3);">Recomendamos o uso de navegadores e tecnologias assistivas lançados nos últimos 2 anos para melhor experiência.</p>
+        </section>
+
+        <!-- FEEDBACK E CONTATO -->
+        <section class="decl-section decl-section-contact" aria-labelledby="decl-contato">
+          <h2 id="decl-contato">Encontrou algum problema?</h2>
+          <p>Se você encontrou uma barreira de acessibilidade no Acesso na Tela ou quer nos ajudar a melhorar, entre em contato. Respondemos em até <strong>2 dias úteis</strong>.</p>
+          <a href="mailto:contato@acessonatela.com" class="decl-contact-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+            Enviar feedback de acessibilidade
+          </a>
+          <p class="decl-update">Esta declaração foi atualizada em <time datetime="2026-05-16">maio de 2026</time>.</p>
+        </section>
+
+      </div><!-- /.a11y-decl-body -->
+
+    </main>
+
+    <div id="footer-mount"></div>
+  </div><!-- /.shell -->
+
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/a11y.js"></script>
+  <script src="/js/api/supabase.js"></script>
+  <script src="/js/components/header.js"></script>
+  <script src="/js/components/footer.js"></script>
+</body>
+</html>
