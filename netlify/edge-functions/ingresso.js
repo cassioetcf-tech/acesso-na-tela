@@ -25,35 +25,12 @@ export default async function handler(request) {
 
   let target;
 
-  // ── ESTADOS ─────────────────────────────────────────────────────────────────
-  if (type === 'states') {
-    try {
-      const r = await fetch(`${BASE}/states/partnership/${PART}`, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
-          'Origin': 'https://www.ingresso.com',
-          'Referer': 'https://www.ingresso.com/',
-        },
-      });
-      const body = await r.text();
-      return new Response(body, {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
-    } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
-    }
-  }
-
-  // ── CIDADES POR ESTADO ───────────────────────────────────────────────────────
+  // ── TODAS AS CIDADES ─────────────────────────────────────────────────────────
+  // Retorna todas as cidades disponíveis na Ingresso.
+  // O frontend agrupa por estado e filtra localmente (sem endpoint por estado).
   if (type === 'cities') {
-    const state = url.searchParams.get('state') || 'SP';
     try {
-      const r = await fetch(`${BASE}/cities/state/${state}/partnership/${PART}`, {
+      const r = await fetch(`${BASE}/cities/partnership/${PART}`, {
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
@@ -62,6 +39,7 @@ export default async function handler(request) {
         },
       });
       const body = await r.text();
+      console.log(`[cities] status=${r.status} len=${body.length} preview=${body.substring(0,200)}`);
       return new Response(body, {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
