@@ -186,6 +186,24 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
 /* Ocultar vlibras-btn legado */
 .vlibras-btn { display: none !important; }
 
+/* ── A11Y BAR — link de acessibilidade ── */
+.a11y-decl-link {
+  color: #aaa;
+  font-size: 12px;
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1.5px solid #555;
+  white-space: nowrap;
+  transition: border-color .15s, color .15s;
+}
+.a11y-decl-link:hover,
+.a11y-decl-link:focus-visible {
+  border-color: var(--laranja);
+  color: var(--laranja);
+  outline: none;
+}
+
 /* ── BREADCRUMB ── */
 .breadcrumb {
   background: var(--bg2); border-bottom: 1px solid var(--bdr);

@@ -1,0 +1,213 @@
+/* ═══════════════════════════════════════
+   CINEMAS PAGE — Acesso na Tela
+═══════════════════════════════════════ */
+
+/* ── HERO ── */
+.cinemas-hero {
+  background: var(--laranja);
+  padding: 40px 28px 44px;
+}
+.cinemas-hero-inner { max-width: 680px; }
+.cinemas-hero h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 800; color: #fff;
+  line-height: 1.1; margin-bottom: 12px; letter-spacing: -0.5px;
+}
+.cinemas-hero p { font-size: 15px; color: rgba(255,255,255,0.9); line-height: 1.7; margin: 0; }
+
+/* ── FILTROS ── */
+.cinemas-filters {
+  background: var(--bg);
+  border-bottom: 2px solid var(--bdr);
+  padding: 20px 28px;
+  position: sticky;
+  top: 72px; /* altura do header */
+  z-index: 40;
+}
+.cinemas-filters-inner {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  max-width: 860px;
+}
+
+/* Campo de filtro */
+.cf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 160px;
+}
+.cf-field-search { flex: 1; min-width: 200px; }
+
+.cf-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cf-select {
+  height: 40px;
+  border: 1.5px solid var(--bdr);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: inherit;
+  padding: 0 10px;
+  cursor: pointer;
+  transition: border-color .15s;
+  appearance: auto;
+}
+.cf-select:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; border-color: var(--laranja); }
+.cf-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Campo de busca */
+.cf-search-wrap {
+  position: relative;
+}
+.cf-search-icon {
+  position: absolute;
+  left: 11px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink3);
+  pointer-events: none;
+}
+.cf-input {
+  width: 100%;
+  height: 40px;
+  border: 1.5px solid var(--bdr);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: inherit;
+  padding: 0 12px 0 34px;
+  transition: border-color .15s;
+  box-sizing: border-box;
+}
+.cf-input::placeholder { color: var(--ink3); }
+.cf-input:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; border-color: var(--laranja); }
+
+/* ── BODY ── */
+.cinemas-body {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 28px 72px;
+  min-height: 300px;
+}
+
+/* ── ESTADOS (empty / loading / none) ── */
+.cinemas-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--ink3);
+}
+.cinemas-state-icon { font-size: 40px; }
+.cinemas-state p { font-size: 14px; line-height: 1.6; margin: 0; }
+
+/* Spinner */
+.cinemas-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--bdr);
+  border-top-color: var(--laranja);
+  border-radius: 50%;
+  animation: cin-spin .7s linear infinite;
+}
+@keyframes cin-spin { to { transform: rotate(360deg); } }
+
+/* ── GRADE DE CINEMAS ── */
+.cinemas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ── CARD DE CINEMA ── */
+.cin-card {
+  background: var(--bg);
+  border: 1.5px solid var(--bdr);
+  border-radius: var(--r);
+  padding: 18px 20px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.cin-card:hover { border-color: var(--laranja-bdr); box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+
+.cin-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.cin-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+  margin: 0;
+  flex: 1;
+}
+
+/* Botão de favorito */
+.cin-fav-btn {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--ink3);
+  padding: 2px;
+  border-radius: 4px;
+  transition: color .15s, transform .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cin-fav-btn:hover { color: var(--laranja); transform: scale(1.15); }
+.cin-fav-btn:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
+.cin-fav-btn--active { color: var(--laranja); }
+
+/* Endereço */
+.cin-addr {
+  font-size: 12px;
+  color: var(--ink3);
+  line-height: 1.55;
+  margin: 0 0 12px;
+}
+
+/* Ações */
+.cin-actions { margin-top: 12px; }
+.cin-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--laranja);
+  text-decoration: none;
+  padding: 5px 12px;
+  border: 1.5px solid var(--laranja-bdr);
+  border-radius: var(--r-sm);
+  transition: background .14s, color .14s;
+}
+.cin-link:hover { background: var(--laranja-cl); }
+.cin-link:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .cinemas-hero { padding: 28px 16px 32px; }
+  .cinemas-filters { padding: 16px; top: 72px; }
+  .cinemas-filters-inner { gap: 12px; }
+  .cf-field { min-width: 100%; }
+  .cinemas-body { padding: 28px 16px 56px; }
+  .cinemas-grid { grid-template-columns: 1fr; }
+}

@@ -25,6 +25,79 @@ export default async function handler(request) {
 
   let target;
 
+  // ── ESTADOS ─────────────────────────────────────────────────────────────────
+  if (type === 'states') {
+    try {
+      const r = await fetch(`${BASE}/states/partnership/${PART}`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+          'Origin': 'https://www.ingresso.com',
+          'Referer': 'https://www.ingresso.com/',
+        },
+      });
+      const body = await r.text();
+      return new Response(body, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+  }
+
+  // ── CIDADES POR ESTADO ───────────────────────────────────────────────────────
+  if (type === 'cities') {
+    const state = url.searchParams.get('state') || 'SP';
+    try {
+      const r = await fetch(`${BASE}/cities/state/${state}/partnership/${PART}`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+          'Origin': 'https://www.ingresso.com',
+          'Referer': 'https://www.ingresso.com/',
+        },
+      });
+      const body = await r.text();
+      return new Response(body, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+  }
+
+  // ── CINEMAS POR CIDADE ───────────────────────────────────────────────────────
+  if (type === 'theaters') {
+    try {
+      const r = await fetch(`${BASE}/theaters/city/${city}/partnership/${PART}`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+          'Origin': 'https://www.ingresso.com',
+          'Referer': 'https://www.ingresso.com/',
+        },
+      });
+      const body = await r.text();
+      return new Response(body, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+  }
+
   if (type === 'nowplaying') {
     // Usa o endpoint oficial da Ingresso.com para listar filmes em cartaz/em breve.
     // GET /v0/events/city/1/partnership/locomotivadigital

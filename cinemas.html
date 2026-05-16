@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cinemas — Acesso na Tela</title>
+  <meta name="description" content="Encontre cinemas acessíveis perto de você. Filtre por estado, cidade e nome para localizar salas com audiodescrição, legendas e Libras.">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/a11y.css">
+  <link rel="stylesheet" href="/css/pages/cinemas.css">
+</head>
+<body>
+  <div id="a11y-bar-mount"></div>
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
+
+  <div class="shell">
+    <div id="header-mount"></div>
+
+    <main id="main-content" tabindex="-1">
+
+      <!-- HERO -->
+      <section class="cinemas-hero" aria-labelledby="cinemas-h1">
+        <div class="cinemas-hero-inner">
+          <h1 id="cinemas-h1">Encontre um <span class="hl">cinema</span> acessível</h1>
+          <p>Localize salas com audiodescrição, legendas para surdos e janela de Libras perto de você.</p>
+        </div>
+      </section>
+
+      <!-- FILTROS -->
+      <div class="cinemas-filters" role="search" aria-label="Filtrar cinemas">
+        <div class="cinemas-filters-inner">
+
+          <div class="cf-field">
+            <label class="cf-label" for="cf-state">Estado</label>
+            <select id="cf-state" class="cf-select" aria-label="Selecionar estado">
+              <option value="">Selecione...</option>
+            </select>
+          </div>
+
+          <div class="cf-field">
+            <label class="cf-label" for="cf-city">Cidade</label>
+            <select id="cf-city" class="cf-select" aria-label="Selecionar cidade" disabled>
+              <option value="">Selecione o estado...</option>
+            </select>
+          </div>
+
+          <div class="cf-field cf-field-search">
+            <label class="cf-label" for="cf-search">Buscar cinema</label>
+            <div class="cf-search-wrap">
+              <svg class="cf-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" id="cf-search" class="cf-input" placeholder="Nome do cinema..." aria-label="Buscar por nome do cinema">
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CONTEÚDO -->
+      <div class="cinemas-body">
+
+        <!-- Estado inicial -->
+        <div id="cinemas-empty" class="cinemas-state" role="status">
+          <div class="cinemas-state-icon" aria-hidden="true">🎬</div>
+          <p>Selecione um estado e uma cidade para ver os cinemas disponíveis.</p>
+        </div>
+
+        <!-- Loading -->
+        <div id="cinemas-loading" class="cinemas-state" role="status" aria-live="polite" hidden>
+          <div class="cinemas-spinner" aria-hidden="true"></div>
+          <p>Buscando cinemas...</p>
+        </div>
+
+        <!-- Sem resultados -->
+        <div id="cinemas-none" class="cinemas-state" hidden>
+          <div class="cinemas-state-icon" aria-hidden="true">🔍</div>
+          <p>Nenhum cinema encontrado. Tente outra cidade ou ajuste a busca.</p>
+        </div>
+
+        <!-- Grade de cinemas -->
+        <div id="cinemas-grid" class="cinemas-grid" role="list" aria-label="Lista de cinemas" hidden></div>
+
+      </div><!-- /.cinemas-body -->
+
+    </main>
+
+    <div id="footer-mount"></div>
+  </div><!-- /.shell -->
+
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/a11y.js"></script>
+  <script src="/js/api/supabase.js"></script>
+  <script src="/js/components/header.js"></script>
+  <script src="/js/components/footer.js"></script>
+  <script src="/js/pages/cinemas.js"></script>
+</body>
+</html>

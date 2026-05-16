@@ -3,8 +3,8 @@
 // Depende de: js/a11y.js (changeFontSize, setContrast, toggleContrastMenu, toggleVLibras)
 
 var _NAV_LINKS = [
-  { key: 'home',        href: 'index.html',       label: 'Início'      },
-  { key: 'catalogo',    href: 'catalogo.html',    label: 'Catálogo'    },
+  { key: 'home',        href: 'index.html',       label: 'Filmes'      },
+  { key: 'cinemas',     href: 'cinemas.html',     label: 'Cinemas'     },
   { key: 'aplicativos', href: 'aplicativos.html', label: 'Aplicativos' },
   { key: 'faq',         href: 'faq.html',         label: 'FAQ'         },
 ];
@@ -42,6 +42,7 @@ function renderHeader(activePage) {
             '<button role="menuitem" onclick="setContrast(\'grayscale\')">Escala de cinza</button>' +
           '</div>' +
         '</div>' +
+        '<a class="a11y-decl-link" href="acessibilidade.html" aria-label="Declaração de acessibilidade">&#9679; Acessibilidade</a>' +
       '</div>' +
     '</div>' +
 
