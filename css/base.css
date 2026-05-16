@@ -23,6 +23,9 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Garante que [hidden] nunca seja sobrescrito por regras de display em classes */
+[hidden] { display: none !important; }
+
 body {
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 15px;
