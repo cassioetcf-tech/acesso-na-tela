@@ -4,7 +4,6 @@
 
 var _NAV_LINKS = [
   { key: 'home',        href: 'index.html',       label: 'Filmes'      },
-  { key: 'cinemas',     href: 'cinemas.html',     label: 'Cinemas'     },
   { key: 'aplicativos', href: 'aplicativos.html', label: 'Aplicativos' },
   { key: 'faq',         href: 'faq.html',         label: 'FAQ'         },
 ];

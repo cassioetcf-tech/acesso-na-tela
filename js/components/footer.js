@@ -11,7 +11,6 @@ function renderFooter() {
     '<footer role="contentinfo">' +
       '<nav aria-label="Links do rodapé">' +
         '<a href="index.html">Filmes</a>' +
-        '<a href="cinemas.html">Cinemas</a>' +
         '<a href="aplicativos.html">Aplicativos</a>' +
         '<a href="faq.html">FAQ</a>' +
       '</nav>' +
