@@ -164,7 +164,7 @@
     _show(elLoading);
     _announce('Buscando cinemas em ' + cityLabel + '...');
 
-    fetch(API + '?type=theaters&slug=' + encodeURIComponent(_slug(cityLabel)) + '&city=' + encodeURIComponent(cityId))
+    fetch(API + '?type=theaters&cityName=' + encodeURIComponent(cityLabel))
       .then(function (r) { return r.json(); })
       .then(function (data) {
         // Log para diagnóstico — visível no DevTools > Console

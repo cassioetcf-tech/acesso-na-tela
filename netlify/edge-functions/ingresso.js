@@ -52,82 +52,67 @@ export default async function handler(request) {
     }
   }
 
-  // ── CINEMAS — scraping do ingresso.com/cinemas ───────────────────────────────
-  // A API interna da Ingresso não expõe theaters via partnership locomotivadigital.
-  // Fazemos scraping da página pública ingresso.com/cinemas (Next.js SSR).
-  // O Next.js injeta os dados no __NEXT_DATA__ do HTML — extraímos a lista de cinemas.
+  // ── CINEMAS — OpenStreetMap (Overpass API) ───────────────────────────────────
+  // Busca cinemas pelo nome da cidade via Overpass API (OSM).
+  // Público, gratuito, sem autenticação. admin_level=8 = município no Brasil.
   if (type === 'theaters') {
-    const slug = url.searchParams.get('slug') || 'sao-paulo';
+    const cityName = decodeURIComponent(url.searchParams.get('cityName') || 'São Paulo');
 
-    // Tenta diferentes padrões de URL da Ingresso (slug na rota ou querystring)
-    const pageUrls = [
-      `https://www.ingresso.com/${slug}/cinemas`,
-      `https://www.ingresso.com/cinemas?city=${slug}`,
-      `https://www.ingresso.com/cinemas`,
+    // Tenta primeiro com boundary administrativa, depois só pelo nome da área
+    const queries = [
+      `[out:json][timeout:30];
+area["name"="${cityName}"]["admin_level"="8"]["boundary"="administrative"]->.a;
+(node["amenity"="cinema"](area.a);way["amenity"="cinema"](area.a););
+out center tags;`,
+      `[out:json][timeout:30];
+area["name"="${cityName}"]->.a;
+(node["amenity"="cinema"](area.a);way["amenity"="cinema"](area.a););
+out center tags;`,
     ];
 
-    const hdrs = {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'pt-BR,pt;q=0.9',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    };
-
-    for (const pageUrl of pageUrls) {
+    for (const query of queries) {
       try {
-        const r = await fetch(pageUrl, { headers: hdrs });
-        if (!r.ok) { console.log(`[theaters] ${pageUrl} → ${r.status}`); continue; }
+        const r = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'data=' + encodeURIComponent(query),
+        });
 
-        const html = await r.text();
-        console.log(`[theaters] ${pageUrl} → ${r.status}, len=${html.length}`);
+        if (!r.ok) { console.log(`[theaters-osm] overpass ${r.status}`); continue; }
 
-        // Extrai __NEXT_DATA__ (injeção SSR do Next.js)
-        const m = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
-        if (!m) {
-          console.log(`[theaters] __NEXT_DATA__ não encontrado em ${pageUrl}`);
-          continue;
-        }
+        const data = await r.json();
+        const els  = data.elements || [];
+        console.log(`[theaters-osm] ${cityName}: ${els.length} elementos OSM`);
 
-        const nextData = JSON.parse(m[1]);
-        const pp = nextData?.props?.pageProps || {};
-        console.log(`[theaters] pageProps keys: ${JSON.stringify(Object.keys(pp))}`);
+        if (!els.length) continue;
 
-        // A Ingresso pode usar vários nomes para a lista de cinemas
-        const raw = pp.theaters || pp.cinemas || pp.theaterList ||
-                    pp.data?.theaters || pp.initialData?.theaters ||
-                    pp.initialState?.theaters || [];
+        const theaters = els.map(function(el) {
+          const t = el.tags || {};
+          const street = t['addr:street']
+            ? t['addr:street'] + (t['addr:housenumber'] ? ', ' + t['addr:housenumber'] : '')
+            : '';
+          const district = t['addr:suburb'] || t['addr:neighbourhood'] || t['addr:district'] || '';
+          return {
+            id:      String(el.id),
+            name:    t.name || t['name:pt'] || '',
+            address: [street, district].filter(Boolean).join(' — '),
+            url:     t.website || t.url || t['contact:website'] || '',
+          };
+        }).filter(function(t) { return t.name; })
+          .sort(function(a, b) { return a.name.localeCompare(b.name, 'pt-BR'); });
 
-        if (raw.length) {
-          // Normaliza os campos para o formato esperado pelo frontend
-          const theaters = raw.map(function(t) {
-            return {
-              id:       t.id || t._id || t.theatherId || '',
-              name:     t.name || t.nome || t.fantasyName || '',
-              address:  [t.address, t.districtName, t.cityName].filter(Boolean).join(', '),
-              url:      t.siteURL || t.siteUrl || t.url || '',
-            };
-          }).filter(function(t) { return t.name; });
-
-          console.log(`[theaters] encontrados ${theaters.length} cinemas`);
-          return new Response(JSON.stringify(theaters), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-          });
-        }
-
-        // __NEXT_DATA__ existe mas sem theaters — retorna debug
-        const debugKeys = Object.keys(pp).slice(0, 20);
-        console.log(`[theaters] pageProps sem theaters. keys: ${JSON.stringify(debugKeys)}`);
-        return new Response(JSON.stringify({ theaters: [], _debug: { pagePropsKeys: debugKeys, slug } }), {
+        console.log(`[theaters-osm] ${theaters.length} cinemas retornados`);
+        return new Response(JSON.stringify(theaters), {
           status: 200,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         });
-
       } catch (e) {
-        console.log(`[theaters] erro ${pageUrl}: ${e.message}`);
+        console.log('[theaters-osm] erro:', e.message);
       }
     }
 
-    return new Response(JSON.stringify({ theaters: [], _debug: { error: 'all urls failed', slug } }), {
+    // Nenhuma query retornou dados
+    return new Response(JSON.stringify([]), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });
