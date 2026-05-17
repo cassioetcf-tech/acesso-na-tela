@@ -91,24 +91,32 @@
 
   // ── BUSCAR FILMES ─────────────────────────────────────────────────────────────
   // Estratégia:
-  // 1. Busca filmes em cartaz (nowplaying) do nosso catálogo no Supabase
-  // 2. Para cada filme, tenta buscar sessões via Ingresso e filtra pelo teatro
-  // Esta abordagem funciona sem chamar a API de theaters inexistente.
+  // 1. Busca filmes ACESSÍVEIS em cartaz do nosso catálogo no Supabase
+  //    (filmes com pelo menos um recurso: AD, LSE, Libras ou app registrado)
+  // 2. Para cada filme, busca sessões via Ingresso e filtra pelo teatro
   function _loadFilmes() {
-    // Busca filmes do Supabase que têm sessões registradas
     supabaseGet(
-      'filmes?status=eq.cartaz&order=titulo&limit=50'
+      'filmes?status=eq.cartaz&order=titulo&limit=100'
     ).then(function (filmes) {
       if (!filmes || !filmes.length) {
         _showNone();
         return;
       }
-      // Filtra apenas filmes que têm ingresso_url (ou seja, estão na Ingresso)
-      var comIngresso = filmes.filter(function (f) { return f.ingresso_url; });
-      if (!comIngresso.length) { _showNone(); return; }
 
-      // Busca sessões dos primeiros filmes para encontrar quais têm sessão neste cinema
-      _fetchSessionsForCinema(comIngresso);
+      // Filtra apenas filmes ACESSÍVEIS com ingresso_url
+      var acessiveis = filmes.filter(function (f) {
+        if (!f.ingresso_url) return false;
+        // Tem app de acessibilidade registrado
+        if (f.app) return true;
+        // Tem pelo menos um recurso de acessibilidade confirmado
+        var a = f.a11y || {};
+        return a.ad === true || a.lse === true || a.libras === true;
+      });
+
+      if (!acessiveis.length) { _showNone(); return; }
+
+      // Busca sessões para encontrar quais têm sessão neste cinema
+      _fetchSessionsForCinema(acessiveis);
     }).catch(function () {
       _showNone();
     });
@@ -117,7 +125,7 @@
   function _fetchSessionsForCinema(filmes) {
     var found    = [];
     var checked  = 0;
-    var total    = Math.min(filmes.length, 8); // verifica até 8 filmes
+    var total    = Math.min(filmes.length, 15); // verifica até 15 filmes acessíveis
     var today    = new Date().toISOString().slice(0, 10);
 
     function _checkNext() {
@@ -158,6 +166,17 @@
     _checkNext();
   }
 
+  // Gera chips de acessibilidade para um filme
+  function _a11yChips(f) {
+    var a    = f.a11y || {};
+    var html = '';
+    if (a.ad     === true) html += '<span class="fcard-chip fcard-chip--ad"  title="Audiodescrição">AD</span>';
+    if (a.lse    === true) html += '<span class="fcard-chip fcard-chip--lse" title="Legendas para surdos">LSE</span>';
+    if (a.libras === true) html += '<span class="fcard-chip fcard-chip--lib" title="Janela de Libras">Libras</span>';
+    if (!html && f.app)    html += '<span class="fcard-chip fcard-chip--app" title="' + _esc(f.app) + '">♿</span>';
+    return html ? '<div class="fcard-chips">' + html + '</div>' : '';
+  }
+
   function _renderFilmes(filmes) {
     elLoading.hidden = true;
     if (!filmes.length) { _showNone(); return; }
@@ -176,6 +195,7 @@
             '</div>' +
             '<div class="film-info">' +
               '<p class="film-title">' + _esc(f.titulo) + '</p>' +
+              _a11yChips(f) +
             '</div>' +
           '</div>' +
         '</a>'

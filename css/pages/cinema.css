@@ -237,6 +237,29 @@
   overflow: hidden;
 }
 
+/* ── CHIPS DE ACESSIBILIDADE NOS CARDS ── */
+.fcard-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.fcard-chip {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
+}
+
+.fcard-chip--ad  { background: var(--ad);  color: #fff; }
+.fcard-chip--lse { background: var(--lse); color: #fff; }
+.fcard-chip--lib { background: var(--lib); color: #fff; }
+.fcard-chip--app { background: var(--bg3); color: var(--ink2); border: 1px solid var(--bdr2); }
+
 /* ── LISTA DE INFORMAÇÕES ── */
 .cinema-info-list {
   list-style: none;
