@@ -27,50 +27,124 @@
     { uf: 'TO', nome: 'Tocantins' },
   ];
 
-  // city IDs são os IDs internos da Ingresso.com
+  // bbox = "sul,oeste,norte,leste" (coordenadas WGS84) para query OSM mais rápida.
+  // Cidades sem bbox usam fallback por nome no Overpass.
   var _CITIES = {
-    AC: [{ id: '57',   name: 'Rio Branco' }],
-    AL: [{ id: '62',   name: 'Maceió' }],
-    AP: [{ id: '68',   name: 'Macapá' }],
-    AM: [{ id: '56',   name: 'Manaus' }],
-    BA: [{ id: '26',   name: 'Salvador' }, { id: '185', name: 'Feira de Santana' }, { id: '186', name: 'Vitória da Conquista' }, { id: '187', name: 'Camaçari' }],
-    CE: [{ id: '33',   name: 'Fortaleza' }, { id: '188', name: 'Caucaia' }, { id: '189', name: 'Juazeiro do Norte' }],
-    DF: [{ id: '31',   name: 'Brasília' }],
-    ES: [{ id: '72',   name: 'Vitória' }, { id: '190', name: 'Serra' }, { id: '191', name: 'Cariacica' }, { id: '192', name: 'Vila Velha' }],
-    GO: [{ id: '44',   name: 'Goiânia' }, { id: '193', name: 'Aparecida de Goiânia' }, { id: '194', name: 'Anápolis' }],
-    MA: [{ id: '94',   name: 'São Luís' }, { id: '195', name: 'Imperatriz' }],
-    MT: [{ id: '35',   name: 'Cuiabá' }, { id: '196', name: 'Várzea Grande' }],
-    MS: [{ id: '30',   name: 'Campo Grande' }, { id: '197', name: 'Dourados' }],
-    MG: [{ id: '49',   name: 'Belo Horizonte' }, { id: '198', name: 'Contagem' }, { id: '199', name: 'Uberlândia' }, { id: '200', name: 'Juiz de Fora' }, { id: '201', name: 'Betim' }, { id: '202', name: 'Montes Claros' }],
-    PA: [{ id: '80',   name: 'Belém' }, { id: '203', name: 'Ananindeua' }],
-    PB: [{ id: '50',   name: 'João Pessoa' }, { id: '204', name: 'Campina Grande' }],
-    PR: [{ id: '157',  name: 'Curitiba' }, { id: '205', name: 'Londrina' }, { id: '206', name: 'Maringá' }, { id: '207', name: 'Ponta Grossa' }, { id: '208', name: 'Cascavel' }, { id: '209', name: 'São José dos Pinhais' }],
-    PE: [{ id: '86',   name: 'Recife' }, { id: '210', name: 'Caruaru' }, { id: '211', name: 'Olinda' }, { id: '212', name: 'Jaboatão dos Guararapes' }],
-    PI: [{ id: '99',   name: 'Teresina' }],
-    RJ: [{ id: '219',  name: 'Rio de Janeiro' }, { id: '213', name: 'Niterói' }, { id: '214', name: 'Nova Iguaçu' }, { id: '215', name: 'Duque de Caxias' }, { id: '216', name: 'Campos dos Goytacazes' }, { id: '217', name: 'Volta Redonda' }, { id: '218', name: 'Petrópolis' }],
-    RN: [{ id: '65',   name: 'Natal' }, { id: '220', name: 'Mossoró' }],
-    RS: [{ id: '225',  name: 'Porto Alegre' }, { id: '221', name: 'Caxias do Sul' }, { id: '222', name: 'Pelotas' }, { id: '223', name: 'Canoas' }, { id: '224', name: 'Santa Maria' }],
-    RO: [{ id: '88',   name: 'Porto Velho' }],
-    RR: [{ id: '27',   name: 'Boa Vista' }],
-    SC: [{ id: '93',   name: 'Florianópolis' }, { id: '226', name: 'Joinville' }, { id: '227', name: 'Blumenau' }, { id: '228', name: 'São José' }, { id: '229', name: 'Criciúma' }],
-    SP: [
-      { id: '1011', name: 'São Paulo' },
-      { id: '230',  name: 'Campinas' },
-      { id: '231',  name: 'Guarulhos' },
-      { id: '232',  name: 'São Bernardo do Campo' },
-      { id: '233',  name: 'Santo André' },
-      { id: '234',  name: 'Osasco' },
-      { id: '235',  name: 'Ribeirão Preto' },
-      { id: '236',  name: 'Sorocaba' },
-      { id: '237',  name: 'Santos' },
-      { id: '238',  name: 'São José dos Campos' },
-      { id: '239',  name: 'Mauá' },
-      { id: '240',  name: 'Mogi das Cruzes' },
-      { id: '241',  name: 'Bauru' },
-      { id: '242',  name: 'Jundiaí' },
+    AC: [{ name: 'Rio Branco',           bbox: '-10.05,-67.95,-9.85,-67.75' }],
+    AL: [{ name: 'Maceió',               bbox: '-9.75,-35.85,-9.55,-35.65' }],
+    AP: [{ name: 'Macapá',               bbox: '-0.15,-51.15,0.10,-51.00' }],
+    AM: [{ name: 'Manaus',               bbox: '-3.25,-60.15,-2.95,-59.95' }],
+    BA: [
+      { name: 'Salvador',                bbox: '-13.05,-38.65,-12.85,-38.30' },
+      { name: 'Feira de Santana',        bbox: '-12.35,-39.05,-12.15,-38.90' },
+      { name: 'Vitória da Conquista',    bbox: '-14.90,-40.90,-14.75,-40.80' },
+      { name: 'Camaçari',               bbox: '-12.75,-38.40,-12.60,-38.25' },
     ],
-    SE: [{ id: '18',   name: 'Aracaju' }],
-    TO: [{ id: '78',   name: 'Palmas' }],
+    CE: [
+      { name: 'Fortaleza',              bbox: '-3.90,-38.65,-3.65,-38.40' },
+      { name: 'Caucaia',                bbox: '-3.80,-38.75,-3.65,-38.55' },
+      { name: 'Juazeiro do Norte',      bbox: '-7.25,-39.35,-7.15,-39.25' },
+    ],
+    DF: [{ name: 'Brasília',            bbox: '-16.05,-48.25,-15.55,-47.35' }],
+    ES: [
+      { name: 'Vitória',                bbox: '-20.45,-40.45,-20.25,-40.20' },
+      { name: 'Vila Velha',             bbox: '-20.45,-40.35,-20.30,-40.20' },
+      { name: 'Serra',                  bbox: '-20.20,-40.35,-20.05,-40.15' },
+      { name: 'Cariacica',              bbox: '-20.35,-40.45,-20.20,-40.30' },
+    ],
+    GO: [
+      { name: 'Goiânia',               bbox: '-16.80,-49.40,-16.55,-49.15' },
+      { name: 'Aparecida de Goiânia',   bbox: '-16.90,-49.35,-16.75,-49.20' },
+      { name: 'Anápolis',              bbox: '-16.40,-49.00,-16.25,-48.90' },
+    ],
+    MA: [
+      { name: 'São Luís',               bbox: '-2.70,-44.40,-2.45,-44.15' },
+      { name: 'Imperatriz',             bbox: '-5.55,-47.55,-5.45,-47.40' },
+    ],
+    MT: [
+      { name: 'Cuiabá',                bbox: '-15.70,-56.20,-15.50,-55.95' },
+      { name: 'Várzea Grande',          bbox: '-15.70,-56.20,-15.55,-56.05' },
+    ],
+    MS: [
+      { name: 'Campo Grande',           bbox: '-20.60,-54.80,-20.35,-54.50' },
+      { name: 'Dourados',              bbox: '-22.30,-54.90,-22.20,-54.75' },
+    ],
+    MG: [
+      { name: 'Belo Horizonte',         bbox: '-20.10,-44.10,-19.75,-43.85' },
+      { name: 'Contagem',              bbox: '-20.05,-44.15,-19.90,-44.00' },
+      { name: 'Uberlândia',            bbox: '-18.95,-48.35,-18.85,-48.20' },
+      { name: 'Juiz de Fora',           bbox: '-21.85,-43.45,-21.70,-43.30' },
+      { name: 'Betim',                 bbox: '-20.05,-44.30,-19.90,-44.10' },
+      { name: 'Montes Claros',          bbox: '-16.80,-43.95,-16.65,-43.80' },
+    ],
+    PA: [
+      { name: 'Belém',                 bbox: '-1.55,-48.65,-1.30,-48.40' },
+      { name: 'Ananindeua',            bbox: '-1.40,-48.45,-1.30,-48.35' },
+    ],
+    PB: [
+      { name: 'João Pessoa',           bbox: '-7.20,-34.95,-7.05,-34.82' },
+      { name: 'Campina Grande',        bbox: '-7.30,-35.95,-7.20,-35.85' },
+    ],
+    PR: [
+      { name: 'Curitiba',              bbox: '-25.65,-49.40,-25.35,-49.15' },
+      { name: 'Londrina',              bbox: '-23.40,-51.25,-23.25,-51.10' },
+      { name: 'Maringá',               bbox: '-23.50,-52.00,-23.35,-51.85' },
+      { name: 'Ponta Grossa',          bbox: '-25.15,-50.20,-25.05,-50.05' },
+      { name: 'Cascavel',              bbox: '-25.00,-53.60,-24.90,-53.45' },
+      { name: 'São José dos Pinhais',  bbox: '-25.60,-49.25,-25.50,-49.15' },
+    ],
+    PE: [
+      { name: 'Recife',                bbox: '-8.20,-35.10,-7.95,-34.85' },
+      { name: 'Caruaru',               bbox: '-8.30,-36.00,-8.20,-35.90' },
+      { name: 'Olinda',                bbox: '-8.05,-35.00,-7.95,-34.90' },
+      { name: 'Jaboatão dos Guararapes', bbox: '-8.25,-35.10,-8.10,-34.95' },
+    ],
+    PI: [{ name: 'Teresina',           bbox: '-5.20,-42.90,-5.05,-42.75' }],
+    RJ: [
+      { name: 'Rio de Janeiro',        bbox: '-23.10,-43.65,-22.75,-43.10' },
+      { name: 'Niterói',               bbox: '-22.95,-43.15,-22.85,-43.05' },
+      { name: 'Nova Iguaçu',           bbox: '-22.80,-43.55,-22.70,-43.40' },
+      { name: 'Duque de Caxias',       bbox: '-22.85,-43.35,-22.70,-43.20' },
+      { name: 'Volta Redonda',         bbox: '-22.60,-44.15,-22.50,-44.05' },
+      { name: 'Petrópolis',            bbox: '-22.60,-43.25,-22.45,-43.10' },
+    ],
+    RN: [
+      { name: 'Natal',                 bbox: '-5.90,-35.30,-5.70,-35.15' },
+      { name: 'Mossoró',               bbox: '-5.25,-37.45,-5.15,-37.35' },
+    ],
+    RS: [
+      { name: 'Porto Alegre',          bbox: '-30.30,-51.30,-29.95,-51.05' },
+      { name: 'Caxias do Sul',         bbox: '-29.25,-51.25,-29.15,-51.15' },
+      { name: 'Pelotas',               bbox: '-31.85,-52.45,-31.70,-52.30' },
+      { name: 'Canoas',                bbox: '-29.95,-51.25,-29.85,-51.15' },
+      { name: 'Santa Maria',           bbox: '-29.75,-53.85,-29.65,-53.75' },
+    ],
+    RO: [{ name: 'Porto Velho',        bbox: '-8.85,-63.95,-8.70,-63.80' }],
+    RR: [{ name: 'Boa Vista',          bbox: '2.75,-60.85,2.90,-60.65' }],
+    SC: [
+      { name: 'Florianópolis',         bbox: '-27.75,-48.65,-27.50,-48.40' },
+      { name: 'Joinville',             bbox: '-26.40,-48.95,-26.25,-48.80' },
+      { name: 'Blumenau',              bbox: '-26.95,-49.15,-26.85,-49.05' },
+      { name: 'São José',              bbox: '-27.65,-48.70,-27.55,-48.60' },
+      { name: 'Criciúma',              bbox: '-28.75,-49.45,-28.65,-49.35' },
+    ],
+    SP: [
+      { name: 'São Paulo',             bbox: '-24.05,-46.85,-23.35,-46.35' },
+      { name: 'Campinas',              bbox: '-23.10,-47.20,-22.85,-47.00' },
+      { name: 'Guarulhos',             bbox: '-23.55,-46.60,-23.40,-46.45' },
+      { name: 'São Bernardo do Campo', bbox: '-23.80,-46.65,-23.65,-46.50' },
+      { name: 'Santo André',           bbox: '-23.75,-46.60,-23.60,-46.45' },
+      { name: 'Osasco',                bbox: '-23.60,-46.85,-23.50,-46.75' },
+      { name: 'Ribeirão Preto',        bbox: '-21.25,-47.90,-21.10,-47.75' },
+      { name: 'Sorocaba',              bbox: '-23.55,-47.55,-23.40,-47.40' },
+      { name: 'Santos',                bbox: '-24.05,-46.45,-23.90,-46.30' },
+      { name: 'São José dos Campos',   bbox: '-23.30,-45.95,-23.15,-45.80' },
+      { name: 'Mogi das Cruzes',       bbox: '-23.55,-46.25,-23.45,-46.15' },
+      { name: 'Bauru',                 bbox: '-22.40,-49.10,-22.25,-48.95' },
+      { name: 'Jundiaí',               bbox: '-23.25,-47.00,-23.15,-46.90' },
+    ],
+    SE: [{ name: 'Aracaju',            bbox: '-11.10,-37.15,-10.85,-37.00' }],
+    TO: [{ name: 'Palmas',             bbox: '-10.40,-48.45,-10.10,-48.25' }],
   };
 
   // ── ESTADO LOCAL ─────────────────────────────────────────────────────────────
@@ -138,13 +212,15 @@
       elCity.disabled = true;
       return;
     }
-    cities.forEach(function (c) {
+    cities.forEach(function (c, i) {
       var opt = document.createElement('option');
-      opt.value = c.id;
+      opt.value = String(i); // índice para lookup posterior
       opt.textContent = c.name;
       elCity.appendChild(opt);
     });
     elCity.disabled = false;
+    // Guarda referência da lista do estado atual para recuperar bbox depois
+    elCity._stateCities = cities;
   }
 
   // Converte nome da cidade em slug para a URL da Ingresso.com
@@ -159,12 +235,14 @@
   }
 
   // ── BUSCAR CINEMAS ───────────────────────────────────────────────────────────
-  function _loadTheaters(cityId, cityLabel) {
+  function _loadTheaters(cityLabel, cityBbox) {
     _theaters = [];
     _show(elLoading);
     _announce('Buscando cinemas em ' + cityLabel + '...');
 
-    fetch(API + '?type=theaters&cityName=' + encodeURIComponent(cityLabel))
+    var q = '?type=theaters&cityName=' + encodeURIComponent(cityLabel);
+    if (cityBbox) q += '&bbox=' + encodeURIComponent(cityBbox);
+    fetch(API + q)
       .then(function (r) { return r.json(); })
       .then(function (data) {
         // Log para diagnóstico — visível no DevTools > Console
@@ -272,11 +350,13 @@
   });
 
   elCity.addEventListener('change', function () {
-    var cityId = elCity.value;
+    var idx = elCity.value;
     _theaters = [];
     elGrid.innerHTML = '';
-    if (!cityId) { _show(elEmpty); return; }
-    _loadTheaters(cityId, elCity.options[elCity.selectedIndex].textContent);
+    if (idx === '') { _show(elEmpty); return; }
+    var cities = elCity._stateCities || [];
+    var city   = cities[parseInt(idx, 10)] || {};
+    _loadTheaters(city.name || '', city.bbox || '');
   });
 
   var _searchTimer;

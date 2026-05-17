@@ -52,38 +52,39 @@ export default async function handler(request) {
     }
   }
 
-  // ── CINEMAS — OpenStreetMap (Overpass API) ───────────────────────────────────
-  // Busca cinemas pelo nome da cidade via Overpass API (OSM).
-  // Público, gratuito, sem autenticação. admin_level=8 = município no Brasil.
+  // ── CINEMAS — OpenStreetMap (Overpass API via GET + bbox) ────────────────────
+  // Usa bounding box da cidade para query mais rápida e sem lookup de área.
+  // Tenta 3 mirrors públicos do Overpass em sequência.
   if (type === 'theaters') {
+    const bbox     = decodeURIComponent(url.searchParams.get('bbox') || '');
     const cityName = decodeURIComponent(url.searchParams.get('cityName') || 'São Paulo');
 
-    // Tenta primeiro com boundary administrativa, depois só pelo nome da área
-    const queries = [
-      `[out:json][timeout:30];
-area["name"="${cityName}"]["admin_level"="8"]["boundary"="administrative"]->.a;
-(node["amenity"="cinema"](area.a);way["amenity"="cinema"](area.a););
-out center tags;`,
-      `[out:json][timeout:30];
-area["name"="${cityName}"]->.a;
-(node["amenity"="cinema"](area.a);way["amenity"="cinema"](area.a););
-out center tags;`,
+    // Query com bbox (preferido — mais rápido) ou fallback por nome
+    const query = bbox
+      ? `[out:json][timeout:25];(node["amenity"="cinema"](${bbox});way["amenity"="cinema"](${bbox}););out center tags;`
+      : `[out:json][timeout:25];area["name"="${cityName}"]["admin_level"="8"]->.a;(node["amenity"="cinema"](area.a);way["amenity"="cinema"](area.a););out center tags;`;
+
+    const mirrors = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
     ];
 
-    for (const query of queries) {
+    for (const mirror of mirrors) {
       try {
-        const r = await fetch('https://overpass-api.de/api/interpreter', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'data=' + encodeURIComponent(query),
+        const qUrl = mirror + '?data=' + encodeURIComponent(query);
+        console.log(`[theaters-osm] tentando ${mirror} bbox=${bbox||'none'}`);
+        const r = await fetch(qUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'AcessoNaTela/1.0 (acessonatela.com)',
+          },
         });
-
-        if (!r.ok) { console.log(`[theaters-osm] overpass ${r.status}`); continue; }
+        if (!r.ok) { console.log(`[theaters-osm] ${mirror} → ${r.status}`); continue; }
 
         const data = await r.json();
         const els  = data.elements || [];
-        console.log(`[theaters-osm] ${cityName}: ${els.length} elementos OSM`);
-
+        console.log(`[theaters-osm] ${mirror} → ${els.length} elementos`);
         if (!els.length) continue;
 
         const theaters = els.map(function(el) {
@@ -101,17 +102,16 @@ out center tags;`,
         }).filter(function(t) { return t.name; })
           .sort(function(a, b) { return a.name.localeCompare(b.name, 'pt-BR'); });
 
-        console.log(`[theaters-osm] ${theaters.length} cinemas retornados`);
+        console.log(`[theaters-osm] retornando ${theaters.length} cinemas`);
         return new Response(JSON.stringify(theaters), {
           status: 200,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         });
       } catch (e) {
-        console.log('[theaters-osm] erro:', e.message);
+        console.log(`[theaters-osm] erro ${mirror}: ${e.message}`);
       }
     }
 
-    // Nenhuma query retornou dados
     return new Response(JSON.stringify([]), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
