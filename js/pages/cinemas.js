@@ -147,13 +147,24 @@
     elCity.disabled = false;
   }
 
+  // Converte nome da cidade em slug para a URL da Ingresso.com
+  // "São Paulo" → "sao-paulo", "Rio de Janeiro" → "rio-de-janeiro"
+  function _slug(name) {
+    return (name || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-');
+  }
+
   // ── BUSCAR CINEMAS ───────────────────────────────────────────────────────────
   function _loadTheaters(cityId, cityLabel) {
     _theaters = [];
     _show(elLoading);
     _announce('Buscando cinemas em ' + cityLabel + '...');
 
-    fetch(API + '?type=theaters&city=' + encodeURIComponent(cityId))
+    fetch(API + '?type=theaters&slug=' + encodeURIComponent(_slug(cityLabel)) + '&city=' + encodeURIComponent(cityId))
       .then(function (r) { return r.json(); })
       .then(function (data) {
         // Log para diagnóstico — visível no DevTools > Console

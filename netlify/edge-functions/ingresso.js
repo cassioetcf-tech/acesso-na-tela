@@ -52,54 +52,82 @@ export default async function handler(request) {
     }
   }
 
-  // ── CINEMAS POR CIDADE ───────────────────────────────────────────────────────
-  // Tenta múltiplos formatos de URL pois a Ingresso não documenta publicamente
-  // o endpoint de theaters. Retorna o primeiro que trouxer dados.
+  // ── CINEMAS — scraping do ingresso.com/cinemas ───────────────────────────────
+  // A API interna da Ingresso não expõe theaters via partnership locomotivadigital.
+  // Fazemos scraping da página pública ingresso.com/cinemas (Next.js SSR).
+  // O Next.js injeta os dados no __NEXT_DATA__ do HTML — extraímos a lista de cinemas.
   if (type === 'theaters') {
-    const hdrs = {
-      'Accept': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
-      'Origin': 'https://www.ingresso.com',
-      'Referer': 'https://www.ingresso.com/',
-    };
+    const slug = url.searchParams.get('slug') || 'sao-paulo';
 
-    // O nowplaying usa city/1 (id de região), já sessions usa city/1011 (id de cidade).
-    // Tentamos ambos + sem partnership para encontrar o padrão correto.
-    const candidates = [
-      `${BASE}/theaters/city/${city}/partnership/${PART}`,
-      `${BASE}/theaters/city/${city}`,
-      `${BASE}/cinemas/city/${city}/partnership/${PART}`,
-      `${BASE}/cinemas/city/${city}`,
+    // Tenta diferentes padrões de URL da Ingresso (slug na rota ou querystring)
+    const pageUrls = [
+      `https://www.ingresso.com/${slug}/cinemas`,
+      `https://www.ingresso.com/cinemas?city=${slug}`,
+      `https://www.ingresso.com/cinemas`,
     ];
 
-    const logs = [];
-    for (const u of candidates) {
-      try {
-        const r = await fetch(u, { headers: hdrs });
-        const body = await r.text();
-        const preview = body.substring(0, 120).replace(/\s+/g, ' ');
-        logs.push({ url: u, status: r.status, len: body.length, preview });
-        console.log(`[theaters] ${r.status} ${u} → ${preview}`);
+    const hdrs = {
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'pt-BR,pt;q=0.9',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    };
 
-        // Aceita se status OK e parece JSON com conteúdo
-        if (r.ok && body.trim().length > 5) {
-          return new Response(body, {
+    for (const pageUrl of pageUrls) {
+      try {
+        const r = await fetch(pageUrl, { headers: hdrs });
+        if (!r.ok) { console.log(`[theaters] ${pageUrl} → ${r.status}`); continue; }
+
+        const html = await r.text();
+        console.log(`[theaters] ${pageUrl} → ${r.status}, len=${html.length}`);
+
+        // Extrai __NEXT_DATA__ (injeção SSR do Next.js)
+        const m = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+        if (!m) {
+          console.log(`[theaters] __NEXT_DATA__ não encontrado em ${pageUrl}`);
+          continue;
+        }
+
+        const nextData = JSON.parse(m[1]);
+        const pp = nextData?.props?.pageProps || {};
+        console.log(`[theaters] pageProps keys: ${JSON.stringify(Object.keys(pp))}`);
+
+        // A Ingresso pode usar vários nomes para a lista de cinemas
+        const raw = pp.theaters || pp.cinemas || pp.theaterList ||
+                    pp.data?.theaters || pp.initialData?.theaters ||
+                    pp.initialState?.theaters || [];
+
+        if (raw.length) {
+          // Normaliza os campos para o formato esperado pelo frontend
+          const theaters = raw.map(function(t) {
+            return {
+              id:       t.id || t._id || t.theatherId || '',
+              name:     t.name || t.nome || t.fantasyName || '',
+              address:  [t.address, t.districtName, t.cityName].filter(Boolean).join(', '),
+              url:      t.siteURL || t.siteUrl || t.url || '',
+            };
+          }).filter(function(t) { return t.name; });
+
+          console.log(`[theaters] encontrados ${theaters.length} cinemas`);
+          return new Response(JSON.stringify(theaters), {
             status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
-              'X-Theater-Url': u,
-            },
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
           });
         }
+
+        // __NEXT_DATA__ existe mas sem theaters — retorna debug
+        const debugKeys = Object.keys(pp).slice(0, 20);
+        console.log(`[theaters] pageProps sem theaters. keys: ${JSON.stringify(debugKeys)}`);
+        return new Response(JSON.stringify({ theaters: [], _debug: { pagePropsKeys: debugKeys, slug } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        });
+
       } catch (e) {
-        logs.push({ url: u, error: e.message });
-        console.log(`[theaters] ERRO ${u}: ${e.message}`);
+        console.log(`[theaters] erro ${pageUrl}: ${e.message}`);
       }
     }
 
-    // Todas falharam — retorna debug para facilitar diagnóstico
-    return new Response(JSON.stringify({ theaters: [], _debug: logs }), {
+    return new Response(JSON.stringify({ theaters: [], _debug: { error: 'all urls failed', slug } }), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });
