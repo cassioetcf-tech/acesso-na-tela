@@ -53,27 +53,56 @@ export default async function handler(request) {
   }
 
   // ── CINEMAS POR CIDADE ───────────────────────────────────────────────────────
+  // Tenta múltiplos formatos de URL pois a Ingresso não documenta publicamente
+  // o endpoint de theaters. Retorna o primeiro que trouxer dados.
   if (type === 'theaters') {
-    try {
-      const r = await fetch(`${BASE}/theaters/city/${city}/partnership/${PART}`, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
-          'Origin': 'https://www.ingresso.com',
-          'Referer': 'https://www.ingresso.com/',
-        },
-      });
-      const body = await r.text();
-      return new Response(body, {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
-    } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
+    const hdrs = {
+      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+      'Origin': 'https://www.ingresso.com',
+      'Referer': 'https://www.ingresso.com/',
+    };
+
+    // O nowplaying usa city/1 (id de região), já sessions usa city/1011 (id de cidade).
+    // Tentamos ambos + sem partnership para encontrar o padrão correto.
+    const candidates = [
+      `${BASE}/theaters/city/${city}/partnership/${PART}`,
+      `${BASE}/theaters/city/${city}`,
+      `${BASE}/cinemas/city/${city}/partnership/${PART}`,
+      `${BASE}/cinemas/city/${city}`,
+    ];
+
+    const logs = [];
+    for (const u of candidates) {
+      try {
+        const r = await fetch(u, { headers: hdrs });
+        const body = await r.text();
+        const preview = body.substring(0, 120).replace(/\s+/g, ' ');
+        logs.push({ url: u, status: r.status, len: body.length, preview });
+        console.log(`[theaters] ${r.status} ${u} → ${preview}`);
+
+        // Aceita se status OK e parece JSON com conteúdo
+        if (r.ok && body.trim().length > 5) {
+          return new Response(body, {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'X-Theater-Url': u,
+            },
+          });
+        }
+      } catch (e) {
+        logs.push({ url: u, error: e.message });
+        console.log(`[theaters] ERRO ${u}: ${e.message}`);
+      }
     }
+
+    // Todas falharam — retorna debug para facilitar diagnóstico
+    return new Response(JSON.stringify({ theaters: [], _debug: logs }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    });
   }
 
   if (type === 'nowplaying') {

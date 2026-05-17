@@ -156,15 +156,24 @@
     fetch(API + '?type=theaters&city=' + encodeURIComponent(cityId))
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        var items = Array.isArray(data) ? data : (data.items || data.theaters || []);
+        // Log para diagnóstico — visível no DevTools > Console
+        console.log('[cinemas] resposta API theaters:', JSON.stringify(data).substring(0, 400));
+
+        // Tenta extrair array em vários formatos conhecidos da Ingresso
+        var items = Array.isArray(data)
+          ? data
+          : (data.items || data.theaters || data.cinemas || data.data || []);
+
         _theaters = items.map(function (t) {
           return {
-            id:      String(t.id || t._id || ''),
-            name:    t.name || t.nome || '',
+            id:      String(t.id || t._id || t.theatherId || ''),
+            name:    t.name || t.nome || t.fantasyName || t.tradeName || '',
             address: _formatAddr(t),
             url:     t.siteURL || t.siteUrl || t.url || '',
           };
         }).filter(function (t) { return t.name; });
+
+        console.log('[cinemas] theaters mapeados:', _theaters.length);
 
         _renderTheaters();
         _announce(
@@ -173,7 +182,8 @@
             : 'Nenhum cinema encontrado em ' + cityLabel
         );
       })
-      .catch(function () {
+      .catch(function (err) {
+        console.error('[cinemas] erro na API theaters:', err);
         _show(elNone);
         _announce('Erro ao buscar cinemas. Tente novamente.');
       });
