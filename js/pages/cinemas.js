@@ -1,9 +1,13 @@
 // ── CINEMAS PAGE — v2 ────────────────────────────────────────────────────────
 // Arquitetura: Film-Sessions Index
-// 1. Carrega filmes acessíveis do Supabase (1 chamada)
-// 2. Carrega cidades da Ingresso com IDs (1 chamada)
+// 1. Carrega filmes acessíveis do Supabase (1 chamada) + pré-busca eventIds
+// 2. Dropdown de estado/cidade: dados estáticos (sem API)
 // 3. Quando cidade selecionada: busca sessões de todos os filmes em paralelo
 // 4. Agrega por teatro → renderiza cards com filmes dentro
+//
+// IDs de cidade para a API de sessões da Ingresso:
+// Mapeados manualmente; city=1 é o fallback genérico (retorna resultados
+// para parceiros mesmo sem ID específico de cidade).
 
 (function () {
   'use strict';
@@ -11,55 +15,115 @@
   var API     = '/api/ingresso';
   var FAV_KEY = 'antela_cinema_favs';
 
-  // ── NOMES DE ESTADOS ──────────────────────────────────────────────────────────
-  var _STATE_NAMES = {
-    AC:'Acre', AL:'Alagoas', AP:'Amapá', AM:'Amazonas',
-    BA:'Bahia', CE:'Ceará', DF:'Distrito Federal', ES:'Espírito Santo',
-    GO:'Goiás', MA:'Maranhão', MT:'Mato Grosso', MS:'Mato Grosso do Sul',
-    MG:'Minas Gerais', PA:'Pará', PB:'Paraíba', PR:'Paraná',
-    PE:'Pernambuco', PI:'Piauí', RJ:'Rio de Janeiro', RN:'Rio Grande do Norte',
-    RS:'Rio Grande do Sul', RO:'Rondônia', RR:'Roraima', SC:'Santa Catarina',
-    SP:'São Paulo', SE:'Sergipe', TO:'Tocantins',
+  // ── IDs DE CIDADE NA INGRESSO ─────────────────────────────────────────────────
+  // Chave: nome normalizado (sem acentos, minúsculo, sem espaços extras)
+  // Valor: ID numérico usado na API de sessões
+  // city=1 é o fallback — retorna sessões do parceiro sem filtro por cidade.
+  var _INGRESSO_IDS = {
+    'sao paulo':           '1011',
+    'guarulhos':           '1011', // mesma região metropolitana
+    'osasco':              '1011',
+    'santo andre':         '1011',
+    'sao bernardo do campo':'1011',
+    'campinas':            '1012',
+    'ribeirao preto':      '1013',
+    'sorocaba':            '1014',
+    'santos':              '1015',
+    'sao jose dos campos': '1016',
+    'rio de janeiro':      '1001',
+    'niteroi':             '1001',
+    'belo horizonte':      '1007',
+    'brasilia':            '1006',
+    'curitiba':            '1003',
+    'porto alegre':        '1004',
+    'salvador':            '1005',
+    'fortaleza':           '1008',
+    'recife':              '1009',
+    'manaus':              '1010',
   };
 
-  // Mapa nome normalizado → UF (fallback quando Ingresso não retorna UF)
-  var _CITY_UF = {
-    'rio branco':'AC', 'maceio':'AL', 'macapa':'AP', 'manaus':'AM',
-    'salvador':'BA', 'feira de santana':'BA', 'vitoria da conquista':'BA', 'camacari':'BA',
-    'fortaleza':'CE', 'caucaia':'CE', 'juazeiro do norte':'CE',
-    'brasilia':'DF',
-    'vitoria':'ES', 'vila velha':'ES', 'serra':'ES', 'cariacica':'ES',
-    'goiania':'GO', 'aparecida de goiania':'GO', 'anapolis':'GO',
-    'sao luis':'MA', 'imperatriz':'MA',
-    'cuiaba':'MT', 'varzea grande':'MT',
-    'campo grande':'MS', 'dourados':'MS',
-    'belo horizonte':'MG', 'contagem':'MG', 'uberlandia':'MG',
-    'juiz de fora':'MG', 'betim':'MG', 'montes claros':'MG',
-    'belem':'PA', 'ananindeua':'PA',
-    'joao pessoa':'PB', 'campina grande':'PB',
-    'curitiba':'PR', 'londrina':'PR', 'maringa':'PR',
-    'ponta grossa':'PR', 'cascavel':'PR', 'sao jose dos pinhais':'PR',
-    'recife':'PE', 'caruaru':'PE', 'olinda':'PE', 'jaboatao dos guararapes':'PE',
-    'teresina':'PI',
-    'rio de janeiro':'RJ', 'niteroi':'RJ', 'nova iguacu':'RJ',
-    'duque de caxias':'RJ', 'volta redonda':'RJ', 'petropolis':'RJ',
-    'natal':'RN', 'mossoro':'RN',
-    'porto alegre':'RS', 'caxias do sul':'RS', 'pelotas':'RS',
-    'canoas':'RS', 'santa maria':'RS',
-    'porto velho':'RO', 'boa vista':'RR',
-    'florianopolis':'SC', 'joinville':'SC', 'blumenau':'SC',
-    'sao jose':'SC', 'criciuma':'SC',
-    'sao paulo':'SP', 'campinas':'SP', 'guarulhos':'SP',
-    'sao bernardo do campo':'SP', 'santo andre':'SP', 'osasco':'SP',
-    'ribeirao preto':'SP', 'sorocaba':'SP', 'santos':'SP',
-    'sao jose dos campos':'SP', 'mogi das cruzes':'SP',
-    'bauru':'SP', 'jundiai':'SP',
-    'aracaju':'SE', 'palmas':'TO',
+  // Retorna o ID de cidade para a Ingresso (fallback = '1')
+  function _getCityId(cityName) {
+    return _INGRESSO_IDS[_norm(cityName)] || '1';
+  }
+
+  // ── ESTADOS E CIDADES (ESTÁTICOS) ─────────────────────────────────────────────
+  var _STATES = [
+    { uf: 'AC', nome: 'Acre' }, { uf: 'AL', nome: 'Alagoas' },
+    { uf: 'AP', nome: 'Amapá' }, { uf: 'AM', nome: 'Amazonas' },
+    { uf: 'BA', nome: 'Bahia' }, { uf: 'CE', nome: 'Ceará' },
+    { uf: 'DF', nome: 'Distrito Federal' }, { uf: 'ES', nome: 'Espírito Santo' },
+    { uf: 'GO', nome: 'Goiás' }, { uf: 'MA', nome: 'Maranhão' },
+    { uf: 'MT', nome: 'Mato Grosso' }, { uf: 'MS', nome: 'Mato Grosso do Sul' },
+    { uf: 'MG', nome: 'Minas Gerais' }, { uf: 'PA', nome: 'Pará' },
+    { uf: 'PB', nome: 'Paraíba' }, { uf: 'PR', nome: 'Paraná' },
+    { uf: 'PE', nome: 'Pernambuco' }, { uf: 'PI', nome: 'Piauí' },
+    { uf: 'RJ', nome: 'Rio de Janeiro' }, { uf: 'RN', nome: 'Rio Grande do Norte' },
+    { uf: 'RS', nome: 'Rio Grande do Sul' }, { uf: 'RO', nome: 'Rondônia' },
+    { uf: 'RR', nome: 'Roraima' }, { uf: 'SC', nome: 'Santa Catarina' },
+    { uf: 'SP', nome: 'São Paulo' }, { uf: 'SE', nome: 'Sergipe' },
+    { uf: 'TO', nome: 'Tocantins' },
+  ];
+
+  var _CITIES = {
+    AC: [{ name: 'Rio Branco' }],
+    AL: [{ name: 'Maceió' }],
+    AP: [{ name: 'Macapá' }],
+    AM: [{ name: 'Manaus' }],
+    BA: [
+      { name: 'Salvador' }, { name: 'Feira de Santana' },
+      { name: 'Vitória da Conquista' }, { name: 'Camaçari' },
+    ],
+    CE: [{ name: 'Fortaleza' }, { name: 'Caucaia' }, { name: 'Juazeiro do Norte' }],
+    DF: [{ name: 'Brasília' }],
+    ES: [{ name: 'Vitória' }, { name: 'Vila Velha' }, { name: 'Serra' }, { name: 'Cariacica' }],
+    GO: [{ name: 'Goiânia' }, { name: 'Aparecida de Goiânia' }, { name: 'Anápolis' }],
+    MA: [{ name: 'São Luís' }, { name: 'Imperatriz' }],
+    MT: [{ name: 'Cuiabá' }, { name: 'Várzea Grande' }],
+    MS: [{ name: 'Campo Grande' }, { name: 'Dourados' }],
+    MG: [
+      { name: 'Belo Horizonte' }, { name: 'Contagem' }, { name: 'Uberlândia' },
+      { name: 'Juiz de Fora' }, { name: 'Betim' }, { name: 'Montes Claros' },
+    ],
+    PA: [{ name: 'Belém' }, { name: 'Ananindeua' }],
+    PB: [{ name: 'João Pessoa' }, { name: 'Campina Grande' }],
+    PR: [
+      { name: 'Curitiba' }, { name: 'Londrina' }, { name: 'Maringá' },
+      { name: 'Ponta Grossa' }, { name: 'Cascavel' }, { name: 'São José dos Pinhais' },
+    ],
+    PE: [
+      { name: 'Recife' }, { name: 'Caruaru' }, { name: 'Olinda' },
+      { name: 'Jaboatão dos Guararapes' },
+    ],
+    PI: [{ name: 'Teresina' }],
+    RJ: [
+      { name: 'Rio de Janeiro' }, { name: 'Niterói' }, { name: 'Nova Iguaçu' },
+      { name: 'Duque de Caxias' }, { name: 'Volta Redonda' }, { name: 'Petrópolis' },
+    ],
+    RN: [{ name: 'Natal' }, { name: 'Mossoró' }],
+    RS: [
+      { name: 'Porto Alegre' }, { name: 'Caxias do Sul' }, { name: 'Pelotas' },
+      { name: 'Canoas' }, { name: 'Santa Maria' },
+    ],
+    RO: [{ name: 'Porto Velho' }],
+    RR: [{ name: 'Boa Vista' }],
+    SC: [
+      { name: 'Florianópolis' }, { name: 'Joinville' }, { name: 'Blumenau' },
+      { name: 'São José' }, { name: 'Criciúma' },
+    ],
+    SP: [
+      { name: 'São Paulo' }, { name: 'Campinas' }, { name: 'Guarulhos' },
+      { name: 'São Bernardo do Campo' }, { name: 'Santo André' }, { name: 'Osasco' },
+      { name: 'Ribeirão Preto' }, { name: 'Sorocaba' }, { name: 'Santos' },
+      { name: 'São José dos Campos' }, { name: 'Mogi das Cruzes' },
+      { name: 'Bauru' }, { name: 'Jundiaí' },
+    ],
+    SE: [{ name: 'Aracaju' }],
+    TO: [{ name: 'Palmas' }],
   };
 
   // ── DADOS ─────────────────────────────────────────────────────────────────────
   var _accessibleFilms = []; // [{titulo, url_key, a11y, app, ingresso_url, tmdb_data}]
-  var _stateGroups     = {}; // { UF: [{id, name}] }  — cidades da Ingresso por estado
   var _eventIdCache    = {}; // ingresso_url → eventId
   var _theaters        = []; // lista atual renderizada
   var _favorites       = [];
@@ -83,7 +147,6 @@
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // Remove acentos e pontuação para comparação e slug
   function _norm(s) {
     return (s || '').toLowerCase()
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -121,7 +184,32 @@
     _saveFavs();
   }
 
-  // ── BUSCAR FILMES ACESSÍVEIS (SUPABASE) ────────────────────────────────────
+  // ── POPULAR ESTADOS ──────────────────────────────────────────────────────────
+  function _populateStates() {
+    _STATES.forEach(function (s) {
+      var opt = document.createElement('option');
+      opt.value = s.uf;
+      opt.textContent = s.nome;
+      elState.appendChild(opt);
+    });
+  }
+
+  // ── POPULAR CIDADES ──────────────────────────────────────────────────────────
+  function _populateCities(uf) {
+    var cities = (_CITIES[uf] || []).slice().sort(function (a, b) {
+      return a.name.localeCompare(b.name, 'pt-BR');
+    });
+    elCity.innerHTML = '<option value="">Selecione a cidade...</option>';
+    cities.forEach(function (c) {
+      var opt = document.createElement('option');
+      opt.value = c.name; // nome da cidade como valor
+      opt.textContent = c.name;
+      elCity.appendChild(opt);
+    });
+    elCity.disabled = !cities.length;
+  }
+
+  // ── BUSCAR FILMES ACESSÍVEIS (SUPABASE) ───────────────────────────────────────
   function _fetchAccessibleFilms() {
     return supabaseGet('filmes?status=eq.cartaz&order=titulo&limit=100')
       .then(function (data) {
@@ -135,73 +223,7 @@
       .catch(function () { return []; });
   }
 
-  // ── BUSCAR CIDADES DA INGRESSO ────────────────────────────────────────────────
-  function _fetchCities() {
-    return fetch(API + '?type=cities')
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (!Array.isArray(data)) return [];
-        return data
-          .filter(function (c) { return c.id && c.name; })
-          .map(function (c) {
-            // Tenta obter UF do próprio response; fallback pelo mapa
-            var uf = c.UF || c.uf || c.state || c.Estado
-                  || _CITY_UF[_norm(c.name)] || '';
-            return { id: String(c.id), name: c.name, uf: uf.toUpperCase() };
-          })
-          .filter(function (c) { return c.uf && _STATE_NAMES[c.uf]; });
-      })
-      .catch(function () { return []; });
-  }
-
-  // ── MONTAR GRUPOS POR ESTADO ──────────────────────────────────────────────────
-  function _buildStateGroups(cities) {
-    _stateGroups = {};
-    cities.forEach(function (c) {
-      if (!_stateGroups[c.uf]) _stateGroups[c.uf] = [];
-      // Deduplica por nome normalizado
-      var already = _stateGroups[c.uf].some(function (x) {
-        return _norm(x.name) === _norm(c.name);
-      });
-      if (!already) _stateGroups[c.uf].push(c);
-    });
-    Object.keys(_stateGroups).forEach(function (uf) {
-      _stateGroups[uf].sort(function (a, b) {
-        return a.name.localeCompare(b.name, 'pt-BR');
-      });
-    });
-  }
-
-  // ── POPULAR DROPDOWNS ─────────────────────────────────────────────────────────
-  function _populateStates() {
-    var ufs = Object.keys(_stateGroups).sort(function (a, b) {
-      return (_STATE_NAMES[a] || a).localeCompare(_STATE_NAMES[b] || b, 'pt-BR');
-    });
-    elState.innerHTML = '<option value="">Selecione o estado...</option>';
-    ufs.forEach(function (uf) {
-      var opt = document.createElement('option');
-      opt.value = uf;
-      opt.textContent = _STATE_NAMES[uf] || uf;
-      elState.appendChild(opt);
-    });
-    elState.disabled = !ufs.length;
-  }
-
-  function _populateCities(uf) {
-    var cities = _stateGroups[uf] || [];
-    elCity.innerHTML = '<option value="">Selecione a cidade...</option>';
-    cities.forEach(function (c) {
-      var opt = document.createElement('option');
-      opt.value = c.id;          // ID numérico da Ingresso
-      opt.textContent = c.name;
-      elCity.appendChild(opt);
-    });
-    elCity.disabled = !cities.length;
-  }
-
   // ── PRÉ-BUSCAR EVENT IDs (background) ───────────────────────────────────────
-  // Roda em background logo após init; cache reutilizado quando o usuário troca
-  // de cidade sem recarregar a página.
   var _eventIdPromise = null;
 
   function _prefetchEventIds() {
@@ -221,9 +243,9 @@
   }
 
   // ── CARREGAR TEATROS DA CIDADE ────────────────────────────────────────────────
-  function _loadTheaters(cityId, cityName) {
-    _currentCityId   = cityId;
+  function _loadTheaters(cityName) {
     _currentCityName = cityName;
+    _currentCityId   = _getCityId(cityName);
     _theaters        = [];
     elGrid.innerHTML = '';
     _show(elLoading);
@@ -231,7 +253,6 @@
 
     var today = new Date().toISOString().slice(0, 10);
 
-    // Aguarda eventIds e então busca sessões em paralelo
     _prefetchEventIds().then(function () {
       var filmsWithId = _accessibleFilms.filter(function (f) {
         return _eventIdCache[f.ingresso_url];
@@ -239,12 +260,14 @@
 
       if (!filmsWithId.length) { _show(elNone); return; }
 
+      // Busca sessões de todos os filmes acessíveis em paralelo
       return Promise.all(
         filmsWithId.map(function (f) {
           var evId = _eventIdCache[f.ingresso_url];
-          var url  = API + '?eventId=' + encodeURIComponent(evId)
-                       + '&city=' + encodeURIComponent(cityId)
-                       + '&date=' + today;
+          var url  = API
+            + '?eventId=' + encodeURIComponent(evId)
+            + '&city='    + encodeURIComponent(_currentCityId)
+            + '&date='    + today;
           return fetch(url)
             .then(function (r) { return r.json(); })
             .then(function (days) {
@@ -268,8 +291,12 @@
               map[key] = {
                 id:      key,
                 name:    th.name,
-                address: th.address || th.vicinity || '',
-                films:   [],
+                address: [
+                  th.address,
+                  th.addressComplement,
+                  th.neighborhood,
+                ].filter(Boolean).join(', '),
+                films: [],
               };
             }
             var dup = map[key].films.some(function (x) {
@@ -302,7 +329,6 @@
       return !query || t.name.toLowerCase().indexOf(query) !== -1;
     });
 
-    // Favoritos primeiro
     list.sort(function (a, b) {
       var fa = _isFav(a.id) ? 0 : 1;
       var fb = _isFav(b.id) ? 0 : 1;
@@ -315,11 +341,11 @@
     var citySlug = _slug(_currentCityName);
 
     elGrid.innerHTML = list.map(function (t) {
-      var fav          = _isFav(t.id);
-      var cinemaSlug   = _slug(t.name);
-      var ingressoUrl  = 'https://www.ingresso.com/cinema/' + cinemaSlug
-                       + (citySlug ? '?city=' + citySlug : '');
-      var detailUrl    = 'cinema.html?' + [
+      var fav         = _isFav(t.id);
+      var cinemaSlug  = _slug(t.name);
+      var ingressoUrl = 'https://www.ingresso.com/cinema/' + cinemaSlug
+                      + (citySlug ? '?city=' + citySlug : '');
+      var detailUrl   = 'cinema.html?' + [
         'id='       + encodeURIComponent(t.id),
         'name='     + encodeURIComponent(t.name),
         'address='  + encodeURIComponent(t.address || ''),
@@ -327,7 +353,6 @@
         'citySlug=' + encodeURIComponent(citySlug),
       ].join('&');
 
-      // Filme rows
       var filmsHtml = t.films.map(function (f) {
         var poster = (f.tmdb_data && f.tmdb_data.poster_path)
           ? 'https://image.tmdb.org/t/p/w92' + f.tmdb_data.poster_path
@@ -346,7 +371,7 @@
             '<div class="cin-film-info">' +
               '<span class="cin-film-title">' + _esc(f.titulo) + '</span>' +
               (chips ? '<div class="cin-film-chips">' + chips + '</div>' : '') +
-              (f.app ? '<span class="cin-film-app">📱 ' + _esc(f.app) + '</span>' : '') +
+              (f.app ? '<span class="cin-film-app">📱 ' + _esc(f.app) + '</span>' : '') +
             '</div>' +
             '<svg class="cin-film-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>' +
           '</a>'
@@ -356,7 +381,6 @@
       return (
         '<div class="cin-card" role="listitem" data-id="' + _esc(t.id) + '">' +
 
-          // Cabeçalho do card (nome + botão fav)
           '<div class="cin-card-head">' +
             '<a class="cin-card-head-link" href="' + _esc(detailUrl) + '">' +
               '<h2 class="cin-name">' + _esc(t.name) + '</h2>' +
@@ -374,10 +398,8 @@
             '</button>' +
           '</div>' +
 
-          // Filmes acessíveis
           '<div class="cin-films">' + filmsHtml + '</div>' +
 
-          // Rodapé — link Ingresso
           '<a class="cin-card-foot" href="' + _esc(ingressoUrl) + '" target="_blank" rel="noopener noreferrer">' +
             'Ver todas as sessões no Ingresso.com' +
             '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>' +
@@ -403,10 +425,9 @@
   });
 
   elCity.addEventListener('change', function () {
-    var cityId = elCity.value;
-    if (!cityId) { _show(elEmpty); return; }
-    var cityName = elCity.options[elCity.selectedIndex].textContent;
-    _loadTheaters(cityId, cityName);
+    var cityName = elCity.value;
+    if (!cityName) { _show(elEmpty); return; }
+    _loadTheaters(cityName);
   });
 
   var _searchTimer;
@@ -430,21 +451,13 @@
     renderHeader('cinemas');
     renderFooter();
     _loadFavs();
-    _show(elLoading);
+    _populateStates();
+    _show(elEmpty);
 
-    Promise.all([
-      _fetchAccessibleFilms(),
-      _fetchCities(),
-    ]).then(function (results) {
-      _accessibleFilms = results[0];
-      _buildStateGroups(results[1]);
-      _populateStates();
-      _show(elEmpty);
-      // Pré-busca eventIds em background enquanto usuário seleciona a cidade
-      if (_accessibleFilms.length) _prefetchEventIds();
-    }).catch(function () {
-      _populateStates();
-      _show(elEmpty);
+    // Carrega filmes acessíveis e pré-busca eventIds em background
+    _fetchAccessibleFilms().then(function (filmes) {
+      _accessibleFilms = filmes;
+      if (filmes.length) _prefetchEventIds();
     });
   }
 
