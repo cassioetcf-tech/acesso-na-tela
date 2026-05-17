@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sobre — Acesso na Tela</title>
+  <meta name="description" content="Conheça o Acesso na Tela, iniciativa sem fins lucrativos que reúne informações sobre filmes com recursos de acessibilidade nos cinemas.">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/a11y.css">
+  <link rel="stylesheet" href="/css/pages/sobre.css">
+</head>
+<body>
+  <div id="a11y-bar-mount"></div>
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
+
+  <div class="shell">
+    <div id="header-mount"></div>
+
+    <main id="main-content" tabindex="-1">
+
+      <!-- HERO -->
+      <section class="sobre-hero" aria-labelledby="sobre-h1">
+        <div class="sobre-hero-inner">
+          <h1 id="sobre-h1">Sobre o <span class="hl">Acesso na Tela</span></h1>
+          <p>Uma iniciativa sem fins lucrativos criada para reunir e divulgar informações sobre filmes com recursos de acessibilidade disponíveis nos cinemas.</p>
+        </div>
+      </section>
+
+      <!-- CONTEÚDO -->
+      <div class="sobre-body">
+
+        <article class="sobre-article" aria-label="Sobre o projeto">
+
+          <p>O Acesso na Tela é uma iniciativa sem fins lucrativos criada para reunir e divulgar informações sobre filmes com recursos de acessibilidade disponíveis nos cinemas.</p>
+
+          <p>Nosso objetivo é facilitar o acesso à informação para pessoas cegas, surdas, ensurdecidas, com baixa visão ou que utilizam recursos como audiodescrição, legendas acessíveis e LIBRAS para acompanhar conteúdos audiovisuais.</p>
+
+          <p>Mais do que listar filmes, sessões e aplicativos, o Acesso na Tela nasce como um espaço feito <strong>para e pela comunidade cega e surda</strong>. Acreditamos que a melhor forma de evoluir a acessibilidade no audiovisual é ouvindo quem realmente utiliza esses recursos no dia a dia.</p>
+
+          <p>Aqui, os usuários podem encontrar informações sobre filmes acessíveis nos cinemas, acompanhar quais aplicativos oferecem os recursos de acessibilidade e compartilhar suas experiências com as sessões, os cinemas, os aplicativos e a qualidade dos conteúdos produzidos.</p>
+
+          <p>Esses relatos são fundamentais para incentivar melhorias constantes na experiência de acessibilidade, ajudando produtoras, distribuidoras, exibidores, desenvolvedores e demais agentes do mercado audiovisual a entenderem o que funciona, o que precisa melhorar e quais barreiras ainda precisam ser superadas.</p>
+
+          <p>O Acesso na Tela não substitui os canais oficiais dos cinemas, distribuidores ou aplicativos. Nosso papel é organizar, divulgar e aproximar essas informações da comunidade, contribuindo para que mais pessoas saibam onde, quando e como podem assistir a filmes com acessibilidade.</p>
+
+          <p>Afinal, acessibilidade não é apenas disponibilizar um recurso. É garantir que ele funcione bem, chegue até quem precisa e seja construído com a participação de quem vive essa experiência.</p>
+
+          <blockquote class="sobre-quote">
+            <p>Nada sobre nós, sem nós.</p>
+          </blockquote>
+
+        </article>
+
+      </div><!-- /.sobre-body -->
+
+    </main>
+
+    <div id="footer-mount"></div>
+  </div><!-- /.shell -->
+
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/a11y.js"></script>
+  <script src="/js/api/supabase.js"></script>
+  <script src="/js/components/header.js"></script>
+  <script src="/js/components/footer.js"></script>
+  <script>
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { renderHeader('sobre'); renderFooter(); });
+    } else {
+      renderHeader('sobre'); renderFooter();
+    }
+  </script>
+</body>
+</html>

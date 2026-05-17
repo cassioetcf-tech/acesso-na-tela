@@ -1,0 +1,75 @@
+/* ═══════════════════════════════════════
+   SOBRE — Acesso na Tela
+═══════════════════════════════════════ */
+
+/* ── HERO ── */
+.sobre-hero {
+  background: var(--laranja);
+  padding: 40px 28px 44px;
+}
+.sobre-hero-inner { max-width: 680px; }
+.sobre-hero h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+.sobre-hero h1 .hl { font-style: italic; opacity: 0.92; }
+.sobre-hero p {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ── BODY ── */
+.sobre-body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 52px 28px 80px;
+}
+
+/* ── ARTICLE ── */
+.sobre-article p {
+  font-size: 16px;
+  color: var(--ink2);
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+.sobre-article p:last-of-type { margin-bottom: 0; }
+
+.sobre-article strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* ── CITAÇÃO FINAL ── */
+.sobre-quote {
+  margin: 40px 0 0;
+  padding: 24px 32px;
+  background: var(--laranja-cl);
+  border-left: 4px solid var(--laranja);
+  border-radius: 0 var(--r) var(--r) 0;
+}
+
+.sobre-quote p {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--laranja-esc);
+  line-height: 1.4;
+  margin: 0 !important;
+  font-style: italic;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .sobre-hero  { padding: 28px 16px 32px; }
+  .sobre-body  { padding: 36px 16px 60px; }
+  .sobre-article p { font-size: 15px; }
+  .sobre-quote { padding: 18px 20px; }
+  .sobre-quote p { font-size: 18px; }
+}

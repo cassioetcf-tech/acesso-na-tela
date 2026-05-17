@@ -13,6 +13,7 @@ function renderFooter() {
         '<a href="index.html">Filmes</a>' +
         '<a href="aplicativos.html">Aplicativos</a>' +
         '<a href="faq.html">FAQ</a>' +
+        '<a href="sobre.html">Sobre</a>' +
       '</nav>' +
       '<p><strong>Acesso na Tela</strong> — Cinema e streaming acessíveis para todos.<br>' +
       '&copy; ' + year + '</p>' +
