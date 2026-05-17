@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cinema — Acesso na Tela</title>
+  <meta name="description" content="Informações e sessões acessíveis do cinema.">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/a11y.css">
+  <link rel="stylesheet" href="/css/pages/cinema.css">
+</head>
+<body>
+  <div id="a11y-bar-mount"></div>
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
+
+  <div class="shell">
+    <div id="header-mount"></div>
+
+    <main id="main-content" tabindex="-1">
+
+      <!-- BREADCRUMB -->
+      <nav class="breadcrumb" aria-label="Caminho de navegação">
+        <a href="cinemas.html">Cinemas</a>
+        <span aria-hidden="true">›</span>
+        <span id="bc-name">Cinema</span>
+      </nav>
+
+      <!-- HERO DO CINEMA -->
+      <section class="cinema-hero" aria-labelledby="cinema-h1">
+        <div class="cinema-hero-inner">
+          <div class="cinema-hero-icon" aria-hidden="true">🎬</div>
+          <div class="cinema-hero-info">
+            <h1 id="cinema-h1" class="cinema-title">Carregando...</h1>
+            <p id="cinema-address" class="cinema-address"></p>
+            <div class="cinema-hero-actions" id="cinema-hero-actions"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONTEÚDO -->
+      <div class="cinema-body">
+
+        <!-- FILMES EM CARTAZ -->
+        <section class="cinema-section" aria-labelledby="cinema-filmes-h2">
+          <h2 id="cinema-filmes-h2">Filmes em cartaz</h2>
+          <div id="cinema-filmes-loading" class="cinema-state" role="status">
+            <div class="cinemas-spinner" aria-hidden="true"></div>
+            <p>Buscando sessões...</p>
+          </div>
+          <div id="cinema-filmes-none" class="cinema-state" hidden>
+            <p>Não encontramos sessões acessíveis neste cinema no momento.</p>
+            <a id="cinema-ingresso-link" class="cinema-btn-outline" href="#" target="_blank" rel="noopener noreferrer">
+              Ver programação completa no Ingresso.com
+            </a>
+          </div>
+          <div id="cinema-filmes-grid" class="film-grid" hidden></div>
+        </section>
+
+        <!-- INFORMAÇÕES DO CINEMA -->
+        <section class="cinema-section cinema-info-section" aria-labelledby="cinema-info-h2">
+          <h2 id="cinema-info-h2">Informações</h2>
+          <ul class="cinema-info-list" id="cinema-info-list">
+            <!-- populado por JS -->
+          </ul>
+        </section>
+
+      </div><!-- /.cinema-body -->
+
+    </main>
+
+    <div id="footer-mount"></div>
+  </div><!-- /.shell -->
+
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/a11y.js"></script>
+  <script src="/js/api/supabase.js"></script>
+  <script src="/js/components/header.js"></script>
+  <script src="/js/components/footer.js"></script>
+  <script src="/js/pages/cinema.js"></script>
+</body>
+</html>

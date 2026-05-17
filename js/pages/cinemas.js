@@ -234,35 +234,40 @@
       .replace(/\s+/g, '-');
   }
 
+  // Cidade e estado atuais (usados na navegação para a página do cinema)
+  var _currentCity  = '';
+  var _currentState = '';
+
   // ── BUSCAR CINEMAS ───────────────────────────────────────────────────────────
   function _loadTheaters(cityLabel, cityBbox) {
     _theaters = [];
     _show(elLoading);
     _announce('Buscando cinemas em ' + cityLabel + '...');
+    _currentCity = cityLabel;
 
     var q = '?type=theaters&cityName=' + encodeURIComponent(cityLabel);
     if (cityBbox) q += '&bbox=' + encodeURIComponent(cityBbox);
     fetch(API + q)
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        // Log para diagnóstico — visível no DevTools > Console
-        console.log('[cinemas] resposta API theaters:', JSON.stringify(data).substring(0, 400));
+        var items = Array.isArray(data) ? data : (data.items || data.theaters || data.cinemas || []);
 
-        // Tenta extrair array em vários formatos conhecidos da Ingresso
-        var items = Array.isArray(data)
-          ? data
-          : (data.items || data.theaters || data.cinemas || data.data || []);
-
+        // Mapeia e deduplica pelo nome normalizado
+        var seen = {};
         _theaters = items.map(function (t) {
           return {
-            id:      String(t.id || t._id || t.theatherId || ''),
-            name:    t.name || t.nome || t.fantasyName || t.tradeName || '',
-            address: _formatAddr(t),
-            url:     t.siteURL || t.siteUrl || t.url || '',
+            id:      String(t.id || ''),
+            name:    t.name || '',
+            address: t.address || '',
+            url:     t.url || '',
           };
-        }).filter(function (t) { return t.name; });
-
-        console.log('[cinemas] theaters mapeados:', _theaters.length);
+        }).filter(function (t) {
+          if (!t.name) return false;
+          var key = t.name.toLowerCase().replace(/\s+/g, '');
+          if (seen[key]) return false;
+          seen[key] = true;
+          return true;
+        });
 
         _renderTheaters();
         _announce(
@@ -271,21 +276,10 @@
             : 'Nenhum cinema encontrado em ' + cityLabel
         );
       })
-      .catch(function (err) {
-        console.error('[cinemas] erro na API theaters:', err);
+      .catch(function () {
         _show(elNone);
         _announce('Erro ao buscar cinemas. Tente novamente.');
       });
-  }
-
-  function _formatAddr(t) {
-    var parts = [];
-    if (t.address)                        parts.push(t.address);
-    if (t.addressComplement)              parts.push(t.addressComplement);
-    if (t.districtName || t.neighborhood) parts.push(t.districtName || t.neighborhood);
-    if (t.cityName || t.city)             parts.push(t.cityName || t.city);
-    if (t.state || t.uf)                  parts.push(t.state || t.uf);
-    return parts.join(', ');
   }
 
   // ── RENDERIZAR CARDS ─────────────────────────────────────────────────────────
@@ -305,25 +299,39 @@
 
     if (!list.length) { _show(elNone); return; }
 
+    var citySlug  = _slug(_currentCity);
+    var stateSlug = _currentState;
+
     elGrid.innerHTML = list.map(function (t) {
       var fav    = _isFav(t.id);
       var favCls = 'cin-fav-btn' + (fav ? ' cin-fav-btn--active' : '');
-      var favLbl = (fav ? 'Remover dos favoritos' : 'Favoritar cinema') + ': ' + t.name;
+      var favLbl = (fav ? 'Remover dos favoritos' : 'Favoritar') + ': ' + t.name;
+
+      // URL da página de detalhe do cinema
+      var detailUrl = 'cinema.html?' + [
+        'id='   + encodeURIComponent(t.id),
+        'name=' + encodeURIComponent(t.name),
+        'address=' + encodeURIComponent(t.address || ''),
+        'city=' + encodeURIComponent(_currentCity),
+        'citySlug=' + encodeURIComponent(citySlug),
+        'state=' + encodeURIComponent(stateSlug),
+      ].join('&');
+
       return (
         '<div class="cin-card" role="listitem" data-id="' + _esc(t.id) + '">' +
-          '<div class="cin-card-top">' +
+          '<a class="cin-card-link" href="' + _esc(detailUrl) + '">' +
             '<h2 class="cin-name">' + _esc(t.name) + '</h2>' +
-            '<button class="' + favCls + '" data-id="' + _esc(t.id) + '" ' +
-              'aria-label="' + _esc(favLbl) + '" aria-pressed="' + fav + '">' +
-              '<svg width="18" height="18" viewBox="0 0 24 24" ' +
-                'fill="' + (fav ? 'currentColor' : 'none') + '" ' +
-                'stroke="currentColor" stroke-width="2" aria-hidden="true">' +
-                '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' +
-              '</svg>' +
-            '</button>' +
-          '</div>' +
-          (t.address ? '<p class="cin-addr">' + _esc(t.address) + '</p>' : '') +
-          (t.url ? '<div class="cin-actions"><a class="cin-link" href="' + _esc(t.url) + '" target="_blank" rel="noopener noreferrer">Ver programação</a></div>' : '') +
+            (t.address ? '<p class="cin-addr">' + _esc(t.address) + '</p>' : '<p class="cin-addr cin-addr--empty">Endereço não disponível</p>') +
+            '<span class="cin-ver-mais">Ver detalhes e sessões →</span>' +
+          '</a>' +
+          '<button class="' + favCls + '" data-id="' + _esc(t.id) + '" ' +
+            'aria-label="' + _esc(favLbl) + '" aria-pressed="' + fav + '">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" ' +
+              'fill="' + (fav ? 'currentColor' : 'none') + '" ' +
+              'stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+              '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' +
+            '</svg>' +
+          '</button>' +
         '</div>'
       );
     }).join('');
@@ -344,6 +352,7 @@
     elCity.disabled  = true;
     _theaters = [];
     elGrid.innerHTML = '';
+    _currentState = uf;
     _show(elEmpty);
     if (!uf) return;
     _populateCities(uf);
