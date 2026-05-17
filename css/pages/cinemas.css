@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   CINEMAS PAGE — Acesso na Tela
+   CINEMAS PAGE — Acesso na Tela v2
 ═══════════════════════════════════════ */
 
 /* ── HERO ── */
@@ -11,10 +11,20 @@
 .cinemas-hero h1 {
   font-family: 'Inter', sans-serif;
   font-size: clamp(24px, 4vw, 36px);
-  font-weight: 800; color: #fff;
-  line-height: 1.1; margin-bottom: 12px; letter-spacing: -0.5px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
 }
-.cinemas-hero p { font-size: 15px; color: rgba(255,255,255,0.9); line-height: 1.7; margin: 0; }
+.cinemas-hero h1 .hl { font-style: italic; opacity: 0.92; }
+.cinemas-hero p {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.7;
+  margin: 0;
+  max-width: 560px;
+}
 
 /* ── FILTROS ── */
 .cinemas-filters {
@@ -22,7 +32,7 @@
   border-bottom: 2px solid var(--bdr);
   padding: 20px 28px;
   position: sticky;
-  top: 72px; /* altura do header */
+  top: 72px;
   z-index: 40;
 }
 .cinemas-filters-inner {
@@ -33,7 +43,6 @@
   max-width: 860px;
 }
 
-/* Campo de filtro */
 .cf-field {
   display: flex;
   flex-direction: column;
@@ -63,16 +72,18 @@
   transition: border-color .15s;
   appearance: auto;
 }
-.cf-select:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; border-color: var(--laranja); }
+.cf-select:focus-visible {
+  outline: 3px solid var(--laranja);
+  outline-offset: 2px;
+  border-color: var(--laranja);
+}
 .cf-select:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* Campo de busca */
-.cf-search-wrap {
-  position: relative;
-}
+.cf-search-wrap { position: relative; }
 .cf-search-icon {
   position: absolute;
-  left: 11px; top: 50%;
+  left: 11px;
+  top: 50%;
   transform: translateY(-50%);
   color: var(--ink3);
   pointer-events: none;
@@ -91,7 +102,11 @@
   box-sizing: border-box;
 }
 .cf-input::placeholder { color: var(--ink3); }
-.cf-input:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; border-color: var(--laranja); }
+.cf-input:focus-visible {
+  outline: 3px solid var(--laranja);
+  outline-offset: 2px;
+  border-color: var(--laranja);
+}
 
 /* ── BODY ── */
 .cinemas-body {
@@ -113,11 +128,11 @@
   color: var(--ink3);
 }
 .cinemas-state-icon { font-size: 40px; }
-.cinemas-state p { font-size: 14px; line-height: 1.6; margin: 0; }
+.cinemas-state p { font-size: 14px; line-height: 1.6; margin: 0; max-width: 340px; }
 
-/* Spinner */
 .cinemas-spinner {
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   border: 3px solid var(--bdr);
   border-top-color: var(--laranja);
   border-radius: 50%;
@@ -127,8 +142,8 @@
 
 /* ── GRADE DE CINEMAS ── */
 .cinemas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
@@ -137,72 +152,201 @@
   background: var(--bg);
   border: 1.5px solid var(--bdr);
   border-radius: var(--r);
-  padding: 0;
-  position: relative;
+  overflow: hidden;
   transition: border-color .15s, box-shadow .15s;
 }
-.cin-card:hover { border-color: var(--laranja-bdr); box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+.cin-card:hover {
+  border-color: var(--laranja-bdr);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+}
 
-/* Link que cobre o corpo do card */
-.cin-card-link {
-  display: block;
+/* Cabeçalho do card */
+.cin-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 14px 20px;
+  border-bottom: 1.5px solid var(--bdr);
+}
+
+.cin-card-head-link {
+  flex: 1;
+  min-width: 0;
   text-decoration: none;
   color: inherit;
-  padding: 18px 48px 16px 18px; /* espaço à direita para o botão fav */
-  border-radius: var(--r);
 }
-.cin-card-link:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
+.cin-card-head-link:focus-visible {
+  outline: 3px solid var(--laranja);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 .cin-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--ink);
   line-height: 1.3;
-  margin: 0 0 6px;
+  margin: 0 0 3px;
 }
+.cin-card-head-link:hover .cin-name { color: var(--laranja); }
 
-/* Endereço */
 .cin-addr {
   font-size: 12px;
   color: var(--ink3);
-  line-height: 1.55;
-  margin: 0 0 8px;
-}
-.cin-addr--empty { font-style: italic; }
-
-/* "Ver detalhes →" */
-.cin-ver-mais {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--laranja);
+  line-height: 1.5;
+  margin: 0;
 }
 
-/* Botão de favorito — posicionado no canto superior direito do card */
+/* Botão favorito no cabeçalho */
 .cin-fav-btn {
-  position: absolute;
-  top: 14px;
-  right: 14px;
   background: transparent;
   border: none;
   cursor: pointer;
   color: var(--ink3);
   padding: 4px;
   border-radius: 4px;
+  flex-shrink: 0;
+  margin-top: 1px;
   transition: color .15s, transform .15s;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.cin-fav-btn:hover { color: var(--laranja); transform: scale(1.15); }
+.cin-fav-btn:hover         { color: var(--laranja); transform: scale(1.15); }
 .cin-fav-btn:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
-.cin-fav-btn--active { color: var(--laranja); }
+.cin-fav-btn--active       { color: var(--laranja); }
+
+/* ── LISTA DE FILMES DENTRO DO CARD ── */
+.cin-films { display: flex; flex-direction: column; }
+
+.cin-film-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px 12px 20px;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid var(--bdr);
+  transition: background .12s;
+}
+.cin-film-row:last-child { border-bottom: none; }
+.cin-film-row:hover      { background: var(--laranja-cl); }
+.cin-film-row:focus-visible {
+  outline: 3px solid var(--laranja);
+  outline-offset: -3px;
+}
+
+/* Poster pequeno */
+.cin-film-poster {
+  width: 34px;
+  aspect-ratio: 2/3;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bg3);
+  display: block;
+}
+.cin-film-poster--empty {
+  width: 34px;
+  aspect-ratio: 2/3;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--ink3);
+}
+
+/* Info do filme */
+.cin-film-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cin-film-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Chips de acessibilidade */
+.cin-film-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cin-chip {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.2px;
+  line-height: 1.4;
+}
+.cin-chip--ad  { background: var(--ad);  color: #fff; }
+.cin-chip--lse { background: var(--lse); color: #fff; }
+.cin-chip--lib { background: var(--lib); color: #fff; }
+
+/* Nome do app */
+.cin-film-app {
+  font-size: 11px;
+  color: var(--ink3);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Seta no fim da linha */
+.cin-film-arrow {
+  color: var(--ink3);
+  flex-shrink: 0;
+  transition: color .12s, transform .12s;
+}
+.cin-film-row:hover .cin-film-arrow {
+  color: var(--laranja);
+  transform: translateX(2px);
+}
+
+/* ── RODAPÉ DO CARD (link Ingresso) ── */
+.cin-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--laranja);
+  text-decoration: none;
+  background: var(--bg2);
+  border-top: 1.5px solid var(--bdr);
+  transition: background .12s, color .12s;
+}
+.cin-card-foot:hover  { background: var(--laranja-cl); }
+.cin-card-foot:focus-visible {
+  outline: 3px solid var(--laranja);
+  outline-offset: -3px;
+}
 
 /* ── RESPONSIVE ── */
 @media (max-width: 640px) {
-  .cinemas-hero { padding: 28px 16px 32px; }
+  .cinemas-hero    { padding: 28px 16px 32px; }
   .cinemas-filters { padding: 16px; top: 72px; }
   .cinemas-filters-inner { gap: 12px; }
-  .cf-field { min-width: 100%; }
-  .cinemas-body { padding: 28px 16px 56px; }
-  .cinemas-grid { grid-template-columns: 1fr; }
+  .cf-field        { min-width: 100%; }
+  .cinemas-body    { padding: 20px 16px 56px; }
+  .cin-card-head   { padding: 14px 12px 12px 16px; }
+  .cin-film-row    { padding: 11px 12px 11px 16px; gap: 10px; }
 }
