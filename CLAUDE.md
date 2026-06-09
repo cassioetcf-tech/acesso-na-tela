@@ -35,6 +35,13 @@ deficiência visual, auditiva e surdocegueira. Iniciativa da ETC Filmes.
 5. **Scraping de redes de cinema não funciona** (Cinépolis e similares retornam
    403). Cadastro de filmes/sessões é manual via `/admin.html`.
 
+7. **Cache de JS/CSS não usa mais `immutable`.** Os arquivos não têm hash no
+   nome, então JS/CSS são servidos com `max-age=0, must-revalidate` (ver
+   `netlify.toml`). Se mudar um JS/CSS e parecer que "não atualizou", peça um
+   hard refresh (Ctrl+Shift+R) UMA vez — assets antigos cacheados como
+   `immutable` (deploys antigos) só somem assim. Para forçar, versione o
+   include: `admin.js?v=YYYYMMDD`.
+
 6. **Verificar a versão dos arquivos no GitHub antes de depurar.** Já houve
    sobrescrita acidental de arquivos corrigidos. Um bug reaparecer pode
    significar que o arquivo foi revertido no repositório, não que o código está

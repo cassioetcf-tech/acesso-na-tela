@@ -17,20 +17,24 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
+# JS e CSS NÃO têm hash no nome (não são fingerprinted), então NÃO podem usar
+# "immutable" — senão alterações nunca chegam a quem já visitou o site.
+# Revalidam a cada carregamento (304 quando inalterado — barato).
 [[headers]]
   for = "/css/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/js/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
+# Imagens/logos: cache de 1 dia (sem immutable), atualizam em até 24h.
 [[headers]]
   for = "/assets/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=86400"
 
 [[headers]]
   for = "/*.html"
