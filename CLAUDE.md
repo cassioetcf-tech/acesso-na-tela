@@ -308,9 +308,10 @@ salvas em `localStorage` (com try/catch), VLibras oficial. Padrões: ABNT NBR
 
 ## 11. Aplicativos de acessibilidade (6 apps)
 
-Cards em `aplicativos.html` (modelo: logo 52×52 + nome + botões App Store/Google
-Play + contato site + Instagram). Logos em `/assets/app-*.png`; estilos de fundo
-em `components.css` (`.app-logo-mr/-ml/-greta/-pp/-trio/-conecta`).
+Cards em `aplicativos.html` (modelo: logo 44×44 + nome + botões App Store/Google
+Play + contato site + Instagram). Os 6 apps estão na página. Logos em
+`/assets/app-*.png` (moviereading, mload, greta, pingplay, trio, conecta);
+estilos de fundo em `components.css` (`.app-logo-mr/-ml/-greta/-pp/-trio/-conecta`).
 
 | App | Recursos | Origem do vínculo filme↔app |
 |---|---|---|
@@ -339,7 +340,8 @@ não usar para inferir o app correto.
   `/api/ingresso?type=nowplaying` (cacheado), não chamada direta.
 - Pôster do detalhe: ganhou `role="img"` + `aria-label`.
 - Apps: Trio Cinema e Conecta Acessibilidade adicionados em `aplicativos.html`
-  (+ classes em `components.css` + logos em `/assets/`).
+  (6 cards no total) + classes `.app-logo-trio`/`.app-logo-conecta` em
+  `components.css` + logos `app-trio.png`/`app-conecta.png` em `/assets/`.
 - **`sobre.html` criada** com conteúdo completo + `css/pages/sobre.css`.
   Adicionada ao nav e footer (entre FAQ e posição final). Renderiza via
   `renderHeader('sobre')` + `renderFooter()`.
