@@ -229,6 +229,35 @@ async function fetchGretaTitles(log) {
 }
 
 /**
+ * PingPlay — catálogo completo via API oficial locomotiva.
+ * O endpoint de lista traz todos os filmes (name + ingressoUrl). Antes usávamos
+ * scraping HTML; a API é mais confiável e não pagina. Retorna Set de títulos normT.
+ */
+async function fetchPingPlayTitles(log) {
+  const set = new Set();
+  try {
+    const r = await fetch(
+      'https://etc.prod.api.locomotiva.dev.br/api/v1/catalog?all=true&limit=500',
+      { headers: { 'Accept': 'application/json' } }
+    );
+    if (!r.ok) { log.push(`[sync] PingPlay API HTTP ${r.status}`); return set; }
+    const j = await r.json();
+    const films = (j.content && Array.isArray(j.content.data) ? j.content.data : null)
+      || (Array.isArray(j.data) ? j.data : null)
+      || (Array.isArray(j) ? j : []);
+    for (const f of films) {
+      if (!f || !f.name) continue;
+      const n = normT(f.name);
+      if (n) set.add(n);
+    }
+    log.push(`[sync] PingPlay: ${set.size} títulos da API (de ${films.length} no catálogo)`);
+  } catch (e) {
+    log.push(`[sync] ERRO PingPlay API: ${e.message}`);
+  }
+  return set;
+}
+
+/**
  * Busca o melhor match no TMDb em 3 níveis:
  *  1. normT/normFuzzy exato na lista de resultados
  *  2. busca com título base (sem subtítulo após ":" ou " - ")
@@ -403,40 +432,10 @@ exports.handler = async function () {
     log.push(`[sync] ERRO filmes_scaneados: ${e.message}`);
   }
 
-  // 3b. PingPlay (scrape mantido) + GRETA (filmeb) em paralelo
+  // 3b. PingPlay (API oficial) + GRETA (filmeb) em paralelo
   const [pingplayTitles, gretaTitles] = await Promise.all([
-    // PingPlay — pingplay.com.br (lotes paralelos)
-    (async () => {
-      const set   = new Set();
-      const BATCH = 8;
-      const MAX   = 40;
-      try {
-        let page = 1;
-        while (page <= MAX) {
-          const pageNums = Array.from({ length: BATCH }, (_, i) => page + i);
-          const htmls    = await Promise.all(
-            pageNums.map(p =>
-              fetch(`https://pingplay.com.br/catalogo.php?pagina=${p}&por_pagina=40`)
-                .then(r => r.ok ? r.text() : '').catch(() => '')
-            )
-          );
-          let found = 0;
-          for (const html of htmls) {
-            for (const m of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)) {
-              const norm = normT(m[1]);
-              if (norm && !set.has(norm)) { set.add(norm); found++; }
-            }
-          }
-          if (!found) break;
-          page += BATCH;
-        }
-        log.push(`[sync] PingPlay: ${set.size} títulos do catalogo.php`);
-      } catch (e) { log.push(`[sync] ERRO PingPlay scrape: ${e.message}`); }
-      return set;
-    })(),
-
-    // GRETA — filmeb.com.br, distribuidora Paramount Pictures
-    fetchGretaTitles(log),
+    fetchPingPlayTitles(log),   // catálogo completo via API locomotiva
+    fetchGretaTitles(log),      // filmeb.com.br, distribuidora Paramount Pictures
   ]);
 
   const pingplayFuzzy = new Set([...pingplayTitles].map(normFuzzy));

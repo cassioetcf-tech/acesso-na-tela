@@ -85,18 +85,16 @@ async function fetchGretaParamount() {
 }
 
 // PingPlay: usa a API REST oficial em vez de scraping HTML
-// GET /api/v1/catalog?all=true&limit=500  → lista com IDs
-// GET /api/v1/catalog/{id}                → detalhes com acessibilityContents
-//   type 1 = Legenda  |  type 2 = Audiodescrição  |  type 3 = Libras
+// GET /api/v1/catalog?all=true&limit=500  → catálogo completo (name + ingressoUrl por item)
 async function fetchPingPlayAPI() {
   const BASE = 'https://etc.prod.api.locomotiva.dev.br/api/v1';
 
-  // 1. Catálogo recente — filmes com IDs mais altos são os mais recentes
-  //    Buscamos 50 e ordenamos por ID desc para pegar os lançamentos atuais.
-  //    Isso evita percorrer centenas de filmes históricos.
+  // 1. Catálogo COMPLETO (limit alto). Antes pegava limit=50 + slice(0,15) ordenado
+  //    por id — mas id é UUID, então a "ordem por recência" era aleatória e filmes
+  //    em cartaz ficavam de fora. Agora buscamos todos.
   let listR;
   try {
-    listR = await fetchWithTimeout(BASE + '/catalog?all=true&limit=50', FETCH_TIMEOUT_MS);
+    listR = await fetchWithTimeout(BASE + '/catalog?all=true&limit=500', FETCH_TIMEOUT_MS);
   } catch (e) {
     console.log('[a11y-sources] PingPlay API list error: ' + e.message);
     return { titles: [], details: [] };
@@ -111,44 +109,29 @@ async function fetchPingPlayAPI() {
     || (Array.isArray(listJson.data) ? listJson.data : null)
     || (Array.isArray(listJson) ? listJson : []);
 
-  // Ordena por ID decrescente (mais recentes primeiro) e pega os 15 mais novos
-  const films = allFilms
-    .slice()
-    .sort(function (a, b) { return (b.id || 0) - (a.id || 0); })
-    .slice(0, 15);
-
-  console.log('[a11y-sources] PingPlay API: ' + films.length + ' filmes recentes (de ' + allFilms.length + ' total)');
-  if (!films.length) return { titles: [], details: [] };
-
-  // 2. Detalhes individuais em paralelo
-  const rawResults = await Promise.all(
-    films.map(function (f) {
-      return fetchWithTimeout(BASE + '/catalog/' + f.id, 5000)
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .catch(function () { return null; });
-    })
-  );
-
+  // Usa TODOS os filmes do catálogo. O endpoint de lista já traz name + ingressoUrl;
+  // NÃO corta em N (antes pegava só 15) e NÃO ordena por id (id é UUID — sort numérico
+  // dava NaN). Sem chamadas de detalhe: a lista basta para o match por título e por URL.
+  const seen    = new Set();
   const details = [];
-  for (var i = 0; i < rawResults.length; i++) {
-    var res = rawResults[i];
-    if (!res) continue;
-    var d = (res.content && res.content.data) || res.data || res;
+  for (var i = 0; i < allFilms.length; i++) {
+    var d = allFilms[i];
     if (!d || !d.name) continue;
-    var contents = Array.isArray(d.acessibilityContents) ? d.acessibilityContents : [];
+    var norm = normalizeTitle(d.name);
+    if (!norm || seen.has(norm)) continue;
+    seen.add(norm);
+    // Modelo do produto: 1 filme = 1 app = os 3 recursos (AD + LSE + Libras).
     details.push({
       name:        d.name,
       id:          d.id,
-      ad:          contents.some(function (c) { return c.type === 2; }),
-      libras:      contents.some(function (c) { return c.type === 3; }),
-      legenda:     contents.some(function (c) { return c.type === 1; }),
+      ad:          true,
+      libras:      true,
+      legenda:     true,
       ingressoUrl: d.ingressoUrl || null,
     });
   }
 
-  var adCount     = details.filter(function (d) { return d.ad; }).length;
-  var librasCount = details.filter(function (d) { return d.libras; }).length;
-  console.log('[a11y-sources] PingPlay API: ' + details.length + ' filmes — AD: ' + adCount + ' · Libras: ' + librasCount);
+  console.log('[a11y-sources] PingPlay API: ' + details.length + ' filmes (de ' + allFilms.length + ' no catálogo)');
 
   return { titles: details.map(function (d) { return d.name; }), details: details };
 }
