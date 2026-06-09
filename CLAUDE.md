@@ -230,9 +230,16 @@ Segue a lógica de produto pretendida, nesta ordem:
 > clicáveis.** O passo 4 ENRIQUECE filmes existentes; não cria filmes a partir
 > dos apps.
 
-**`a11y-sources.js`** — function que apenas LÊ as fontes dos fornecedores
-(MovieReading, MLOAD, PingPlay) e retorna `{titles, details}` para a FASE 3
-cruzar. Não escreve em `filmes`.
+**`a11y-sources.js`** — function que LÊ as fontes server-side e retorna
+`{ pingplay, pingplay_details, greta }` para a Fase 3 do **admin.js** cruzar
+(scraping de filmeb/Paramount precisa ser server-side por causa de CORS).
+MovieReading/Conecta/MLOAD/Trio NÃO passam por aqui — vêm da tabela
+`filmes_scaneados`, lida direto pelo admin.js. Não escreve em `filmes`.
+
+> ⚠️ Há DUAS implementações da Fase 3: o cron `sync-status.js` (server-side,
+> roda às 6h UTC) e o botão **"Sincronizar"** do `admin.html` (client-side em
+> `js/pages/admin.js`, que chama `a11y-sources.js`). Ao mudar a lógica de
+> classificação, **alterar os dois** — eles não compartilham código.
 
 **Opção A — Sync diário via apps (em desenvolvimento — desenvolvedor externo)**
 Script Node.js (`scripts/sync-app-catalog.js`) que roda uma vez por dia via

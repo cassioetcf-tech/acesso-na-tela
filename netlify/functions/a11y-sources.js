@@ -1,16 +1,16 @@
 // ── a11y-sources — Fontes de acessibilidade por app ──────────────────────────
 // GET /.netlify/functions/a11y-sources
-// Retorna { moviereading: [...títulos], mload: [...títulos], mload_details: [...],
-//           pingplay: [...títulos], pingplay_details: [...] }
+// Retorna { pingplay: [...títulos], pingplay_details: [...], greta: [...títulos] }
 //
 // Fontes (apenas filmes recentes — em cartaz):
-//   MovieReading → cineacessivel.com.br/em-cartaz  (scraping HTML, página 1 somente)
-//   MLOAD        → app.mobiload.net/rest/v2         (API REST oficial)
-//   PingPlay     → locomotiva.dev.br/api/v1         (API REST oficial)
+//   PingPlay → locomotiva.dev.br/api/v1            (API REST oficial)
+//   GRETA    → filmeb.com.br (distribuidora Paramount Pictures, ID 310086)
 //
-// Estratégia: busca apenas os filmes mais recentes de cada fonte (em cartaz),
-// sem percorrer catálogos históricos completos. Isso mantém a função rápida
-// e focada nos filmes que realmente precisam de classificação.
+// MovieReading, Conecta, MLOAD e Trio NÃO são buscados aqui — vêm da tabela
+// `filmes_scaneados` no Supabase, lida diretamente pelo admin.js (Fase 3).
+//
+// Estratégia: busca apenas os filmes mais recentes (em cartaz), sem percorrer
+// catálogos históricos completos. Mantém a função rápida.
 
 const FETCH_TIMEOUT_MS = 7000;
 
@@ -31,148 +31,57 @@ function fetchWithTimeout(url, ms) {
     .finally(() => clearTimeout(id));
 }
 
-// MovieReading: scraping da página 1 do cineacessivel.com.br
-// A página lista os filmes mais recentes (em cartaz) — apenas página 1 é suficiente
-// para cobrir os lançamentos da semana sem percorrer o catálogo histórico inteiro.
-async function fetchMovieReading() {
-  const titles = [];
-  const seen   = new Set();
+// GRETA: filmes da distribuidora Paramount Pictures no filmeb.com.br.
+// Regra de produto: Paramount no filmeb = filmes disponíveis no app GRETA.
+// Janela de datas: ano anterior → ano seguinte. Títulos em <h2><a>...</a></h2>.
+const FILMEB_PARAMOUNT_ID = '310086';
 
-  // Busca as 3 primeiras páginas em paralelo (cobre ~30 filmes recentes)
-  const PAGES = [1, 2, 3];
-  const htmls = await Promise.all(
-    PAGES.map(p =>
-      fetchWithTimeout(`https://cineacessivel.com.br/em-cartaz?page=${p}`, FETCH_TIMEOUT_MS)
-        .then(r => r.ok ? r.text() : '')
-        .catch(() => '')
-    )
-  );
-
-  for (const html of htmls) {
-    if (!html) continue;
-    for (const m of html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)) {
-      const orig = m[1].trim();
-      const norm = normalizeTitle(orig);
-      if (norm && !seen.has(norm)) {
-        seen.add(norm);
-        titles.push(orig);
-      }
-    }
-  }
-
-  console.log(`[a11y-sources] MovieReading: ${titles.length} títulos (págs 1-3)`);
-  return titles;
+// Remove prefixos entre parênteses: "(13/05) (relançamento) Top Gun" → "Top Gun"
+function cleanGretaTitle(t) {
+  let s = (t || '').trim();
+  while (/^\s*\([^)]*\)\s*/.test(s)) s = s.replace(/^\s*\([^)]*\)\s*/, '');
+  return s.trim();
 }
 
-// MLOAD: usa a API REST oficial em vez de scraping do GoMAV
-// Fluxo: POST /auth/login (anon) → token → POST /search → filmes com available[]
-//   available pode conter: "ad" | "srt" | "libras"
-// firstToken e x-auth-token-x são constantes públicas extraídas do bundle do app
-const MLOAD_BASE       = 'https://app.mobiload.net/rest/v2';
-const MLOAD_FIRST_TOKEN = 'efe031b155f4c451eac53909a5e620adaaf9dca598a184926594f06481161639';
-
-async function fetchMloadAPI() {
-  // 1. Login anônimo
-  let loginR;
+async function fetchGretaParamount() {
+  const titles = [];
+  const seen   = new Set();
   try {
-    loginR = await fetchWithTimeout(MLOAD_BASE + '/auth/login', FETCH_TIMEOUT_MS);
-    // login requer POST com headers e body — fetchWithTimeout só faz GET; usa fetch diretamente
-    loginR = null; // descarta — faz POST manual abaixo
-  } catch (e) {}
+    const y    = new Date().getFullYear();
+    const min  = `${y - 1}-01-01`;
+    const max  = `${y + 1}-12-31`;
+    const base = `https://www.filmeb.com.br/calendario-de-estreias/distribuidora/${FILMEB_PARAMOUNT_ID}`;
+    const dateParams =
+      `field_estreia_data_estreia_value%5Bmin%5D%5Bdate%5D=${min}` +
+      `&field_estreia_data_estreia_value%5Bmax%5D%5Bdate%5D=${max}`;
 
-  let authToken = '';
-  try {
-    const loginResp = await fetch(MLOAD_BASE + '/auth/login', {
-      method: 'POST',
-      headers: {
-        'x-auth-token-x': MLOAD_FIRST_TOKEN,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        deviceId: 'netlify-func-001',
-        token:    MLOAD_FIRST_TOKEN,
-        email:    '%NOLOGIN%',
-        pass:     '%NOLOGIN%',
-        os:       'android',
-        sv:       '11',
-        jb:       'N',
-        ml:       'N',
-      }),
-    });
-    if (!loginResp.ok) {
-      console.log('[a11y-sources] MLOAD login HTTP ' + loginResp.status);
-      return { titles: [], details: [] };
+    for (let page = 0; page < 10; page++) {
+      const url = `${base}?tp=d&${dateParams}${page ? `&page=${page}` : ''}`;
+      const ctrl = new AbortController();
+      const id   = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+      let html = '';
+      try {
+        const r = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0' } });
+        html = r.ok ? await r.text() : '';
+      } catch (e) { clearTimeout(id); break; }
+      clearTimeout(id);
+      if (!html) break;
+
+      let found = 0;
+      for (const m of html.matchAll(/<h2[^>]*>\s*<a[^>]*href="([^"]*)"[^>]*>([^<]+)<\/a>/gi)) {
+        if (/\/distribuidora\//.test(m[1])) continue; // ignora o link da própria distribuidora
+        const clean = cleanGretaTitle(m[2]);
+        if (clean.length < 3) continue;
+        const norm = normalizeTitle(clean);
+        if (norm && !seen.has(norm)) { seen.add(norm); titles.push(clean); found++; }
+      }
+      if (!found) break; // sem títulos novos → última página
     }
-    const loginJson = await loginResp.json();
-    authToken = loginJson.token || '';
+    console.log(`[a11y-sources] GRETA (Paramount/filmeb): ${titles.length} títulos`);
   } catch (e) {
-    console.log('[a11y-sources] MLOAD login error: ' + e.message);
-    return { titles: [], details: [] };
+    console.log('[a11y-sources] GRETA error: ' + e.message);
   }
-
-  if (!authToken) {
-    console.log('[a11y-sources] MLOAD: token vazio após login');
-    return { titles: [], details: [] };
-  }
-
-  // 2. Busca catálogo completo (todos os filmes numa única chamada)
-  let searchResp;
-  try {
-    searchResp = await fetch(MLOAD_BASE + '/search/?userLang=pt', {
-      method: 'POST',
-      headers: {
-        'x-auth-token-x': authToken,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({}),
-    });
-  } catch (e) {
-    console.log('[a11y-sources] MLOAD search error: ' + e.message);
-    return { titles: [], details: [] };
-  }
-
-  if (!searchResp.ok) {
-    console.log('[a11y-sources] MLOAD search HTTP ' + searchResp.status);
-    return { titles: [], details: [] };
-  }
-
-  const films = await searchResp.json();
-  if (!Array.isArray(films)) {
-    console.log('[a11y-sources] MLOAD search: resposta não é array');
-    return { titles: [], details: [] };
-  }
-
-  // 3. Ordena por ID desc (mais recentes), pega os 15 primeiros, deduplica
-  const sorted = films
-    .filter(function (f) { return f.nome && f.nome.trim(); })
-    .sort(function (a, b) { return (b.id || 0) - (a.id || 0); })
-    .slice(0, 15);
-
-  const seen    = new Set();
-  const details = [];
-  for (var i = 0; i < sorted.length; i++) {
-    var f    = sorted[i];
-    var nome = f.nome.trim();
-    var norm = normalizeTitle(nome);
-    if (!norm || seen.has(norm)) continue;
-    seen.add(norm);
-    var avail = Array.isArray(f.available) ? f.available : [];
-    details.push({
-      name:   nome,
-      id:     f.id || null,
-      ad:     avail.indexOf('ad')     > -1,
-      libras: avail.indexOf('libras') > -1,
-      srt:    avail.indexOf('srt')    > -1,
-    });
-  }
-
-  var adCount     = details.filter(function (d) { return d.ad; }).length;
-  var librasCount = details.filter(function (d) { return d.libras; }).length;
-  console.log('[a11y-sources] MLOAD API: ' + details.length + ' filmes recentes — AD: ' + adCount + ' · Libras: ' + librasCount);
-
-  return { titles: details.map(function (d) { return d.name; }), details: details };
+  return titles;
 }
 
 // PingPlay: usa a API REST oficial em vez de scraping HTML
@@ -246,24 +155,21 @@ async function fetchPingPlayAPI() {
 
 exports.handler = async function () {
   try {
-    // Todas as 3 fontes em paralelo
-    const [moviereading, mloadResult, pingplayResult] = await Promise.all([
-      fetchMovieReading().catch(function (e) { console.error('MR error:',  e.message); return []; }),
-      fetchMloadAPI().catch(function (e)     { console.error('ML error:',  e.message); return { titles: [], details: [] }; }),
-      fetchPingPlayAPI().catch(function (e)  { console.error('PP error:',  e.message); return { titles: [], details: [] }; }),
+    // PingPlay (API) + GRETA (Paramount/filmeb) em paralelo
+    const [pingplayResult, greta] = await Promise.all([
+      fetchPingPlayAPI().catch(function (e)    { console.error('PP error:',    e.message); return { titles: [], details: [] }; }),
+      fetchGretaParamount().catch(function (e) { console.error('GRETA error:', e.message); return []; }),
     ]);
 
-    console.log('[a11y-sources] total: MR=' + moviereading.length + ' ML=' + mloadResult.titles.length + ' PP=' + pingplayResult.titles.length);
+    console.log('[a11y-sources] total: PP=' + pingplayResult.titles.length + ' GRETA=' + greta.length);
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify({
-        moviereading,
-        mload:            mloadResult.titles,      // lista plana (compatibilidade)
-        mload_details:    mloadResult.details,     // dados ricos com AD/Libras/SRT
         pingplay:         pingplayResult.titles,   // lista plana (compatibilidade)
         pingplay_details: pingplayResult.details,  // dados ricos com AD/Libras/ingressoUrl
+        greta:            greta,                   // títulos da Paramount (GRETA)
       }),
     };
   } catch (e) {
@@ -271,7 +177,7 @@ exports.handler = async function () {
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ moviereading: [], mload: [], mload_details: [], pingplay: [], pingplay_details: [], error: e.message }),
+      body: JSON.stringify({ pingplay: [], pingplay_details: [], greta: [], error: e.message }),
     };
   }
 };

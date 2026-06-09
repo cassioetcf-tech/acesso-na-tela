@@ -646,7 +646,7 @@ async function _checkFilmHasSessions(urlKey) {
 // ── Sincronização completa ────────────────────────────────────────────────────
 // FASE 1 — Ingresso: descobre filmes novos via Ingresso + verifica sessões.
 // FASE 2 — TMDb: enriquece filmes sem poster/dados com informações do TMDb.
-// FASE 3 — Apps: auto-classifica MovieReading, MLOAD e PingPlay.
+// FASE 3 — Apps: filmes_scaneados (MovieReading/Conecta/MLOAD/Trio) + PingPlay (API) + GRETA (Paramount).
 
 async function runSync() {
   var btn      = document.getElementById('btn-sync');
@@ -798,10 +798,39 @@ async function runSync() {
   }
 
   // ── FASE 3: Apps — Auto-classificação ───────────────────────────────────────
-  addLog('ok', '🎯', '<strong>Fase 3</strong> — Auto-classificação: MovieReading, MLOAD e PingPlay', null, null);
+  // Fontes: tabela filmes_scaneados (MovieReading/Conecta/MLOAD/Trio) + PingPlay (API) + GRETA (Paramount/filmeb)
+  addLog('ok', '🎯', '<strong>Fase 3</strong> — Auto-classificação: filmes_scaneados + PingPlay + GRETA', null, null);
   setProgress(72, 'Buscando fontes de acessibilidade...');
 
   try {
+    // 3a. Tabela filmes_scaneados — MovieReading, Conecta, MLOAD, Trio
+    var canonApp = function (a) {
+      var k = normT(a);
+      if (k === 'moviereading')        return 'MovieReading';
+      if (k === 'mload')               return 'MLOAD';
+      if (k === 'pingplay')            return 'PingPlay';
+      if (k === 'greta')               return 'GRETA';
+      if (k.indexOf('conecta') === 0)  return 'Conecta Acessibilidade';
+      if (k.indexOf('trio') === 0)     return 'Trio Cinema';
+      return a; // fallback: mantém o valor original
+    };
+    var scanNorm  = {};
+    var scanFuzzy = {};
+    try {
+      var scaneados = await supabaseGet('filmes_scaneados', 'select=titulo,app&limit=5000');
+      (scaneados || []).forEach(function (row) {
+        if (!row || !row.titulo || !row.app) return;
+        var app = canonApp(row.app);
+        var n = normT(row.titulo), f = normFuzzy(row.titulo);
+        if (n && !scanNorm[n]) scanNorm[n] = app;
+        if (f.length >= 4 && !scanFuzzy[f]) scanFuzzy[f] = app;
+      });
+      addLog('ok', '🗂️', 'filmes_scaneados: <strong>' + (scaneados ? scaneados.length : 0) + '</strong> registro(s)', null, null);
+    } catch (e) {
+      addLog('err', '✕', 'filmes_scaneados: ' + e.message, null, null);
+    }
+
+    // 3b. PingPlay (API) + GRETA (Paramount/filmeb) via função a11y-sources
     var a11yResp = await fetch('/.netlify/functions/a11y-sources');
     var a11yText = await a11yResp.text();
     var a11yData = {};
@@ -809,47 +838,34 @@ async function runSync() {
       addLog('err', '✕', 'Fase 3: resposta inválida da função (possível timeout) — ' + pe.message, null, null);
     }
 
-    var mrSet         = new Set((a11yData.moviereading || []).map(normT));
-    var mloadSet      = new Set((a11yData.mload        || []).map(normT));
-    var pingplaySet   = new Set((a11yData.pingplay     || []).map(normT));
-    // Nível 2: sem artigo inicial (O/A/Os/As/Um/Uma/The/An)
-    var mrFuzzy       = new Set((a11yData.moviereading || []).map(normFuzzy));
-    var mloadFuzzy    = new Set((a11yData.mload        || []).map(normFuzzy));
-    var pingplayFuzzy = new Set((a11yData.pingplay     || []).map(normFuzzy));
+    var pingplaySet   = new Set((a11yData.pingplay || []).map(normT));
+    var pingplayFuzzy = new Set((a11yData.pingplay || []).map(normFuzzy));
+    var gretaSet      = new Set((a11yData.greta    || []).map(normT));
+    var gretaFuzzy    = new Set((a11yData.greta    || []).map(normFuzzy));
 
-    // MLOAD: mapa por título normalizado para dados ricos (AD/Libras/SRT)
-    var mlDetails = a11yData.mload_details || [];
-    var mlByNorm  = {};
-    mlDetails.forEach(function (d) {
-      mlByNorm[normT(d.name)]    = d;
-      mlByNorm[normFuzzy(d.name)] = d;
-    });
-
-    // PingPlay: mapa por ingresso_url (match exato) + título normalizado (fallback)
+    // PingPlay: mapa por ingresso_url (match exato) + título normalizado (fallback) — INALTERADO
     var ppDetails = a11yData.pingplay_details || [];
     var ppByUrl   = {};
     var ppByNorm  = {};
     ppDetails.forEach(function (d) {
       if (d.ingressoUrl) ppByUrl[d.ingressoUrl] = d;
-      ppByNorm[normT(d.name)]    = d;
+      ppByNorm[normT(d.name)]     = d;
       ppByNorm[normFuzzy(d.name)] = d;
     });
 
     addLog('ok', '📋',
+      'filmes_scaneados: <strong>' + Object.keys(scanNorm).length + '</strong> títulos · ' +
       'PingPlay: <strong>' + pingplaySet.size + '</strong>' + (ppDetails.length ? ' (API ✓)' : '') + ' · ' +
-      'MLOAD: <strong>' + mloadSet.size + '</strong>' + (mlDetails.length ? ' (API ✓)' : '') + ' · ' +
-      'MovieReading: <strong>' + mrSet.size + '</strong> (scraping)',
+      'GRETA: <strong>' + gretaSet.size + '</strong> (Paramount)',
       null, null);
 
-    // Processa apenas filmes "em cartaz" — pendentes OU já classificados pelos 3 apps rastreáveis.
-    // Filmes GRETA/TrioCinema (manuais) e sem_acessibilidade são ignorados.
-    var APPS_RASTRAVEIS = ['MovieReading', 'MLOAD', 'PingPlay'];
+    // Apps auto-classificáveis — re-verificados a cada sync (pendentes OU já confirmados nesses apps)
+    var APPS_RASTRAVEIS = ['MovieReading', 'MLOAD', 'PingPlay', 'GRETA', 'Conecta Acessibilidade', 'Trio Cinema'];
     var emCartaz = _filmes.filter(function (f) {
       var status = (f.status || '').toLowerCase();
       if (status !== 'cartaz') return false; // só "em cartaz"
       var appStatus = _getAppStatusAdmin(f);
       if (appStatus === 'pendente') return true; // ainda não classificado
-      // Re-verifica os 3 apps rastreáveis (pode ter mudado de app ou nova info)
       if (appStatus === 'confirmado' && APPS_RASTRAVEIS.indexOf(f.app) > -1) return true;
       return false;
     });
@@ -863,51 +879,38 @@ async function runSync() {
       var app   = null;
       var appDet = null;
 
-      // Prioridade de match — conflito entre apps:
-      //
-      // 1. PingPlay por ingresso_url  — match EXATO por URL (máxima confiança, definitivo)
-      //    Um filme com ingresso_url no Supabase que bate com ingressoUrl da API PingPlay
-      //    é definitivamente PingPlay, mesmo que apareça em outra fonte.
-      //
-      // 2. MLOAD — API oficial, alta confiança
-      //
-      // 3. MovieReading — cineacessivel.com.br é exclusivo do app MovieReading (confiável)
-      //    Mas match por título pode ter colisões quando o mesmo título está em múltiplos apps.
-      //
-      // 4. PingPlay por título — fallback quando não há ingresso_url mapeado
-      //
-      // Exemplo do problema que motivou esta ordem:
-      //   "O Gênio do Crime" está no PingPlay (com ingresso_url mapeado).
-      //   Sem o check de URL primeiro, o match por título no MovieReading ganhava.
-
+      // Prioridade de match:
+      //   1. PingPlay por ingresso_url — match EXATO por URL (definitivo, INALTERADO)
+      //   2. tabela filmes_scaneados   — MovieReading, Conecta, MLOAD, Trio
+      //   3. PingPlay por título        — fallback (sem ingresso_url mapeado)
+      //   4. GRETA                      — filmes da Paramount (filmeb)
       var ppUrlDet   = pf.ingresso_url ? ppByUrl[pf.ingresso_url] : null;
       var ppTitleDet = ppByNorm[norm] || ppByNorm[fuzzy] || null;
-      var mlDet      = mlByNorm[norm] || mlByNorm[fuzzy] || null;
-      var inMload    = mloadSet.has(norm) || (fuzzy.length >= 4 && mloadFuzzy.has(fuzzy));
+      var scanApp    = scanNorm[norm] || (fuzzy.length >= 4 ? scanFuzzy[fuzzy] : null) || null;
       var inPPTitle  = pingplaySet.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy));
-      var inMR       = mrSet.has(norm) || (fuzzy.length >= 4 && mrFuzzy.has(fuzzy));
+      var inGreta    = gretaSet.has(norm) || (fuzzy.length >= 4 && gretaFuzzy.has(fuzzy));
 
       if (ppUrlDet) {
         // 1. PingPlay — match exato por ingresso_url (definitivo)
         app    = 'PingPlay';
         appDet = ppUrlDet;
-      } else if (inMload) {
-        // 2. MLOAD — API oficial
-        app    = 'MLOAD';
-        appDet = mlDet;
-      } else if (inMR) {
-        // 3. MovieReading — cineacessivel.com.br (exclusivo MR)
-        app    = 'MovieReading';
+      } else if (scanApp) {
+        // 2. filmes_scaneados — MovieReading / Conecta / MLOAD / Trio
+        app    = scanApp;
         appDet = null;
       } else if (inPPTitle) {
-        // 4. PingPlay por título — fallback (sem ingresso_url mapeado)
+        // 3. PingPlay por título — fallback
         app    = 'PingPlay';
         appDet = ppTitleDet;
+      } else if (inGreta) {
+        // 4. GRETA — Paramount (filmeb)
+        app    = 'GRETA';
+        appDet = null;
       }
 
-      // Sem match em nenhum dos 3 apps rastreáveis
+      // Sem match em nenhuma fonte
       if (!app) {
-        // Se já estava classificado em um app rastreável e sumiu das fontes → mantém (pode ser lag)
+        // Se já estava classificado num app rastreável e sumiu das fontes → mantém (pode ser lag)
         if (pf.app && APPS_RASTRAVEIS.indexOf(pf.app) > -1) {
           addLog('ok', '⚠️', '<strong>' + escHtml(pf.titulo) + '</strong> — não encontrado nas fontes (mantém ' + pf.app + ')', pf.app, null);
         }
@@ -918,6 +921,7 @@ async function runSync() {
       if (pf.app === app && _getAppStatusAdmin(pf) === 'confirmado') continue;
 
       try {
+        // PingPlay traz recursos detalhados (appDet); demais fontes = os 3 recursos
         var a11yData3 = { ad: true, lse: true, libras: true };
         if (appDet) {
           a11yData3 = {
