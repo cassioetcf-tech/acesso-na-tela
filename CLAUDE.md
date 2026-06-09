@@ -213,15 +213,14 @@ acessibilidade em todas as páginas.
 ## 7. Automações (Netlify)
 
 **`sync-status.js` — cron diário 6h UTC** (`schedule = "0 6 * * *"` no netlify.toml).
-Segue a lógica de produto pretendida, nesta ordem:
+Ordem das fases (TMDb por último, para não bloquear a varredura dos apps):
 1. **FASE 1 — Ingresso:** descobre filmes em cartaz; insere novos como
    `id: film_{urlKey}`, com `url_key`, `status` CARTAZ/BREVE (via `isComingSoon`)
    e `app_status: pendente`. Verifica sessões na semana: filme em CARTAZ sem
    sessão → rebaixado para CATALOGO (sai da home).
-2. **FASE 2 — TMDb:** enriquece quem está sem `tmdb_data` (pôster, sinopse,
-   gênero, data). Não descarta filmes não encontrados.
-3. **FASE 3 — Apps:** cruza filmes `pendente` com as fontes e promove para
-   `app_status: confirmado`. Fontes (prioridade nessa ordem):
+2. **FASE 2 — Apps:** varre **TODOS** os filmes com sessão na semana (status
+   CARTAZ, não só pendentes) e cruza com as fontes, promovendo para
+   `app_status: confirmado`. Independe do TMDb. Fontes (prioridade nessa ordem):
    - **Tabela `filmes_scaneados`** (Supabase): MovieReading, Conecta, MLOAD, Trio.
      Lê colunas `titulo` + `app`; `canonApp()` normaliza o valor para o nome
      canônico de `filmes.app`. Tabela populada pela aplicação paralela (Opção A).
@@ -229,16 +228,18 @@ Segue a lógica de produto pretendida, nesta ordem:
    - **GRETA**: scraping `filmeb.com.br` — distribuidora Paramount Pictures
      (ID `310086`, constante `FILMEB_PARAMOUNT_ID`, fixo por enquanto). Janela
      de datas ano-1 → ano+1. Filmes da Paramount no filmeb = filmes no GRETA.
-   AD/LSE/Libras sempre marcados como `true` ao classificar.
+   AD/LSE/Libras sempre marcados como `true` ao classificar (exceto PingPlay no
+   admin.js, que traz os recursos individuais da API).
+3. **FASE 3 — TMDb:** roda **por último**. Enriquece filmes em cartaz sem
+   `tmdb_data` (pôster, sinopse, gênero, data). Não descarta não encontrados e
+   não impacta a varredura dos apps (Fase 2).
 
-> A lógica de produto: Ingresso (passo 1, dá o `url_key`) → filtra por sessões na
-> semana (passo 2) → TMDb (passo 3) → checa apps (passo 4). **Só filmes com algum
-> app seguem na home, e como vieram da Ingresso, todos têm `url_key` e são
-> clicáveis.** O passo 4 ENRIQUECE filmes existentes; não cria filmes a partir
-> dos apps.
+> Só filmes com algum app seguem na home, e como vieram da Ingresso, todos têm
+> `url_key` e são clicáveis. As fases ENRIQUECEM filmes existentes; não criam
+> filmes a partir dos apps.
 
 **`a11y-sources.js`** — function que LÊ as fontes server-side e retorna
-`{ pingplay, pingplay_details, greta }` para a Fase 3 do **admin.js** cruzar
+`{ pingplay, pingplay_details, greta }` para a Fase de apps do **admin.js** cruzar
 (scraping de filmeb/Paramount precisa ser server-side por causa de CORS).
 MovieReading/Conecta/MLOAD/Trio NÃO passam por aqui — vêm da tabela
 `filmes_scaneados`, lida direto pelo admin.js. Não escreve em `filmes`.

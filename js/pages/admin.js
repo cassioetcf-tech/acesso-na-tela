@@ -762,45 +762,11 @@ async function runSync() {
     addLog('ok', '✓', 'Nenhum filme em cartaz/breve para verificar sessões', null, null);
   }
 
-  // ── FASE 2: TMDb — Enriquecimento de dados ───────────────────────────────────
-  addLog('ok', '🎬', '<strong>Fase 2</strong> — TMDb: buscando poster e dados dos filmes', null, null);
-  setProgress(50, 'Buscando dados no TMDb...');
-
-  try { _filmes = await supabaseGet('filmes', 'order=created_at.desc&limit=500'); } catch (e) {}
-
-  var semDados = _filmes.filter(function (f) {
-    return !f.tmdb_data && (f.status || '').toLowerCase() === 'cartaz';
-  });
-
-  if (!semDados.length) {
-    addLog('ok', '✓', 'Todos os filmes em cartaz já têm dados do TMDb', null, null);
-  } else {
-    addLog('ok', '🔍', '<strong>' + semDados.length + '</strong> filme(s) sem dados — buscando no TMDb...', null, null);
-    for (var t = 0; t < semDados.length; t++) {
-      var sf = semDados[t];
-      setProgress(50 + Math.round((t / semDados.length) * 22), 'TMDb ' + (t + 1) + '/' + semDados.length + ': ' + sf.titulo);
-      try {
-        var tmdbData = await searchMovieBest(sf.titulo);
-
-        if (tmdbData) {
-          await supabasePatch('filmes', 'id=eq.' + sf.id, { tmdb_id: tmdbData.id, tmdb_data: tmdbData, updated_at: now });
-          addLog('ok', '🎬', '<strong>' + escHtml(sf.titulo) + '</strong> — poster e dados atualizados', null, null);
-          var sfIdx = _filmes.findIndex(function (x) { return x.id === sf.id; });
-          if (sfIdx > -1) { _filmes[sfIdx].tmdb_id = tmdbData.id; _filmes[sfIdx].tmdb_data = tmdbData; }
-          enriched++;
-        } else {
-          addLog('skip', '—', escHtml(sf.titulo) + ' — não encontrado no TMDb', null, null);
-        }
-      } catch (e) {
-        addLog('err', '✕', escHtml(sf.titulo) + ' — TMDb: ' + e.message, null, null);
-      }
-    }
-  }
-
-  // ── FASE 3: Apps — Auto-classificação ───────────────────────────────────────
+  // ── FASE 2: Apps — Auto-classificação ───────────────────────────────────────
   // Fontes: tabela filmes_scaneados (MovieReading/Conecta/MLOAD/Trio) + PingPlay (API) + GRETA (Paramount/filmeb)
-  addLog('ok', '🎯', '<strong>Fase 3</strong> — Auto-classificação: filmes_scaneados + PingPlay + GRETA', null, null);
-  setProgress(72, 'Buscando fontes de acessibilidade...');
+  // Varre TODOS os filmes com sessão na semana (status CARTAZ). Roda ANTES do TMDb — não depende dele.
+  addLog('ok', '🎯', '<strong>Fase 2</strong> — Auto-classificação: filmes_scaneados + PingPlay + GRETA', null, null);
+  setProgress(55, 'Buscando fontes de acessibilidade...');
 
   try {
     // 3a. Tabela filmes_scaneados — MovieReading, Conecta, MLOAD, Trio
@@ -859,15 +825,11 @@ async function runSync() {
       'GRETA: <strong>' + gretaSet.size + '</strong> (Paramount)',
       null, null);
 
-    // Apps auto-classificáveis — re-verificados a cada sync (pendentes OU já confirmados nesses apps)
+    // Apps auto-classificáveis (usado no fallback "mantém" quando some das fontes)
     var APPS_RASTRAVEIS = ['MovieReading', 'MLOAD', 'PingPlay', 'GRETA', 'Conecta Acessibilidade', 'Trio Cinema'];
+    // Varre TODOS os filmes com sessão na semana (status CARTAZ), independente do app_status.
     var emCartaz = _filmes.filter(function (f) {
-      var status = (f.status || '').toLowerCase();
-      if (status !== 'cartaz') return false; // só "em cartaz"
-      var appStatus = _getAppStatusAdmin(f);
-      if (appStatus === 'pendente') return true; // ainda não classificado
-      if (appStatus === 'confirmado' && APPS_RASTRAVEIS.indexOf(f.app) > -1) return true;
-      return false;
+      return (f.status || '').toLowerCase() === 'cartaz';
     });
     addLog('ok', '🎬', '<strong>' + emCartaz.length + '</strong> filme(s) em cartaz para verificar', null, null);
     var autoCount = 0;
@@ -994,7 +956,42 @@ async function runSync() {
       }
     }
   } catch (e) {
-    addLog('err', '✕', 'Fase 3 erro: ' + e.message, null, null);
+    addLog('err', '✕', 'Fase 2 erro: ' + e.message, null, null);
+  }
+
+  // ── FASE 3: TMDb — Enriquecimento de dados (por último; não bloqueia os apps) ─
+  addLog('ok', '🎬', '<strong>Fase 3</strong> — TMDb: buscando poster e dados dos filmes', null, null);
+  setProgress(80, 'Buscando dados no TMDb...');
+
+  try { _filmes = await supabaseGet('filmes', 'order=created_at.desc&limit=500'); } catch (e) {}
+
+  var semDados = _filmes.filter(function (f) {
+    return !f.tmdb_data && (f.status || '').toLowerCase() === 'cartaz';
+  });
+
+  if (!semDados.length) {
+    addLog('ok', '✓', 'Todos os filmes em cartaz já têm dados do TMDb', null, null);
+  } else {
+    addLog('ok', '🔍', '<strong>' + semDados.length + '</strong> filme(s) sem dados — buscando no TMDb...', null, null);
+    for (var t = 0; t < semDados.length; t++) {
+      var sf = semDados[t];
+      setProgress(80 + Math.round((t / semDados.length) * 18), 'TMDb ' + (t + 1) + '/' + semDados.length + ': ' + sf.titulo);
+      try {
+        var tmdbData = await searchMovieBest(sf.titulo);
+
+        if (tmdbData) {
+          await supabasePatch('filmes', 'id=eq.' + sf.id, { tmdb_id: tmdbData.id, tmdb_data: tmdbData, updated_at: now });
+          addLog('ok', '🎬', '<strong>' + escHtml(sf.titulo) + '</strong> — poster e dados atualizados', null, null);
+          var sfIdx = _filmes.findIndex(function (x) { return x.id === sf.id; });
+          if (sfIdx > -1) { _filmes[sfIdx].tmdb_id = tmdbData.id; _filmes[sfIdx].tmdb_data = tmdbData; }
+          enriched++;
+        } else {
+          addLog('skip', '—', escHtml(sf.titulo) + ' — não encontrado no TMDb', null, null);
+        }
+      } catch (e) {
+        addLog('err', '✕', escHtml(sf.titulo) + ' — TMDb: ' + e.message, null, null);
+      }
+    }
   }
 
   // ── Finaliza ─────────────────────────────────────────────────────────────────

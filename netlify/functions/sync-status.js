@@ -3,18 +3,18 @@
 //
 // FASE 1 — Ingresso: descoberta + verificação de sessões
 //   → GET /v0/events/city/1/partnership/locomotivadigital — lista oficial do Ingresso
-//   → filmes novos inseridos SEM tmdb_data (enriquecidos na Fase 2)
+//   → filmes novos inseridos SEM tmdb_data (enriquecidos na Fase 3)
 //   → usa isComingSoon para definir status inicial (CARTAZ ou BREVE)
 //   → filmes já cadastrados em cartaz/breve: verifica sessões (cartaz ↔ catálogo)
 //
-// FASE 2 — TMDb: enriquecimento de dados
-//   → filmes em cartaz sem tmdb_data → busca por título → atualiza tmdb_id + tmdb_data
-//
-// FASE 3 — Apps: auto-classificação
+// FASE 2 — Apps: auto-classificação (varre TODOS os filmes com sessão na semana)
 //   → MovieReading, Conecta, MLOAD, Trio: lê da tabela Supabase `filmes_scaneados`
 //   → PingPlay: scrape pingplay.com.br (mantido)
 //   → GRETA: filmeb.com.br, distribuidora Paramount Pictures (ID 310086)
-//   → cruza com filmes pendentes → atualiza app/app_status/a11y
+//   → cruza com filmes em cartaz → atualiza app/app_status/a11y
+//
+// FASE 3 — TMDb: enriquecimento de dados (por último; não bloqueia os apps)
+//   → filmes em cartaz sem tmdb_data → busca por título → atualiza tmdb_id + tmdb_data
 
 const SUPA_URL    = process.env.SUPA_URL  || 'https://gpwmmvaetokgrzekepbk.supabase.co';
 const SUPA_KEY    = process.env.SUPA_KEY  || 'sb_publishable_lbKSyHwh8nNINEef-0Hi5Q_oPF5qt-P';
@@ -375,43 +375,9 @@ exports.handler = async function () {
 
   log.push(`[sync] Fase 1 concluída: ${created} novo(s), ${updated} sessão/status atualizado(s)`);
 
-  // ── FASE 2: TMDb — Enriquecimento de dados ────────────────────────────────────
-  log.push('[sync] FASE 2 — TMDb: buscando poster e dados dos filmes sem tmdb_data');
-
-  let todosFilmes = [];
-  try {
-    todosFilmes = await supaGet('filmes', 'select=id,titulo,status,tmdb_id,tmdb_data&limit=500');
-  } catch (e) {
-    log.push(`[sync] ERRO ao buscar filmes para enriquecimento: ${e.message}`);
-  }
-
-  const semDados = todosFilmes.filter(f =>
-    !f.tmdb_data && (f.status || '').toLowerCase() === 'cartaz'
-  );
-
-  log.push(`[sync] ${semDados.length} filme(s) em cartaz sem tmdb_data`);
-
-  for (const f of semDados) {
-    try {
-      const match = await searchMovieBest(f.titulo || '');
-
-      if (match) {
-        await supaPatch(f.id, { tmdb_id: match.id, tmdb_data: match, updated_at: now });
-        log.push(`TMDB  ${f.titulo} — poster e dados atualizados (TMDb: ${match.id})`);
-        enriched++;
-      } else {
-        log.push(`SKIP  ${f.titulo} — não encontrado no TMDb`);
-      }
-    } catch (e) {
-      log.push(`ERR   ${f.titulo} — TMDb: ${e.message}`);
-      errors++;
-    }
-  }
-
-  log.push(`[sync] Fase 2 concluída: ${enriched} filme(s) enriquecido(s)`);
-
-  // ── FASE 3: Auto-classificação por app ────────────────────────────────────────
-  log.push('[sync] FASE 3 — Auto-classificação: filmes_scaneados (MovieReading/Conecta/MLOAD/Trio) + PingPlay (scrape) + GRETA (Paramount/filmeb)');
+  // ── FASE 2: Auto-classificação por app ────────────────────────────────────────
+  // Varre TODOS os filmes com sessão na semana (status CARTAZ). Roda ANTES do TMDb — não depende dele.
+  log.push('[sync] FASE 2 — Auto-classificação: filmes_scaneados (MovieReading/Conecta/MLOAD/Trio) + PingPlay (scrape) + GRETA (Paramount/filmeb)');
 
   // 3a. Tabela filmes_scaneados — MovieReading, Conecta, MLOAD, Trio
   const scanNorm  = new Map(); // normT(titulo)     → app canônico
@@ -470,10 +436,10 @@ exports.handler = async function () {
   const pingplayFuzzy = new Set([...pingplayTitles].map(normFuzzy));
   const gretaFuzzy    = new Set([...gretaTitles].map(normFuzzy));
 
-  // 3c. Cruza com filmes pendentes. Prioridade: filmes_scaneados → PingPlay → GRETA.
+  // 3c. Cruza com TODOS os filmes em cartaz (com sessão na semana). Prioridade: filmes_scaneados → PingPlay → GRETA.
   try {
-    const pendentes = await supaGet('filmes', 'app_status=eq.pendente&select=id,titulo&limit=500');
-    for (const f of pendentes) {
+    const emCartaz = await supaGet('filmes', 'status=ilike.cartaz&select=id,titulo,app,app_status&limit=500');
+    for (const f of emCartaz) {
       const norm  = normT(f.titulo);
       const fuzzy = normFuzzy(f.titulo);
       let   app   = null;
@@ -487,6 +453,8 @@ exports.handler = async function () {
       if (!app && (gretaTitles.has(norm)    || (fuzzy.length >= 4 && gretaFuzzy.has(fuzzy))))    app = 'GRETA';
 
       if (!app) continue;
+      // Sem mudança real → pula regravação desnecessária
+      if (f.app === app && (f.app_status || '').toLowerCase() === 'confirmado') continue;
 
       try {
         await supaPatch(f.id, {
@@ -502,10 +470,45 @@ exports.handler = async function () {
         errors++;
       }
     }
-    log.push(`[sync] Fase 3 concluída: ${autoClassified} filme(s) auto-classificado(s)`);
+    log.push(`[sync] Fase 2 concluída: ${autoClassified} filme(s) auto-classificado(s)`);
   } catch (e) {
-    log.push(`[sync] ERRO Fase 3 match: ${e.message}`);
+    log.push(`[sync] ERRO Fase 2 match: ${e.message}`);
   }
+
+  // ── FASE 3: TMDb — Enriquecimento de dados (por último; não bloqueia os apps) ─
+  log.push('[sync] FASE 3 — TMDb: buscando poster e dados dos filmes sem tmdb_data');
+
+  let todosFilmes = [];
+  try {
+    todosFilmes = await supaGet('filmes', 'select=id,titulo,status,tmdb_id,tmdb_data&limit=500');
+  } catch (e) {
+    log.push(`[sync] ERRO ao buscar filmes para enriquecimento: ${e.message}`);
+  }
+
+  const semDados = todosFilmes.filter(f =>
+    !f.tmdb_data && (f.status || '').toLowerCase() === 'cartaz'
+  );
+
+  log.push(`[sync] ${semDados.length} filme(s) em cartaz sem tmdb_data`);
+
+  for (const f of semDados) {
+    try {
+      const match = await searchMovieBest(f.titulo || '');
+
+      if (match) {
+        await supaPatch(f.id, { tmdb_id: match.id, tmdb_data: match, updated_at: now });
+        log.push(`TMDB  ${f.titulo} — poster e dados atualizados (TMDb: ${match.id})`);
+        enriched++;
+      } else {
+        log.push(`SKIP  ${f.titulo} — não encontrado no TMDb`);
+      }
+    } catch (e) {
+      log.push(`ERR   ${f.titulo} — TMDb: ${e.message}`);
+      errors++;
+    }
+  }
+
+  log.push(`[sync] Fase 3 concluída: ${enriched} filme(s) enriquecido(s)`);
 
   const summary = `[sync] concluído: ${created} novo(s), ${updated} sessão/status, ${enriched} enriquecido(s), ${autoClassified} auto-class, ${errors} erro(s)`;
   log.push(summary);
