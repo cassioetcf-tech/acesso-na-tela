@@ -257,6 +257,13 @@
   .newsletter-input   { min-width: unset; width: 100%; }
   .newsletter-btn     { width: 100%; }
   .como-cartaz-row    { gap: 14px; }
+
+  /* ── HERO CADASTRO (mobile) ── */
+  .hero-cadastro      { width: 100%; box-sizing: border-box; padding: 18px 16px; }
+  .hero-cadastro-form { width: 100%; }
+  /* font-size ≥ 16px evita zoom automático no iOS Safari */
+  .cad-input  { font-size: 16px; padding: 11px 14px; }
+  .cad-btn    { width: 100%; font-size: 15px; padding: 12px; }
 }
 
 .newsletter-success {
