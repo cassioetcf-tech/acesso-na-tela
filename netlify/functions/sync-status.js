@@ -11,7 +11,9 @@
 //   → filmes em cartaz sem tmdb_data → busca por título → atualiza tmdb_id + tmdb_data
 //
 // FASE 3 — Apps: auto-classificação
-//   → scrape CineAcessivel (MovieReading) + GoMAV (MLOAD) + PingPlay
+//   → MovieReading, Conecta, MLOAD, Trio: lê da tabela Supabase `filmes_scaneados`
+//   → PingPlay: scrape pingplay.com.br (mantido)
+//   → GRETA: filmeb.com.br, distribuidora Paramount Pictures (ID 310086)
 //   → cruza com filmes pendentes → atualiza app/app_status/a11y
 
 const SUPA_URL    = process.env.SUPA_URL  || 'https://gpwmmvaetokgrzekepbk.supabase.co';
@@ -21,6 +23,9 @@ const TMDB_TOKEN  = process.env.TMDB_TOKEN || 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIx
 const INGRESSO_BASE = 'https://api-content.ingresso.com/v0';
 const INGRESSO_PART = 'locomotivadigital';
 const TMDB_BASE     = 'https://api.themoviedb.org/3'; // usado apenas na Fase 2 (enriquecimento)
+
+// GRETA — filmeb.com.br, distribuidora Paramount Pictures (fixo por enquanto)
+const FILMEB_PARAMOUNT_ID = '310086';
 
 const ING_HEADERS = {
   'Accept': 'application/json',
@@ -160,6 +165,67 @@ function titlesMatch(a, b) {
   if (na === nb) return true;
   const fa = normFuzzy(a), fb = normFuzzy(b);
   return fa.length >= 4 && fa === fb;
+}
+
+// ── Apps (Fase 3) ───────────────────────────────────────────────────────────
+// Normaliza o valor do campo `app` (tabela filmes_scaneados) para o nome
+// canônico usado em filmes.app (consistente com a página de aplicativos).
+function canonApp(a) {
+  const k = normT(a);
+  if (k === 'moviereading')   return 'MovieReading';
+  if (k === 'mload')          return 'MLOAD';
+  if (k === 'pingplay')       return 'PingPlay';
+  if (k === 'greta')          return 'GRETA';
+  if (k.startsWith('conecta')) return 'Conecta Acessibilidade';
+  if (k.startsWith('trio'))    return 'Trio Cinema';
+  return a; // fallback: mantém o valor original
+}
+
+// Remove prefixos entre parênteses dos títulos do filmeb
+// Ex.: "(13/05) (relançamento) Top Gun: Ases indomáveis" → "Top Gun: Ases indomáveis"
+function cleanGretaTitle(t) {
+  let s = (t || '').trim();
+  while (/^\s*\([^)]*\)\s*/.test(s)) s = s.replace(/^\s*\([^)]*\)\s*/, '');
+  return s.trim();
+}
+
+/**
+ * GRETA — raspa os filmes da distribuidora Paramount Pictures no filmeb.com.br.
+ * Janela de datas: ano anterior → ano seguinte (cobre filmes que entram/saem do cartaz).
+ * Títulos vêm em <h2><a href="/calendario-de-estreias/{slug}">Título</a></h2>.
+ * Retorna Set de títulos normalizados (normT).
+ */
+async function fetchGretaTitles(log) {
+  const set = new Set();
+  try {
+    const y   = new Date().getFullYear();
+    const min = `${y - 1}-01-01`;
+    const max = `${y + 1}-12-31`;
+    const base = `https://www.filmeb.com.br/calendario-de-estreias/distribuidora/${FILMEB_PARAMOUNT_ID}`;
+    const dateParams =
+      `field_estreia_data_estreia_value%5Bmin%5D%5Bdate%5D=${min}` +
+      `&field_estreia_data_estreia_value%5Bmax%5D%5Bdate%5D=${max}`;
+
+    for (let page = 0; page < 10; page++) {
+      const url = `${base}?tp=d&${dateParams}${page ? `&page=${page}` : ''}`;
+      const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      if (!r.ok) break;
+      const html = await r.text();
+      let found = 0;
+      for (const m of html.matchAll(/<h2[^>]*>\s*<a[^>]*href="([^"]*)"[^>]*>([^<]+)<\/a>/gi)) {
+        if (/\/distribuidora\//.test(m[1])) continue; // ignora o link da própria distribuidora
+        const clean = cleanGretaTitle(m[2]);
+        if (clean.length < 3) continue;
+        const n = normT(clean);
+        if (n && !set.has(n)) { set.add(n); found++; }
+      }
+      if (!found) break; // sem títulos novos → última página
+    }
+    log.push(`[sync] GRETA: ${set.size} títulos da Paramount (filmeb.com.br)`);
+  } catch (e) {
+    log.push(`[sync] ERRO GRETA scrape: ${e.message}`);
+  }
+  return set;
 }
 
 /**
@@ -345,82 +411,28 @@ exports.handler = async function () {
   log.push(`[sync] Fase 2 concluída: ${enriched} filme(s) enriquecido(s)`);
 
   // ── FASE 3: Auto-classificação por app ────────────────────────────────────────
-  log.push('[sync] FASE 3 — Auto-classificação: MovieReading (CineAcessivel) + MLOAD (GoMAV) + PingPlay');
+  log.push('[sync] FASE 3 — Auto-classificação: filmes_scaneados (MovieReading/Conecta/MLOAD/Trio) + PingPlay (scrape) + GRETA (Paramount/filmeb)');
 
-  // Busca todas as 3 fontes em paralelo
-  const [mrTitles, mloadTitles, pingplayTitles] = await Promise.all([
-    // MovieReading — cineacessivel.com.br (paginado)
-    (async () => {
-      const set = new Set();
-      try {
-        let page = 1;
-        while (page <= 40) {
-          const htmls = await Promise.all(
-            [page, page+1, page+2, page+3, page+4].map(p =>
-              fetch(`https://cineacessivel.com.br/em-cartaz?page=${p}`)
-                .then(r => r.ok ? r.text() : '').catch(() => '')
-            )
-          );
-          let found = 0;
-          for (const html of htmls) {
-            // Títulos em <h2> (não <h3>) — confirmado inspecionando o HTML do site
-            for (const m of html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)) {
-              set.add(normT(m[1])); found++;
-            }
-          }
-          if (!found) break;
-          page += 5;
-        }
-        log.push(`[sync] MovieReading: ${set.size} títulos do CineAcessivel`);
-      } catch (e) { log.push(`[sync] ERRO MovieReading scrape: ${e.message}`); }
-      return set;
-    })(),
+  // 3a. Tabela filmes_scaneados — MovieReading, Conecta, MLOAD, Trio
+  const scanNorm  = new Map(); // normT(titulo)     → app canônico
+  const scanFuzzy = new Map(); // normFuzzy(titulo) → app canônico
+  try {
+    const scaneados = await supaGet('filmes_scaneados', 'select=titulo,app&limit=5000');
+    for (const row of scaneados) {
+      if (!row || !row.titulo || !row.app) continue;
+      const app = canonApp(row.app);
+      const n   = normT(row.titulo);
+      const f   = normFuzzy(row.titulo);
+      if (n && !scanNorm.has(n)) scanNorm.set(n, app);
+      if (f.length >= 4 && !scanFuzzy.has(f)) scanFuzzy.set(f, app);
+    }
+    log.push(`[sync] filmes_scaneados: ${scaneados.length} registro(s) (${scanNorm.size} títulos únicos)`);
+  } catch (e) {
+    log.push(`[sync] ERRO filmes_scaneados: ${e.message}`);
+  }
 
-    // MLOAD — gomav.co (página única, URL muda a cada semestre)
-    (async () => {
-      const set = new Set();
-      try {
-        // 1. Tenta descobrir URL pela homepage
-        let mloadUrl = '';
-        try {
-          const homeR    = await fetch('https://gomav.co/');
-          const homeHtml = homeR.ok ? await homeR.text() : '';
-          const mloadM   = homeHtml.match(/filmes-(\d{4}-\d+)/);
-          if (mloadM) mloadUrl = `https://gomav.co/filmes-${mloadM[1]}/`;
-        } catch (e) { /* fallback abaixo */ }
-
-        // 2. Fallback: testa últimos 4 semestres em ordem decrescente
-        if (!mloadUrl) {
-          const now2 = new Date();
-          const candidates = [];
-          for (let y = now2.getFullYear(); y >= now2.getFullYear() - 1; y--) {
-            candidates.push(`https://gomav.co/filmes-${y}-2/`);
-            candidates.push(`https://gomav.co/filmes-${y}-1/`);
-          }
-          for (const candidate of candidates) {
-            try {
-              const probe = await fetch(candidate);
-              if (probe && probe.ok) { mloadUrl = candidate; break; }
-            } catch (e) {}
-          }
-        }
-
-        if (!mloadUrl) { log.push('[sync] MLOAD: URL não encontrada'); return set; }
-        log.push(`[sync] MLOAD URL: ${mloadUrl}`);
-        const r    = await fetch(mloadUrl);
-        const html = await r.text();
-        for (const m of html.matchAll(/<h4[^>]*>([^<]+)<\/h4>/g)) {
-          const t = m[1].trim();
-          // Filtra datas em qualquer formato: "09/04", "09 DE ABRIL DE 2026", "ABRIL 2026"
-          if (/^\d{2}[\/\s]/.test(t) && /\b(de|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez|\d{4})\b/i.test(t)) continue;
-          if (/^(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i.test(t)) continue;
-          if (t.length >= 3) set.add(normT(t));
-        }
-        log.push(`[sync] MLOAD: ${set.size} títulos do GoMAV`);
-      } catch (e) { log.push(`[sync] ERRO MLOAD scrape: ${e.message}`); }
-      return set;
-    })(),
-
+  // 3b. PingPlay (scrape mantido) + GRETA (filmeb) em paralelo
+  const [pingplayTitles, gretaTitles] = await Promise.all([
     // PingPlay — pingplay.com.br (lotes paralelos)
     (async () => {
       const set   = new Set();
@@ -450,23 +462,30 @@ exports.handler = async function () {
       } catch (e) { log.push(`[sync] ERRO PingPlay scrape: ${e.message}`); }
       return set;
     })(),
+
+    // GRETA — filmeb.com.br, distribuidora Paramount Pictures
+    fetchGretaTitles(log),
   ]);
 
-  // Cruza com filmes pendentes no Supabase
-  // Constrói Sets de nível 2 (sem artigo inicial) para fuzzy matching
-  const mrFuzzy       = new Set([...mrTitles].map(normFuzzy));
-  const mloadFuzzy    = new Set([...mloadTitles].map(normFuzzy));
   const pingplayFuzzy = new Set([...pingplayTitles].map(normFuzzy));
+  const gretaFuzzy    = new Set([...gretaTitles].map(normFuzzy));
 
+  // 3c. Cruza com filmes pendentes. Prioridade: filmes_scaneados → PingPlay → GRETA.
   try {
     const pendentes = await supaGet('filmes', 'app_status=eq.pendente&select=id,titulo&limit=500');
     for (const f of pendentes) {
       const norm  = normT(f.titulo);
       const fuzzy = normFuzzy(f.titulo);
       let   app   = null;
-      if      (mrTitles.has(norm)       || (fuzzy.length >= 4 && mrFuzzy.has(fuzzy)))       app = 'MovieReading';
-      else if (mloadTitles.has(norm)    || (fuzzy.length >= 4 && mloadFuzzy.has(fuzzy)))    app = 'MLOAD';
-      else if (pingplayTitles.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy))) app = 'PingPlay';
+
+      // 1. Tabela filmes_scaneados (MovieReading, Conecta, MLOAD, Trio)
+      if      (scanNorm.has(norm))                        app = scanNorm.get(norm);
+      else if (fuzzy.length >= 4 && scanFuzzy.has(fuzzy)) app = scanFuzzy.get(fuzzy);
+      // 2. PingPlay (scrape)
+      if (!app && (pingplayTitles.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy)))) app = 'PingPlay';
+      // 3. GRETA (Paramount/filmeb)
+      if (!app && (gretaTitles.has(norm)    || (fuzzy.length >= 4 && gretaFuzzy.has(fuzzy))))    app = 'GRETA';
+
       if (!app) continue;
 
       try {

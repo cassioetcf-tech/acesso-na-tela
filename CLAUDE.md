@@ -157,6 +157,11 @@ updated_at   timestamp
 newsletter_subscribers  → id uuid, nome, email (unique), celular, prefs jsonb, subscribed_at
 comentarios             → id uuid, filme_url_key, autor, texto, cinema, aprovado bool, created_at
 
+filmes_scaneados        → titulo text, app text  ← catálogo escaneado pela aplicação
+                          paralela (Opção A). Valores de `app`: MovieReading | Conecta
+                          | MLOAD | Trio. Usada na FASE 3 do sync (§7). NÃO contém
+                          PingPlay nem GRETA (essas fontes vêm de scraping próprio).
+
 film_app_suggestions    → id uuid PK
                           film_id uuid FK filmes(id)
                           app_slug text          -- 'moviereading' | 'pingplay' | 'mload' | 'greta' | 'trio'
@@ -208,10 +213,16 @@ Segue a lógica de produto pretendida, nesta ordem:
    sessão → rebaixado para CATALOGO (sai da home).
 2. **FASE 2 — TMDb:** enriquece quem está sem `tmdb_data` (pôster, sinopse,
    gênero, data). Não descarta filmes não encontrados.
-3. **FASE 3 — Apps:** cruza filmes `pendente` com as fontes dos fornecedores
-   (MovieReading/CineAcessível, MLOAD/GoMAV, PingPlay) e promove para
-   `app_status: confirmado`. Observação: FASE 3 **não** auto-classifica GRETA,
-   Trio Cinema nem Conecta — esses vínculos vêm da aplicação paralela.
+3. **FASE 3 — Apps:** cruza filmes `pendente` com as fontes e promove para
+   `app_status: confirmado`. Fontes (prioridade nessa ordem):
+   - **Tabela `filmes_scaneados`** (Supabase): MovieReading, Conecta, MLOAD, Trio.
+     Lê colunas `titulo` + `app`; `canonApp()` normaliza o valor para o nome
+     canônico de `filmes.app`. Tabela populada pela aplicação paralela (Opção A).
+   - **PingPlay**: scraping `pingplay.com.br/catalogo.php` (mantido).
+   - **GRETA**: scraping `filmeb.com.br` — distribuidora Paramount Pictures
+     (ID `310086`, constante `FILMEB_PARAMOUNT_ID`, fixo por enquanto). Janela
+     de datas ano-1 → ano+1. Filmes da Paramount no filmeb = filmes no GRETA.
+   AD/LSE/Libras sempre marcados como `true` ao classificar.
 
 > A lógica de produto: Ingresso (passo 1, dá o `url_key`) → filtra por sessões na
 > semana (passo 2) → TMDb (passo 3) → checa apps (passo 4). **Só filmes com algum
