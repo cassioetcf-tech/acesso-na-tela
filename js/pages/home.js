@@ -183,13 +183,10 @@ async function loadCatalog() {
       return { filme: filme, tmdb: tmdb };
     }));
 
-    // Filtra: somente filmes com estreia até o domingo desta semana
-    enriched = enriched.filter(_isThisWeek);
-
-    if (!enriched.length) {
-      grid.innerHTML = '<p style="color:var(--ink3);font-size:14px;padding:24px 0;">Nenhum filme com acessibilidade confirmada em cartaz esta semana.</p>';
-      return;
-    }
+    // Mostra TODOS os filmes em cartaz com app confirmado — INCLUSIVE os sem dados do TMDb.
+    // O status CARTAZ já é definido pelo sync (Ingresso): só fica em cartaz quem tem sessão
+    // nesta semana. Por isso NÃO filtramos mais por data de lançamento do TMDb — isso escondia
+    // filmes encontrados nos apps que ainda não foram enriquecidos no TMDb.
 
     // Ordena: acessíveis primeiro, depois pendentes, depois sem acessibilidade
     // Dentro de cada grupo: data de lançamento mais recente primeiro

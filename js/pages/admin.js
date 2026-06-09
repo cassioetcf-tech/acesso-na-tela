@@ -676,6 +676,12 @@ async function runSync() {
   var now        = new Date().toISOString();
   var BATCH      = 8;
 
+  // Métricas para o resumo final (tabela no log)
+  var mIngresso  = 0; // filmes em cartaz no Ingresso.com
+  var mSessoes   = 0; // filmes com sessão nesta semana (status CARTAZ)
+  var mApps      = 0; // filmes encontrados nos apps
+  var mTmdb      = 0; // filmes encontrados no TMDb
+
   // ── FASE 1: Ingresso — Descoberta + Verificação de sessões ──────────────────
   addLog('ok', '🎟️', '<strong>Fase 1</strong> — Ingresso.com: descoberta + sessões', null, null);
 
@@ -686,6 +692,7 @@ async function runSync() {
     var lista = Array.isArray(data) ? data : [];
     if (!lista.length) throw new Error('Nenhum filme retornado pelo Ingresso.');
     addLog('ok', '🎬', '<strong>' + lista.length + '</strong> filmes encontrados no Ingresso.com', null, null);
+    mIngresso = lista.filter(function (f) { return !f.isComingSoon; }).length;
 
     // 1b. Filtra os que ainda não estão na base — sem verificação extra (fonte JÁ é o Ingresso)
     var keysExistentes = new Set(_filmes.map(function (f) { return f.url_key; }).filter(Boolean));
@@ -831,6 +838,7 @@ async function runSync() {
     var emCartaz = _filmes.filter(function (f) {
       return (f.status || '').toLowerCase() === 'cartaz';
     });
+    mSessoes = emCartaz.length; // filmes com sessão nesta semana
     addLog('ok', '🎬', '<strong>' + emCartaz.length + '</strong> filme(s) em cartaz para verificar', null, null);
     var autoCount = 0;
 
@@ -869,6 +877,8 @@ async function runSync() {
         app    = 'GRETA';
         appDet = null;
       }
+
+      if (app) mApps++; // encontrado em alguma fonte de app
 
       // Sem match em nenhuma fonte
       if (!app) {
@@ -993,6 +1003,21 @@ async function runSync() {
       }
     }
   }
+
+  // ── Resumo final (tabela) ────────────────────────────────────────────────────
+  mTmdb = _filmes.filter(function (f) {
+    return (f.status || '').toLowerCase() === 'cartaz' && f.tmdb_data;
+  }).length;
+
+  var resumoHtml =
+    '<strong>Resumo da sincronização</strong>' +
+    '<table style="border-collapse:collapse;font-size:12px;margin-top:6px;line-height:1.6">' +
+      '<tr><td style="padding:1px 14px 1px 0">🎟️ Em cartaz no Ingresso.com</td><td style="font-weight:700;text-align:right">' + mIngresso + '</td></tr>' +
+      '<tr><td style="padding:1px 14px 1px 0">📅 Com sessões nesta semana</td><td style="font-weight:700;text-align:right">' + mSessoes + '</td></tr>' +
+      '<tr><td style="padding:1px 14px 1px 0">📱 Encontrados nos apps</td><td style="font-weight:700;text-align:right">' + mApps + '</td></tr>' +
+      '<tr><td style="padding:1px 14px 1px 0">🎬 Encontrados no TMDb</td><td style="font-weight:700;text-align:right">' + mTmdb + '</td></tr>' +
+    '</table>';
+  addLog('ok', '📊', resumoHtml, null, null);
 
   // ── Finaliza ─────────────────────────────────────────────────────────────────
   setProgress(100, 'Concluído.');

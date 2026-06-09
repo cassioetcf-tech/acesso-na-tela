@@ -266,6 +266,11 @@ exports.handler = async function () {
   let   enriched       = 0;
   let   autoClassified = 0;
   let   errors         = 0;
+  // Métricas para o resumo final
+  let   mIngresso      = 0; // filmes em cartaz no Ingresso.com
+  let   mSessoes       = 0; // filmes com sessão nesta semana (status CARTAZ)
+  let   mApps          = 0; // filmes encontrados nos apps
+  let   mTmdb          = 0; // filmes encontrados no TMDb
 
   // ── FASE 1: Ingresso — Descoberta + Verificação de sessões ───────────────────
   log.push('[sync] FASE 1 — Ingresso: descoberta + verificação de sessões');
@@ -274,6 +279,7 @@ exports.handler = async function () {
   let ingressoFilms = [];
   try {
     ingressoFilms = await fetchIngressoMovies();
+    mIngresso = ingressoFilms.filter(f => !f.isComingSoon).length;
     log.push(`[sync] Ingresso retornou ${ingressoFilms.length} filmes`);
   } catch (e) {
     log.push(`[sync] ERRO ao buscar Ingresso: ${e.message} — pula descoberta`);
@@ -439,6 +445,7 @@ exports.handler = async function () {
   // 3c. Cruza com TODOS os filmes em cartaz (com sessão na semana). Prioridade: filmes_scaneados → PingPlay → GRETA.
   try {
     const emCartaz = await supaGet('filmes', 'status=ilike.cartaz&select=id,titulo,app,app_status&limit=500');
+    mSessoes = emCartaz.length; // filmes com sessão nesta semana
     for (const f of emCartaz) {
       const norm  = normT(f.titulo);
       const fuzzy = normFuzzy(f.titulo);
@@ -453,6 +460,7 @@ exports.handler = async function () {
       if (!app && (gretaTitles.has(norm)    || (fuzzy.length >= 4 && gretaFuzzy.has(fuzzy))))    app = 'GRETA';
 
       if (!app) continue;
+      mApps++; // encontrado em alguma fonte de app
       // Sem mudança real → pula regravação desnecessária
       if (f.app === app && (f.app_status || '').toLowerCase() === 'confirmado') continue;
 
@@ -510,12 +518,22 @@ exports.handler = async function () {
 
   log.push(`[sync] Fase 3 concluída: ${enriched} filme(s) enriquecido(s)`);
 
+  // filmes em cartaz com dados do TMDb (cacheados antes + enriquecidos agora)
+  mTmdb = todosFilmes.filter(f => f.tmdb_data && (f.status || '').toLowerCase() === 'cartaz').length + enriched;
+
+  log.push('[sync] RESUMO ───────────────────────────────');
+  log.push(`[sync]   Em cartaz no Ingresso.com .. ${mIngresso}`);
+  log.push(`[sync]   Com sessões nesta semana ... ${mSessoes}`);
+  log.push(`[sync]   Encontrados nos apps ....... ${mApps}`);
+  log.push(`[sync]   Encontrados no TMDb ........ ${mTmdb}`);
+
   const summary = `[sync] concluído: ${created} novo(s), ${updated} sessão/status, ${enriched} enriquecido(s), ${autoClassified} auto-class, ${errors} erro(s)`;
   log.push(summary);
   console.log(log.join('\n'));
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ created, updated, enriched, autoClassified, errors, log }),
+    body: JSON.stringify({ created, updated, enriched, autoClassified, errors,
+                           metrics: { ingresso: mIngresso, sessoes: mSessoes, apps: mApps, tmdb: mTmdb }, log }),
   };
 };
