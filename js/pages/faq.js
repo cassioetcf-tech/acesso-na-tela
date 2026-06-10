@@ -1,6 +1,20 @@
 // ── FAQ PAGE ──────────────────────────────────────────────────────────────────
-// Accordion do FAQ.
-// Depende de: nada
+// Accordion do FAQ + carregamento sob demanda do vídeo acessível (YouTube).
+// O vídeo só carrega quando a pergunta é aberta (lazy) e só aparece se o item
+// tiver um ID de vídeo definido (data-yt). Depende de: nada.
+
+function _loadFaqVideo(answer) {
+  if (!answer) return;
+  var box = answer.querySelector('.faq-video');
+  if (!box) return;
+  var yt = (box.getAttribute('data-yt') || '').trim();
+  if (!yt) return; // sem vídeo definido → mantém oculto
+  var iframe = box.querySelector('iframe');
+  if (iframe && !iframe.src) {
+    iframe.src = 'https://www.youtube.com/embed/' + yt + '?rel=0';
+  }
+  box.hidden = false;
+}
 
 document.addEventListener('DOMContentLoaded', function () {
   renderHeader('faq');
@@ -23,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!expanded && answer) {
         btn.setAttribute('aria-expanded', 'true');
         answer.hidden = false;
+        _loadFaqVideo(answer);
       }
     });
   });
