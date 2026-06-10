@@ -562,28 +562,49 @@ async function submitComentario() {
   if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
   _commentFeedback('', false);
 
+  // Verifica se o e-mail está cadastrado (RPC; fallback p/ leitura direta)
+  var registrado = false, checou = true;
   try {
-    // Verifica se e-mail está cadastrado
-    var cadastros = await supabaseGet('newsletter_subscribers', 'email=eq.' + encodeURIComponent(email) + '&limit=1');
-    if (!cadastros || !cadastros.length) {
-      _commentFeedback('E-mail não encontrado. Cadastre-se primeiro no portal para enviar relatos.', true);
-      if (btn) { btn.disabled = false; btn.textContent = 'Enviar relato'; }
-      return;
+    registrado = await supabaseRpc('email_cadastrado', { p_email: email });
+  } catch (e1) {
+    try {
+      var cad = await supabaseGet('newsletter_subscribers', 'email=eq.' + encodeURIComponent(email.toLowerCase()) + '&limit=1');
+      registrado = !!(cad && cad.length);
+    } catch (e2) {
+      checou = false; // erro técnico → não bloqueia o envio
+      console.warn('Verificação de cadastro falhou:', e2.message);
     }
-  } catch (err) {
-    // Se falhar a verificação, permite envio (não bloqueia por erro técnico)
-    console.warn('Verificação de cadastro falhou, prosseguindo:', err.message);
+  }
+  if (checou && !registrado) {
+    _commentFeedback('E-mail não encontrado. Cadastre-se primeiro no portal para enviar relatos.', true);
+    if (btn) { btn.disabled = false; btn.textContent = 'Enviar relato'; }
+    return;
   }
 
   if (btn) btn.textContent = 'Enviando...';
 
+  // Atualiza o nome no cadastro e captura o vínculo (subscriber_id)
+  var subId = null;
   try {
-    await supabasePost('comentarios', {
+    subId = await supabaseRpc('upsert_subscriber', { p_email: email, p_nome: autor || null, p_origem: 'comentario' });
+  } catch (e) { /* RPC indisponível — segue sem vínculo */ }
+
+  try {
+    var _base = {
       filme_url_key: urlKey,
       autor:         autor || 'Anônimo',
       texto:         texto,
       created_at:    new Date().toISOString(),
-    }, 'return=minimal');
+    };
+    var _full = Object.assign({ email: email.toLowerCase() }, _base);
+    if (subId) _full.subscriber_id = subId;
+    try {
+      await supabasePost('comentarios', _full, 'return=minimal');
+    } catch (eIns) {
+      // colunas email/subscriber_id ainda não existem → fallback mínimo
+      console.warn('insert com vínculo falhou, fallback:', eIns.message);
+      await supabasePost('comentarios', _base, 'return=minimal');
+    }
     var nomeEl  = document.getElementById('comment-nome');
     var emailEl = document.getElementById('comment-email');
     var textoEl = document.getElementById('comment-texto');

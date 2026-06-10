@@ -60,6 +60,12 @@
   font-family: inherit; margin-top: 2px;
 }
 .cad-btn:hover { background: #333; }
+.cad-consent { display: flex; gap: 14px; flex-wrap: wrap; margin: 2px 0; }
+.cad-consent label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: #FFE5B0; cursor: pointer;
+}
+.cad-consent input[type="checkbox"] { width: 14px; height: 14px; accent-color: #FFD600; cursor: pointer; }
 .cad-feedback      { font-size: 12px; margin: 6px 0 0; min-height: 18px; border-radius: var(--r-sm); padding: 0; }
 .cad-feedback.cad-ok  { color: #FFE5B0; }
 .cad-feedback.cad-err { background: rgba(255,255,255,0.15); color: #fff; padding: 7px 10px; }

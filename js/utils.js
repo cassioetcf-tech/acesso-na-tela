@@ -17,6 +17,15 @@ function formatDate(iso) {
   return `${d}/${m}/${y}`;
 }
 
+// Normaliza celular brasileiro para E.164 (+55DDDNÚMERO). Retorna '' se vazio.
+function normalizePhoneBR(raw) {
+  var d = String(raw || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.slice(0, 2) === '55' && (d.length === 12 || d.length === 13)) return '+' + d;
+  if (d.length === 10 || d.length === 11) return '+55' + d;
+  return '+55' + d;
+}
+
 function debounce(fn, ms) {
   let timer;
   return function (...args) {

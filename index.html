@@ -46,6 +46,10 @@
               <input type="email" id="cad-email" name="email" class="cad-input" placeholder="Seu e-mail" required autocomplete="email">
               <label for="cad-cel" class="sr-only">Celular</label>
               <input type="tel" id="cad-cel" name="celular" class="cad-input" placeholder="Seu celular" autocomplete="tel">
+              <div class="cad-consent" role="group" aria-label="Canais de contato autorizados">
+                <label><input type="checkbox" id="cad-consent-email" checked> E-mail</label>
+                <label><input type="checkbox" id="cad-consent-wa"> WhatsApp</label>
+              </div>
               <button type="submit" class="cad-btn">Cadastrar</button>
               <p class="cad-feedback" id="cad-feedback" aria-live="polite"></p>
             </form>
@@ -103,6 +107,15 @@
                   <label class="pref-chip"><input type="checkbox" name="pref" value="lancamentos" aria-label="Próximos lançamentos"> Próximos lançamentos</label>
                 </div>
               </fieldset>
+              <fieldset style="border:none;padding:0;margin-top:14px;">
+                <legend style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.75);margin-bottom:10px;display:block;">
+                  Aceito ser avisado por:
+                </legend>
+                <div class="newsletter-prefs" role="group" aria-label="Canais de contato autorizados">
+                  <label class="pref-chip"><input type="checkbox" id="nl-consent-email" checked aria-label="Aceito receber por e-mail"> E-mail</label>
+                  <label class="pref-chip"><input type="checkbox" id="nl-consent-wa" aria-label="Aceito receber por WhatsApp"> WhatsApp</label>
+                </div>
+              </fieldset>
               <div class="newsletter-row" style="justify-content:center;">
                 <button class="newsletter-btn" type="submit">Quero receber</button>
               </div>
@@ -148,6 +161,6 @@
   <script src="/js/components/header.js"></script>
   <script src="/js/components/footer.js"></script>
   <script src="/js/components/film-card.js"></script>
-  <script src="/js/pages/home.js?v=20260517"></script>
+  <script src="/js/pages/home.js?v=20260518"></script>
 </body>
 </html>

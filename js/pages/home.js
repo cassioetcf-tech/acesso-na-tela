@@ -2,6 +2,35 @@
 // Depende de: js/api/supabase.js, js/api/tmdb.js, js/components/film-card.js,
 //             js/utils.js (escHtml)
 
+// ── Cadastro de usuário (newsletter + hero) ──────────────────────────────────
+// Grava via RPC upsert_subscriber (merge: acumula nome/celular, normaliza, não
+// expõe a tabela). Se a RPC ainda não existir, faz fallback para insert direto.
+async function _saveSubscriber(data) {
+  var params = {
+    p_email:           (data.email || '').trim().toLowerCase(),
+    p_nome:            data.nome || null,
+    p_celular:         data.celular ? normalizePhoneBR(data.celular) : null,
+    p_prefs:           data.prefs || null,
+    p_aceita_email:    (typeof data.aceita_email === 'boolean') ? data.aceita_email : null,
+    p_aceita_whatsapp: (typeof data.aceita_whatsapp === 'boolean') ? data.aceita_whatsapp : null,
+    p_origem:          data.origem || null,
+  };
+  try {
+    await supabaseRpc('upsert_subscriber', params);
+    return true;
+  } catch (e) {
+    console.warn('upsert_subscriber indisponível, fallback insert:', e.message);
+    var row = { email: params.p_email, subscribed_at: new Date().toISOString() };
+    if (data.nome)        row.nome    = data.nome;
+    if (params.p_celular) row.celular = params.p_celular;
+    if (data.prefs)       row.prefs   = data.prefs;
+    try {
+      await supabasePost('newsletter_subscribers', row, 'resolution=ignore-duplicates,return=minimal');
+      return true;
+    } catch (e2) { console.warn('Fallback insert falhou:', e2.message); return false; }
+  }
+}
+
 // ── Formulário hero "Fique por dentro" ───────────────────────────────────────
 async function heroFormSubmit(e) {
   e.preventDefault();
@@ -10,6 +39,9 @@ async function heroFormSubmit(e) {
   var btn      = formEl.querySelector('button[type=submit]');
   var data     = new FormData(formEl);
   var email    = (data.get('email') || '').trim();
+  var celular  = (data.get('celular') || '').trim();
+  var aEmail   = ((document.getElementById('cad-consent-email') || {}).checked !== false);
+  var aWa      = !!((document.getElementById('cad-consent-wa') || {}).checked);
 
   if (!email) {
     _cadMsg(feedback, 'Informe seu e-mail.', true);
@@ -22,14 +54,12 @@ async function heroFormSubmit(e) {
 
   var saved = false;
 
-  // 1. Supabase
+  // 1. Supabase (cadastro de usuário via RPC, com merge)
   try {
-    await supabasePost(
-      'newsletter_subscribers',
-      { email: email, subscribed_at: new Date().toISOString() },
-      'resolution=ignore-duplicates,return=minimal'
-    );
-    saved = true;
+    saved = await _saveSubscriber({
+      email: email, celular: celular,
+      aceita_email: aEmail, aceita_whatsapp: aWa, origem: 'hero',
+    });
   } catch (e) { console.warn('Supabase hero form:', e.message); }
 
   // 2. Netlify Forms (gera notificação de e-mail no dashboard)
@@ -305,15 +335,18 @@ async function submitNewsletter(event) {
   var prefs = Array.from(form.querySelectorAll('input[name="pref"]:checked'))
                    .map(function (el) { return el.value; });
 
+  var aEmail = ((document.getElementById('nl-consent-email') || {}).checked !== false);
+  var aWa    = !!((document.getElementById('nl-consent-wa') || {}).checked);
+
   var btn = form.querySelector('button[type="submit"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
 
   try {
-    await supabasePost(
-      'newsletter_subscribers',
-      { nome: nome.trim(), email: email.trim(), celular: celular || null, prefs: prefs, subscribed_at: new Date().toISOString() },
-      'resolution=ignore-duplicates,return=minimal'
-    );
+    var ok = await _saveSubscriber({
+      nome: nome.trim(), email: email.trim(), celular: celular,
+      prefs: prefs, aceita_email: aEmail, aceita_whatsapp: aWa, origem: 'newsletter',
+    });
+    if (!ok) throw new Error('falha ao salvar');
     var wrap    = document.getElementById('nl-form-wrap');
     var success = document.getElementById('nl-success');
     if (wrap)    wrap.style.display = 'none';
