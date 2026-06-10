@@ -17,6 +17,8 @@ var ADMIN_SENHA = 'acesso2025'; // senha local de acesso ao painel
 function normT(t) {
   return (t || '').toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\([^)]*\)/g, ' ')   // remove "(2026)", "(dublado)" etc.
+    .replace(/\[[^\]]*\]/g, ' ')  // remove "[...]"
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ').trim();
 }
@@ -24,6 +26,14 @@ function normT(t) {
 function normFuzzy(t) {
   // Remove artigo/numeral inicial (O, A, Os, As, Um, Uma, The, An)
   return normT(t).replace(/^(o|a|os|as|um|uma|the|an)\s+/, '');
+}
+
+// Extrai o slug do filme de uma URL do Ingresso, ignorando query string.
+// Ex.: https://www.ingresso.com/filme/o-velho-fusca?x=1 → "o-velho-fusca"
+function _ingressoSlug(url) {
+  if (!url) return '';
+  var m = String(url).match(/\/filme\/([^/?#]+)/);
+  return m ? m[1].toLowerCase() : '';
 }
 
 function titlesMatch(a, b) {
@@ -816,12 +826,13 @@ async function runSync() {
     var gretaSet      = new Set((a11yData.greta    || []).map(normT));
     var gretaFuzzy    = new Set((a11yData.greta    || []).map(normFuzzy));
 
-    // PingPlay: mapa por ingresso_url (match exato) + título normalizado (fallback) — INALTERADO
-    var ppDetails = a11yData.pingplay_details || [];
-    var ppByUrl   = {};
-    var ppByNorm  = {};
+    // PingPlay: mapa por SLUG do ingressoUrl (match exato, à prova de idioma) + título (fallback)
+    var ppDetails  = a11yData.pingplay_details || [];
+    var ppByUrlKey = {};
+    var ppByNorm   = {};
     ppDetails.forEach(function (d) {
-      if (d.ingressoUrl) ppByUrl[d.ingressoUrl] = d;
+      var slug = _ingressoSlug(d.ingressoUrl);
+      if (slug) ppByUrlKey[slug] = d;
       ppByNorm[normT(d.name)]     = d;
       ppByNorm[normFuzzy(d.name)] = d;
     });
@@ -850,11 +861,12 @@ async function runSync() {
       var appDet = null;
 
       // Prioridade de match:
-      //   1. PingPlay por ingresso_url — match EXATO por URL (definitivo, INALTERADO)
-      //   2. tabela filmes_scaneados   — MovieReading, Conecta, MLOAD, Trio
-      //   3. PingPlay por título        — fallback (sem ingresso_url mapeado)
-      //   4. GRETA                      — filmes da Paramount (filmeb)
-      var ppUrlDet   = pf.ingresso_url ? ppByUrl[pf.ingresso_url] : null;
+      //   1. PingPlay por SLUG do ingressoUrl — match EXATO por URL (definitivo, à prova de idioma)
+      //   2. tabela filmes_scaneados          — MovieReading, Conecta, MLOAD, Trio
+      //   3. PingPlay por título               — fallback (sem URL mapeada)
+      //   4. GRETA                             — filmes da Paramount (filmeb)
+      var pfSlug     = pf.url_key || _ingressoSlug(pf.ingresso_url);
+      var ppUrlDet   = pfSlug ? ppByUrlKey[pfSlug] : null;
       var ppTitleDet = ppByNorm[norm] || ppByNorm[fuzzy] || null;
       var scanApp    = scanNorm[norm] || (fuzzy.length >= 4 ? scanFuzzy[fuzzy] : null) || null;
       var inPPTitle  = pingplaySet.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy));
@@ -926,12 +938,15 @@ async function runSync() {
     // ── Fase 3b: re-valida filmes MovieReading com ingresso_url mapeado ─────────
     // Caso específico: filme salvo como MovieReading mas que possui ingresso_url
     // correspondente ao PingPlay API → corrige para PingPlay (URL match é definitivo).
-    var mrComUrl = _filmes.filter(function (f) { return f.app === 'MovieReading' && f.ingresso_url && ppByUrl[f.ingresso_url]; });
+    var mrComUrl = _filmes.filter(function (f) {
+      var s = f.url_key || _ingressoSlug(f.ingresso_url);
+      return f.app === 'MovieReading' && s && ppByUrlKey[s];
+    });
     if (mrComUrl.length) {
       addLog('ok', '🔍', '<strong>' + mrComUrl.length + '</strong> filme(s) MovieReading com URL PingPlay — corrigindo...', null, null);
       for (var rv = 0; rv < mrComUrl.length; rv++) {
         var rf   = mrComUrl[rv];
-        var rDet = ppByUrl[rf.ingresso_url];
+        var rDet = ppByUrlKey[rf.url_key || _ingressoSlug(rf.ingresso_url)];
         var rA11y = { ad: !!rDet.ad, lse: !!(rDet.srt || rDet.legenda), libras: !!rDet.libras };
         try {
           await supabasePatch('filmes', 'id=eq.' + rf.id, { app: 'PingPlay', app_status: 'confirmado', a11y: rA11y, updated_at: now });

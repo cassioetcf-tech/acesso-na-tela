@@ -151,12 +151,22 @@ async function checkHasSessions(eventId) {
 function normT(t) {
   return (t || '').toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\([^)]*\)/g, ' ')   // remove "(2026)", "(dublado)" etc.
+    .replace(/\[[^\]]*\]/g, ' ')  // remove "[...]"
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ').trim();
 }
 
 function normFuzzy(t) {
   return normT(t).replace(/^(o|a|os|as|um|uma|the|an)\s+/, '');
+}
+
+// Extrai o slug do filme de uma URL do Ingresso, ignorando query string.
+// Ex.: https://www.ingresso.com/filme/o-velho-fusca?x=1 → "o-velho-fusca"
+function ingressoSlug(url) {
+  if (!url) return '';
+  const m = String(url).match(/\/filme\/([^/?#]+)/);
+  return m ? m[1].toLowerCase() : '';
 }
 
 function titlesMatch(a, b) {
@@ -230,31 +240,34 @@ async function fetchGretaTitles(log) {
 
 /**
  * PingPlay — catálogo completo via API oficial locomotiva.
- * O endpoint de lista traz todos os filmes (name + ingressoUrl). Antes usávamos
- * scraping HTML; a API é mais confiável e não pagina. Retorna Set de títulos normT.
+ * O endpoint de lista traz todos os filmes (name + ingressoUrl). Retorna títulos
+ * normalizados (titles) E os slugs do Ingresso (slugs) para match exato por URL —
+ * à prova de tradução (ex.: "O Incrível Circo Digital" ↔ "The Amazing Digital Circus").
  */
-async function fetchPingPlayTitles(log) {
-  const set = new Set();
+async function fetchPingPlayData(log) {
+  const titles = new Set();
+  const slugs  = new Set();
   try {
     const r = await fetch(
       'https://etc.prod.api.locomotiva.dev.br/api/v1/catalog?all=true&limit=500',
       { headers: { 'Accept': 'application/json' } }
     );
-    if (!r.ok) { log.push(`[sync] PingPlay API HTTP ${r.status}`); return set; }
+    if (!r.ok) { log.push(`[sync] PingPlay API HTTP ${r.status}`); return { titles, slugs }; }
     const j = await r.json();
     const films = (j.content && Array.isArray(j.content.data) ? j.content.data : null)
       || (Array.isArray(j.data) ? j.data : null)
       || (Array.isArray(j) ? j : []);
     for (const f of films) {
-      if (!f || !f.name) continue;
-      const n = normT(f.name);
-      if (n) set.add(n);
+      if (!f) continue;
+      if (f.name) { const n = normT(f.name); if (n) titles.add(n); }
+      const slug = ingressoSlug(f.ingressoUrl);
+      if (slug) slugs.add(slug);
     }
-    log.push(`[sync] PingPlay: ${set.size} títulos da API (de ${films.length} no catálogo)`);
+    log.push(`[sync] PingPlay: ${titles.size} títulos · ${slugs.size} URLs (de ${films.length} no catálogo)`);
   } catch (e) {
     log.push(`[sync] ERRO PingPlay API: ${e.message}`);
   }
-  return set;
+  return { titles, slugs };
 }
 
 /**
@@ -433,29 +446,34 @@ exports.handler = async function () {
   }
 
   // 3b. PingPlay (API oficial) + GRETA (filmeb) em paralelo
-  const [pingplayTitles, gretaTitles] = await Promise.all([
-    fetchPingPlayTitles(log),   // catálogo completo via API locomotiva
+  const [pingplayData, gretaTitles] = await Promise.all([
+    fetchPingPlayData(log),     // catálogo completo via API locomotiva (títulos + slugs)
     fetchGretaTitles(log),      // filmeb.com.br, distribuidora Paramount Pictures
   ]);
 
-  const pingplayFuzzy = new Set([...pingplayTitles].map(normFuzzy));
-  const gretaFuzzy    = new Set([...gretaTitles].map(normFuzzy));
+  const pingplayTitles = pingplayData.titles;
+  const pingplaySlugs  = pingplayData.slugs;
+  const pingplayFuzzy  = new Set([...pingplayTitles].map(normFuzzy));
+  const gretaFuzzy     = new Set([...gretaTitles].map(normFuzzy));
 
   // 3c. Cruza com TODOS os filmes em cartaz (com sessão na semana). Prioridade: filmes_scaneados → PingPlay → GRETA.
   try {
-    const emCartaz = await supaGet('filmes', 'status=ilike.cartaz&select=id,titulo,app,app_status&limit=500');
+    const emCartaz = await supaGet('filmes', 'status=ilike.cartaz&select=id,titulo,url_key,ingresso_url,app,app_status&limit=500');
     mSessoes = emCartaz.length; // filmes com sessão nesta semana
     for (const f of emCartaz) {
       const norm  = normT(f.titulo);
       const fuzzy = normFuzzy(f.titulo);
+      const slug  = f.url_key || ingressoSlug(f.ingresso_url);
       let   app   = null;
 
-      // 1. Tabela filmes_scaneados (MovieReading, Conecta, MLOAD, Trio)
-      if      (scanNorm.has(norm))                        app = scanNorm.get(norm);
-      else if (fuzzy.length >= 4 && scanFuzzy.has(fuzzy)) app = scanFuzzy.get(fuzzy);
-      // 2. PingPlay (scrape)
+      // 1. PingPlay por SLUG do Ingresso (match exato por URL, à prova de tradução)
+      if (slug && pingplaySlugs.has(slug)) app = 'PingPlay';
+      // 2. Tabela filmes_scaneados (MovieReading, Conecta, MLOAD, Trio)
+      if (!app && scanNorm.has(norm))                        app = scanNorm.get(norm);
+      else if (!app && fuzzy.length >= 4 && scanFuzzy.has(fuzzy)) app = scanFuzzy.get(fuzzy);
+      // 3. PingPlay por título (fallback)
       if (!app && (pingplayTitles.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy)))) app = 'PingPlay';
-      // 3. GRETA (Paramount/filmeb)
+      // 4. GRETA (Paramount/filmeb)
       if (!app && (gretaTitles.has(norm)    || (fuzzy.length >= 4 && gretaFuzzy.has(fuzzy))))    app = 'GRETA';
 
       if (!app) continue;
