@@ -159,10 +159,26 @@ updated_at   timestamp
   reaparecerem em volume, o sintoma é cards da home com `href="#"` (sem
   `url_key`). O `sync-status.js` deste repo NÃO cria nem apaga registros `app_*`.
 
+### Cadastro de usuários (newsletter + comentários)
+- **`newsletter_subscribers`** é o cadastro único de usuários (newsletter, hero e
+  comentários alimentam a mesma tabela). Colunas: `id uuid, nome, email (unique),
+  celular (E.164 +55…), prefs jsonb, aceita_email bool, aceita_whatsapp bool,
+  email_verificado bool, origem text, subscribed_at, updated_at`.
+- **Gravação SEMPRE via RPC `upsert_subscriber`** (SECURITY DEFINER) — faz merge
+  (acumula nome/celular, não descarta em duplicado), normaliza e-mail (lowercase)
+  e celular (E.164). O front chama `supabaseRpc('upsert_subscriber', {p_email, p_nome,
+  p_celular, p_prefs, p_aceita_email, p_aceita_whatsapp, p_origem})`. Helper
+  `_saveSubscriber` em home.js, com fallback para insert direto se a RPC faltar.
+- **Comentário exige e-mail cadastrado** — checado via RPC `email_cadastrado(p_email)`.
+  No envio, faz upsert do nome e vincula o relato (`comentarios.email` +
+  `comentarios.subscriber_id`).
+- Verificação real de posse do e-mail (OTP) e envio de e-mail/WhatsApp = fase 2.
+
 ### Outras tabelas
 ```
-newsletter_subscribers  → id uuid, nome, email (unique), celular, prefs jsonb, subscribed_at
-comentarios             → id uuid, filme_url_key, autor, texto, cinema, aprovado bool, created_at
+newsletter_subscribers  → ver "Cadastro de usuários" acima
+comentarios             → id uuid, filme_url_key, autor, email, subscriber_id (FK),
+                          texto, cinema, aprovado bool, created_at
 
 filmes_scaneados        → titulo text, app text  ← catálogo escaneado pela aplicação
                           paralela (Opção A). Valores de `app`: MovieReading | Conecta
