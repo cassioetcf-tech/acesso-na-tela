@@ -20,12 +20,12 @@ async function _saveSubscriber(data) {
     return true;
   } catch (e) {
     console.warn('upsert_subscriber indisponível, fallback insert:', e.message);
-    var row = { email: params.p_email, subscribed_at: new Date().toISOString() };
+    var row = { email: params.p_email };
     if (data.nome)        row.nome    = data.nome;
     if (params.p_celular) row.celular = params.p_celular;
     if (data.prefs)       row.prefs   = data.prefs;
     try {
-      await supabasePost('newsletter_subscribers', row, 'resolution=ignore-duplicates,return=minimal');
+      await supabasePost('newsletter', row, 'resolution=ignore-duplicates,return=minimal');
       return true;
     } catch (e2) { console.warn('Fallback insert falhou:', e2.message); return false; }
   }

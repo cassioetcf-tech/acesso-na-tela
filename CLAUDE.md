@@ -160,10 +160,13 @@ updated_at   timestamp
   `url_key`). O `sync-status.js` deste repo NÃO cria nem apaga registros `app_*`.
 
 ### Cadastro de usuários (newsletter + comentários)
-- **`newsletter_subscribers`** é o cadastro único de usuários (newsletter, hero e
-  comentários alimentam a mesma tabela). Colunas: `id uuid, nome, email (unique),
-  celular (E.164 +55…), prefs jsonb, aceita_email bool, aceita_whatsapp bool,
-  email_verificado bool, origem text, subscribed_at, updated_at`.
+- ⚠️ **A TABELA SE CHAMA `newsletter`** (NÃO `newsletter_subscribers` — esse nome,
+  usado em versões antigas do código, nunca existiu no banco; verificado em produção).
+- **`newsletter`** é o cadastro único de usuários (newsletter, hero e comentários
+  alimentam a mesma tabela). Colunas originais: `id uuid, nome, email (unique),
+  created_at`. Acrescentadas na Fase 1: `celular (E.164 +55…), prefs jsonb,
+  aceita_email bool, aceita_whatsapp bool, email_verificado bool, origem text,
+  updated_at`. (Não tem `subscribed_at` — usa `created_at`.)
 - **Gravação SEMPRE via RPC `upsert_subscriber`** (SECURITY DEFINER) — faz merge
   (acumula nome/celular, não descarta em duplicado), normaliza e-mail (lowercase)
   e celular (E.164). O front chama `supabaseRpc('upsert_subscriber', {p_email, p_nome,
@@ -176,7 +179,7 @@ updated_at   timestamp
 
 ### Outras tabelas
 ```
-newsletter_subscribers  → ver "Cadastro de usuários" acima
+newsletter              → ver "Cadastro de usuários" acima (nome real da tabela)
 comentarios             → id uuid, filme_url_key, autor, email, subscriber_id (FK),
                           texto, cinema, aprovado bool, created_at
 
@@ -200,7 +203,7 @@ film_app_suggestions    → id uuid PK
 
 ### RLS
 - `filmes`: leitura pública, escrita via chave anon.
-- `newsletter_subscribers`: inserção pública.
+- `newsletter`: gravação via RPC `upsert_subscriber` (SECURITY DEFINER).
 - `comentarios`: leitura só de aprovados (`aprovado = true`), inserção pública.
 
 ---
@@ -292,8 +295,8 @@ da Ingresso (contorna CORS).
 `_isThisWeek` → ordena (acessíveis primeiro) → `buildCard()`. A ordem de
 exibição usa `/api/ingresso?type=nowplaying` (cacheado em localStorage). Grids
 ficam vazios se o Supabase não retornar resultados (intencional, sem fallback
-hardcoded). Newsletter: dois formulários (hero e seção), salvam em
-`newsletter_subscribers` + Netlify Forms.
+hardcoded). Newsletter: dois formulários (hero e seção) gravam via RPC
+`upsert_subscriber` (tabela `newsletter`) + Netlify Forms.
 
 ### `filme.html` — Detalhe (produção)
 Modos de URL: `?urlKey={url_key}` (principal), `?ingresso={eventId}`, `?film={legado}`.
@@ -301,8 +304,9 @@ Modos de URL: `?urlKey={url_key}` (principal), `?ingresso={eventId}`, `?film={le
 usa TMDb/`watch/providers` → `_renderTmdb()`. `loadSessoes()` usa o proxy da
 Ingresso. **Comentários (Relatos da comunidade) estão dinâmicos e funcionando:**
 `initComentarios()` lê `GET /comentarios?filme_url_key=eq.{urlKey}&order=created_at.desc&limit=50`;
-`submitComentario()` valida o e-mail contra `newsletter_subscribers` e faz
-`supabasePost('comentarios', …)`. Vazio renderiza "Nenhum relato ainda".
+`submitComentario()` valida o e-mail via RPC `email_cadastrado` (fallback: tabela
+`newsletter`), atualiza o nome do usuário (`upsert_subscriber`) e faz
+`supabasePost('comentarios', …)` com `email`/`subscriber_id`. Vazio renderiza "Nenhum relato ainda".
 **Pôster:** montado como `background-image` na `div#fp-poster-box` — recebeu
 `role="img"` + `aria-label` para leitores de tela (acessibilidade).
 

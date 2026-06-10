@@ -568,7 +568,7 @@ async function submitComentario() {
     registrado = await supabaseRpc('email_cadastrado', { p_email: email });
   } catch (e1) {
     try {
-      var cad = await supabaseGet('newsletter_subscribers', 'email=eq.' + encodeURIComponent(email.toLowerCase()) + '&limit=1');
+      var cad = await supabaseGet('newsletter', 'email=eq.' + encodeURIComponent(email.toLowerCase()) + '&limit=1');
       registrado = !!(cad && cad.length);
     } catch (e2) {
       checou = false; // erro técnico → não bloqueia o envio
