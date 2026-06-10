@@ -297,20 +297,43 @@ async function fetchPingPlayData(log) {
  *  2. busca com título base (sem subtítulo após ":" ou " - ")
  *  3. fallback: 1º resultado com poster (sem threshold de popularidade)
  */
+// Remove "(2026)"/"[...]" do título antes de buscar (TMDb retorna 0 com o ano na query).
+function cleanTitleForSearch(t) {
+  return (t || '').replace(/\([^)]*\)/g, ' ').replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function extractYear(t) {
+  const m = (t || '').match(/\b(19|20)\d{2}\b/);
+  return m ? m[0] : null;
+}
+
 async function searchMovieBest(titulo) {
   if (!titulo || titulo.length < 2) return null;
   try {
-    const r1    = await searchMovie(titulo);
-    const match = r1.find(r => titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo));
-    if (match) return match;
+    const clean = cleanTitleForSearch(titulo) || titulo;
+    const year  = extractYear(titulo);
 
-    const base = titulo.replace(/\s*[:\-–—]\s*.+$/, '').trim();
-    if (base && base !== titulo && base.length >= 3) {
-      const r2 = await searchMovie(base);
-      const m2 = r2.find(r =>
-        titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo) ||
-        titlesMatch(r.title, base)   || titlesMatch(r.original_title, base)
+    const pick = (results) => {
+      if (!results || !results.length) return null;
+      const matches = results.filter(r =>
+        titlesMatch(r.title, clean)  || titlesMatch(r.original_title, clean) ||
+        titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo)
       );
+      if (!matches.length) return null;
+      if (year) {
+        const byYear = matches.filter(r => (r.release_date || '').slice(0, 4) === year);
+        if (byYear.length) return byYear[0];
+      }
+      return matches[0];
+    };
+
+    const r1 = await searchMovie(clean);
+    const m1 = pick(r1);
+    if (m1) return m1;
+
+    const base = clean.replace(/\s*[:\-–—]\s*.+$/, '').trim();
+    if (base && base !== clean && base.length >= 3) {
+      const r2 = await searchMovie(base);
+      const m2 = pick(r2);
       if (m2) return m2;
       if (r2[0] && r2[0].poster_path) return r2[0];
     }

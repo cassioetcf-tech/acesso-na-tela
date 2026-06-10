@@ -405,36 +405,58 @@ function debouncePreview() {
   _previewTimer = setTimeout(fetchPreview, 800);
 }
 
+// Remove "(2026)", "[...]" etc. do título antes de buscar no TMDb.
+// O TMDb retorna 0 resultados se a query tiver o ano entre parênteses.
+function _cleanTitleForSearch(t) {
+  return (t || '').replace(/\([^)]*\)/g, ' ').replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+// Extrai um ano (19xx/20xx) do título, se houver — usado para desambiguar remakes.
+function _extractYear(t) {
+  var m = (t || '').match(/\b(19|20)\d{2}\b/);
+  return m ? m[0] : null;
+}
+
 /**
- * Busca o melhor match no TMDb em 3 níveis:
- *  1. normT / normFuzzy exato
- *  2. busca com título base (sem subtítulo após ":" ou " - ")
- *  3. fallback: 1º resultado com poster (sem threshold de popularidade)
+ * Busca o melhor match no TMDb:
+ *  - limpa o título (tira "(2026)") antes de buscar
+ *  - casa por título (normT ignora pontuação/ano) e, se houver ano, prioriza a edição daquele ano
+ *  - fallbacks: sem subtítulo, depois 1º resultado com poster
  */
 async function searchMovieBest(titulo) {
   if (!titulo || titulo.length < 2) return null;
   try {
-    // Nível 1+2: busca pelo título completo + match exato/fuzzy
-    var r1 = await searchMovie(titulo);
-    var match = r1.find(function (r) {
-      return titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo);
-    });
-    if (match) return match;
+    var clean = _cleanTitleForSearch(titulo) || titulo;
+    var year  = _extractYear(titulo);
 
-    // Nível 3: busca sem subtítulo (ex: "Título: Subtítulo" → "Título")
-    var base = titulo.replace(/\s*[:\-–—]\s*.+$/, '').trim();
-    if (base && base !== titulo && base.length >= 3) {
-      var r2 = await searchMovie(base);
-      match = r2.find(function (r) {
-        return titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo) ||
-               titlesMatch(r.title, base)   || titlesMatch(r.original_title, base);
+    var pick = function (results) {
+      if (!results || !results.length) return null;
+      var matches = results.filter(function (r) {
+        return titlesMatch(r.title, clean) || titlesMatch(r.original_title, clean) ||
+               titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo);
       });
-      if (match) return match;
-      // Fallback da busca base: 1º com poster (sem checar popularidade)
+      if (!matches.length) return null;
+      if (year) {
+        var byYear = matches.filter(function (r) { return (r.release_date || '').slice(0, 4) === year; });
+        if (byYear.length) return byYear[0];
+      }
+      return matches[0];
+    };
+
+    // Nível 1: busca pelo título limpo
+    var r1 = await searchMovie(clean);
+    var m1 = pick(r1);
+    if (m1) return m1;
+
+    // Nível 2: busca sem subtítulo (ex: "Título: Subtítulo" → "Título")
+    var base = clean.replace(/\s*[:\-–—]\s*.+$/, '').trim();
+    if (base && base !== clean && base.length >= 3) {
+      var r2 = await searchMovie(base);
+      var m2 = pick(r2);
+      if (m2) return m2;
       if (r2[0] && r2[0].poster_path) return r2[0];
     }
 
-    // Fallback da busca original: 1º com poster
+    // Nível 3: fallback — 1º resultado com poster
     if (r1[0] && r1[0].poster_path) return r1[0];
   } catch (e) {}
   return null;
