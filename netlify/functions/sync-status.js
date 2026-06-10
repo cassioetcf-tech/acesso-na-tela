@@ -247,26 +247,47 @@ async function fetchGretaTitles(log) {
 async function fetchPingPlayData(log) {
   const titles = new Set();
   const slugs  = new Set();
+
+  // 1. API oficial — 104 filmes com name + ingressoUrl (dá o slug p/ match exato)
   try {
     const r = await fetch(
       'https://etc.prod.api.locomotiva.dev.br/api/v1/catalog?all=true&limit=500',
       { headers: { 'Accept': 'application/json' } }
     );
-    if (!r.ok) { log.push(`[sync] PingPlay API HTTP ${r.status}`); return { titles, slugs }; }
-    const j = await r.json();
-    const films = (j.content && Array.isArray(j.content.data) ? j.content.data : null)
-      || (Array.isArray(j.data) ? j.data : null)
-      || (Array.isArray(j) ? j : []);
-    for (const f of films) {
-      if (!f) continue;
-      if (f.name) { const n = normT(f.name); if (n) titles.add(n); }
-      const slug = ingressoSlug(f.ingressoUrl);
-      if (slug) slugs.add(slug);
+    if (r.ok) {
+      const j = await r.json();
+      const films = (j.content && Array.isArray(j.content.data) ? j.content.data : null)
+        || (Array.isArray(j.data) ? j.data : null)
+        || (Array.isArray(j) ? j : []);
+      for (const f of films) {
+        if (!f) continue;
+        if (f.name) { const n = normT(f.name); if (n) titles.add(n); }
+        const slug = ingressoSlug(f.ingressoUrl);
+        if (slug) slugs.add(slug);
+      }
+      log.push(`[sync] PingPlay API: ${films.length} filmes (${slugs.size} URLs)`);
+    } else {
+      log.push(`[sync] PingPlay API HTTP ${r.status}`);
     }
-    log.push(`[sync] PingPlay: ${titles.size} títulos · ${slugs.size} URLs (de ${films.length} no catálogo)`);
   } catch (e) {
     log.push(`[sync] ERRO PingPlay API: ${e.message}`);
   }
+
+  // 2. Catálogo público (catalogo.php) — mais completo (213), só nomes. Amplia a cobertura.
+  try {
+    const r = await fetch('https://pingplay.com.br/catalogo.php?qtdeItensPagina=1000&pagina=1');
+    const html = r.ok ? await r.text() : '';
+    let cat = 0;
+    for (const m of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)) {
+      const n = normT(m[1]);
+      if (n && !titles.has(n)) { titles.add(n); cat++; }
+    }
+    log.push(`[sync] PingPlay catálogo HTML: +${cat} títulos novos`);
+  } catch (e) {
+    log.push(`[sync] ERRO PingPlay catálogo: ${e.message}`);
+  }
+
+  log.push(`[sync] PingPlay total: ${titles.size} títulos · ${slugs.size} URLs`);
   return { titles, slugs };
 }
 

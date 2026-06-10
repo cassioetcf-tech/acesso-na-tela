@@ -136,22 +136,45 @@ async function fetchPingPlayAPI() {
   return { titles: details.map(function (d) { return d.name; }), details: details };
 }
 
+// PingPlay — catálogo público (catalogo.php). Mais completo que a API (213 vs 104),
+// porém só com nomes (sem ingressoUrl). Usado em UNIÃO com a API: a API dá o match
+// exato por slug; o catálogo amplia a cobertura por nome (ex.: "Os Peludos 2").
+async function fetchPingPlayCatalog() {
+  const names = [];
+  try {
+    const r = await fetchWithTimeout('https://pingplay.com.br/catalogo.php?qtdeItensPagina=1000&pagina=1', FETCH_TIMEOUT_MS);
+    const html = (r && r.ok) ? await r.text() : '';
+    for (const m of html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)) {
+      const t = m[1].trim();
+      if (t) names.push(t);
+    }
+    console.log('[a11y-sources] PingPlay catálogo HTML: ' + names.length + ' títulos');
+  } catch (e) {
+    console.log('[a11y-sources] PingPlay catálogo error: ' + e.message);
+  }
+  return names;
+}
+
 exports.handler = async function () {
   try {
-    // PingPlay (API) + GRETA (Paramount/filmeb) em paralelo
-    const [pingplayResult, greta] = await Promise.all([
-      fetchPingPlayAPI().catch(function (e)    { console.error('PP error:',    e.message); return { titles: [], details: [] }; }),
-      fetchGretaParamount().catch(function (e) { console.error('GRETA error:', e.message); return []; }),
+    // PingPlay (API + catálogo HTML) + GRETA (Paramount/filmeb) em paralelo
+    const [pingplayResult, ppCatalog, greta] = await Promise.all([
+      fetchPingPlayAPI().catch(function (e)     { console.error('PP error:',    e.message); return { titles: [], details: [] }; }),
+      fetchPingPlayCatalog().catch(function (e) { console.error('PPcat error:', e.message); return []; }),
+      fetchGretaParamount().catch(function (e)  { console.error('GRETA error:', e.message); return []; }),
     ]);
 
-    console.log('[a11y-sources] total: PP=' + pingplayResult.titles.length + ' GRETA=' + greta.length);
+    // União de nomes: API (104, com slug) + catálogo HTML (213, só nome)
+    const ppNames = Array.from(new Set([].concat(pingplayResult.titles, ppCatalog)));
+
+    console.log('[a11y-sources] total: PP=' + ppNames.length + ' (API ' + pingplayResult.titles.length + ' + cat ' + ppCatalog.length + ') GRETA=' + greta.length);
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify({
-        pingplay:         pingplayResult.titles,   // lista plana (compatibilidade)
-        pingplay_details: pingplayResult.details,  // dados ricos com AD/Libras/ingressoUrl
+        pingplay:         ppNames,                 // união API + catálogo (match por título)
+        pingplay_details: pingplayResult.details,  // dados da API com ingressoUrl (match por slug)
         greta:            greta,                   // títulos da Paramount (GRETA)
       }),
     };
