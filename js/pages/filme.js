@@ -41,6 +41,18 @@ var APP_LINKS = {
     ios:     'https://apps.apple.com/us/app/pingplay/id1592113008',
     android: 'https://play.google.com/store/apps/details?id=com.etc.pingplay',
   },
+  'Conecta Acessibilidade': {
+    cls:     'app-logo-conecta',
+    logo:    '/assets/app-conecta.png',
+    ios:     'https://apps.apple.com/br/app/conecta-acessibilidade/id6747911075',
+    android: 'https://play.google.com/store/apps/details?id=com.app.conecta_acessibilidade',
+  },
+  'Trio Cinema': {
+    cls:     'app-logo-trio',
+    logo:    '/assets/app-trio.png',
+    ios:     'https://apps.apple.com/us/app/trio-cinema/id6759932093',
+    android: 'https://play.google.com/store/apps/details?id=com.showcasedevteam.triomovies',
+  },
 };
 
 var _trailerKey = null;
@@ -66,10 +78,11 @@ setTimeout(_dismissLoading, 5000);
 
 // ── Atualiza links e ícone do aplicativo ──────────────────────────────────────
 function updateAppLinks(appName) {
+  // Sempre mostra o nome do app (mesmo que não haja mapeamento de logo/links)
+  if (appName) _set('app-dest-title', appName);
+
   var info = APP_LINKS[appName];
   if (!info) return;
-
-  _set('app-dest-title', appName);
 
   var ios     = document.getElementById('app-ios-link');
   var android = document.getElementById('app-android-link');
