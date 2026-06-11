@@ -279,6 +279,13 @@ Windows Task Scheduler na máquina do desenvolvedor:
 Complementa a FASE 3 do `sync-status` para apps sem fonte pública conhecida (GRETA, Trio, Conecta).
 Ver prompt técnico completo gerado na sessão de 2026-05.
 
+**`welcome.js`** — e-mail de boas-vindas via **Resend**. Acionada por **Database
+Webhook do Supabase** no `INSERT` da tabela `newsletter` (só cadastro novo).
+Respeita `aceita_email`; não envia WhatsApp (fase futura). Env vars no Netlify:
+`RESEND_API_KEY`, `WELCOME_FROM` (remetente verificado @acessonatela.com),
+`WELCOME_REPLY_TO` (opcional), `WELCOME_WEBHOOK_SECRET` (header `x-webhook-secret`).
+Sempre retorna 200 (não derruba o webhook); erros vão pro log.
+
 **`catalog.js` (Edge Function `/api/catalog`)** — cache do catálogo via Netlify
 Blobs. Ativa e necessária.
 
