@@ -297,6 +297,92 @@ function _renderTmdb(d, wp) {
   _dismissLoading();
 }
 
+// ── Renderização de dados do Ingresso ─────────────────────────────────────────
+// Mesma estrutura visual do _renderTmdb, mas a partir do objeto do Ingresso.com
+// (pôster, título original, ficha, sinopse, trailer) — dispensa o TMDb.
+function _ytFromIngresso(e) {
+  var t = (e && e.trailers) || [];
+  for (var i = 0; i < t.length; i++) {
+    var u = t[i].url || t[i].embedUrl || t[i].link || '';
+    var m = String(u).match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function _renderIngresso(e) {
+  var title = e.title || e.originalTitle || '';
+  document.title = title + ' — Acesso na Tela';
+  _set('fp-h1',   title);
+  _set('bc-film', title);
+  var lr = document.getElementById('live-region');
+  if (lr) lr.textContent = 'Página do filme: ' + title;
+
+  // Linha de origem: título original · ano · país · distribuidora
+  var year = ((e.premiereDate || '').match(/\d{4}/) || [''])[0];
+  var origParts = [];
+  if (e.originalTitle && e.originalTitle !== title) origParts.push(e.originalTitle);
+  if (year)           origParts.push(year);
+  if (e.countryOrigin) origParts.push(e.countryOrigin);
+  if (e.distributor)  origParts.push(e.distributor);
+  _set('fp-orig', origParts.join(' · '));
+
+  // Pôster (URL completa do Ingresso)
+  var poster = '';
+  (e.images || []).forEach(function (im) { if (!poster && /PosterPortrait/i.test(im.type) && im.url) poster = im.url; });
+  if (!poster) (e.images || []).forEach(function (im) { if (!poster && /poster/i.test(im.type) && im.url) poster = im.url; });
+  if (poster) {
+    var pb = document.getElementById('fp-poster-box');
+    if (pb) { pb.style.backgroundImage = 'url(' + poster + ')'; pb.style.backgroundSize = 'cover'; pb.style.backgroundPosition = 'center top'; }
+  }
+
+  // Classificação (o Ingresso já manda formatado, ex.: "18 anos")
+  var raw = (e.contentRating || '').trim();
+  var certLabel = (!raw || /^(l|livre|0)$/i.test(raw)) ? 'Livre' : raw;
+
+  // Pills de metadados
+  var genre   = (e.genres || [])[0];
+  var runtime = e.duration ? (e.duration >= 60 ? Math.floor(e.duration / 60) + 'h ' + (e.duration % 60) + 'min' : e.duration + 'min') : '';
+  var dateStr = '';
+  if (e.premiereDate) { try { dateStr = new Date(e.premiereDate.slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (x) {} }
+  var pills = document.getElementById('fp-meta-pills');
+  if (pills) {
+    pills.innerHTML = '';
+    [genre || null, runtime, dateStr].forEach(function (t) {
+      if (!t) return;
+      var s = document.createElement('span'); s.className = 'mpill'; s.textContent = t; pills.appendChild(s);
+    });
+    var r = document.createElement('span'); r.className = 'mpill mpill-r'; r.textContent = certLabel; pills.appendChild(r);
+  }
+
+  // Sinopse
+  _set('fp-sinopse1', e.synopsis || 'Sinopse não disponível.');
+  _set('fp-sinopse2',
+    certLabel === 'Livre'
+      ? 'Adequada para toda a família. Sem cenas de violência ou conteúdo sensível.'
+      : 'Classificação indicativa: ' + certLabel + '. Verifique o conteúdo antes de levar crianças.');
+  var sinopseBlock = document.getElementById('bloco-sinopse-video');
+  if (sinopseBlock) sinopseBlock.style.display = '';
+
+  // Trailer — acessível (Supabase) ou do Ingresso
+  var resolvedKey = _trailerAcessivelId || _ytFromIngresso(e);
+  if (resolvedKey) {
+    _trailerKey = resolvedKey;
+    var img = document.getElementById('trailer-img');
+    if (img) { img.src = 'https://img.youtube.com/vi/' + resolvedKey + '/hqdefault.jpg'; img.alt = 'Capa do trailer de ' + title; }
+    var trailerLabel = document.getElementById('trailer-section');
+    if (trailerLabel) {
+      var blockLbl = trailerLabel.querySelector('.block-label');
+      if (blockLbl) blockLbl.textContent = _trailerAcessivelId ? 'Trailer acessível' : 'Trailer';
+    }
+    var trailerThumb = document.getElementById('trailer-thumb');
+    if (trailerThumb) trailerThumb.style.display = '';
+    if (trailerLabel) trailerLabel.style.display = '';
+  }
+
+  _dismissLoading();
+}
+
 // ── Carrega e renderiza o filme ───────────────────────────────────────────────
 async function loadFilme(urlKey) {
   try {
@@ -305,34 +391,23 @@ async function loadFilme(urlKey) {
 
     if (f) {
       window._filmeStatus = (f.status || 'cartaz').toLowerCase();
+      // Título de imediato (fallback caso o Ingresso falhe)
+      if (f.titulo) { _set('fp-h1', f.titulo); _set('bc-film', f.titulo); }
       _renderSupabaseData(f);
-
-      if (f.tmdb_id) {
-        var tmdbData = await getMovie(f.tmdb_id);
-        var wp       = await getWatchProviders(f.tmdb_id);
-        _renderTmdb(tmdbData, wp);
-        return;
-      }
     }
 
-    // Fallback: busca título via Ingresso e depois TMDb
+    // Fonte dos dados do filme: Ingresso.com (pôster, ficha, sinopse, trailer)
     var eventData = await getEventId(urlKey);
-    var title = (eventData && (eventData.title || eventData.originalTitle)) || '';
-    if (title) {
-      var results = await searchMovie(title);
-      var best = results[0];
-      if (best) {
-        var tmdbFull = await getMovie(best.id);
-        var wpFull   = await getWatchProviders(best.id);
-        _renderTmdb(tmdbFull, wpFull);
-        return;
-      }
+    if (eventData && (eventData.title || eventData.originalTitle)) {
+      _renderIngresso(eventData);
+    } else {
+      _dismissLoading();
     }
-
-    _dismissLoading();
   } catch (err) {
     console.error('Erro ao carregar filme:', err);
-    _set('fp-h1', 'Erro ao carregar dados');
+    if (!document.getElementById('fp-h1') || document.getElementById('fp-h1').textContent === 'Carregando...') {
+      _set('fp-h1', 'Erro ao carregar dados');
+    }
     _dismissLoading();
   }
 }
