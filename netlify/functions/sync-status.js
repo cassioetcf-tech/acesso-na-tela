@@ -142,7 +142,7 @@ function ingressoData(e) {
     synopsis:      e.synopsis || '',
     countryOrigin: e.countryOrigin || '',
     distributor:   e.distributor || '',
-    premiereDate:  (e.premiereDate != null ? String(e.premiereDate) : ''),
+    premiereDate:  (e.premiereDate && e.premiereDate.localDate) || '',
   };
 }
 
@@ -570,57 +570,21 @@ exports.handler = async function () {
     log.push(`[sync] ERRO Fase 2 match: ${e.message}`);
   }
 
-  // ── FASE 3: TMDb — Enriquecimento de dados (por último; não bloqueia os apps) ─
-  log.push('[sync] FASE 3 — TMDb: buscando poster e dados dos filmes sem tmdb_data');
-
-  let todosFilmes = [];
-  try {
-    todosFilmes = await supaGet('filmes', 'select=id,titulo,status,tmdb_id,tmdb_data&limit=500');
-  } catch (e) {
-    log.push(`[sync] ERRO ao buscar filmes para enriquecimento: ${e.message}`);
-  }
-
-  const semDados = todosFilmes.filter(f =>
-    !f.tmdb_data && (f.status || '').toLowerCase() === 'cartaz'
-  );
-
-  log.push(`[sync] ${semDados.length} filme(s) em cartaz sem tmdb_data`);
-
-  for (const f of semDados) {
-    try {
-      const match = await searchMovieBest(f.titulo || '');
-
-      if (match) {
-        await supaPatch(f.id, { tmdb_id: match.id, tmdb_data: match, updated_at: now });
-        log.push(`TMDB  ${f.titulo} — poster e dados atualizados (TMDb: ${match.id})`);
-        enriched++;
-      } else {
-        log.push(`SKIP  ${f.titulo} — não encontrado no TMDb`);
-      }
-    } catch (e) {
-      log.push(`ERR   ${f.titulo} — TMDb: ${e.message}`);
-      errors++;
-    }
-  }
-
-  log.push(`[sync] Fase 3 concluída: ${enriched} filme(s) enriquecido(s)`);
-
-  // filmes em cartaz com dados do TMDb (cacheados antes + enriquecidos agora)
-  mTmdb = todosFilmes.filter(f => f.tmdb_data && (f.status || '').toLowerCase() === 'cartaz').length + enriched;
+  // (Fase TMDb removida — os dados do filme vêm do Ingresso, cacheados em
+  //  filmes.ingresso_data na Fase 1.)
 
   log.push('[sync] RESUMO ───────────────────────────────');
   log.push(`[sync]   Em cartaz no Ingresso.com .. ${mIngresso}`);
   log.push(`[sync]   Com sessões nesta semana ... ${mSessoes}`);
   log.push(`[sync]   Encontrados nos apps ....... ${mApps}`);
-  log.push(`[sync]   Encontrados no TMDb ........ ${mTmdb}`);
 
-  const summary = `[sync] concluído: ${created} novo(s), ${updated} sessão/status, ${enriched} enriquecido(s), ${autoClassified} auto-class, ${errors} erro(s)`;
+  const summary = `[sync] concluído: ${created} novo(s), ${updated} sessão/status, ${autoClassified} auto-class, ${errors} erro(s)`;
   log.push(summary);
   console.log(log.join('\n'));
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ created, updated, enriched, autoClassified, errors,
-                           metrics: { ingresso: mIngresso, sessoes: mSessoes, apps: mApps, tmdb: mTmdb }, log }),
+    body: JSON.stringify({ created, updated, autoClassified, errors,
+                           metrics: { ingresso: mIngresso, sessoes: mSessoes, apps: mApps }, log }),
   };
 };

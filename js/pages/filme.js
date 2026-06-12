@@ -319,8 +319,7 @@ function _renderIngresso(e) {
   if (lr) lr.textContent = 'Página do filme: ' + title;
 
   // Linha de origem: título original · ano · país · distribuidora
-  var premiere = String(e.premiereDate || '');
-  var year = (premiere.match(/\d{4}/) || [''])[0];
+  var year = (e.premiereDate && e.premiereDate.year) ? String(e.premiereDate.year) : '';
   var origParts = [];
   if (e.originalTitle && e.originalTitle !== title) origParts.push(e.originalTitle);
   if (year)           origParts.push(year);

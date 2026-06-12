@@ -78,9 +78,9 @@ function _badges(a11y) {
 
 // Card de um filme (linha com pôster + infos)
 function _filmCard(f) {
-  const tmdb   = f.tmdb_data || {};
-  const titulo = _esc(tmdb.title || f.titulo || '');
-  const poster = tmdb.poster_path ? (TMDB_IMG + tmdb.poster_path) : '';
+  const ig     = f.ingresso_data || {};
+  const titulo = _esc(ig.title || f.titulo || '');
+  const poster = ig.poster || '';
   const href   = f.url_key ? (SITE_URL + '/filme.html?urlKey=' + encodeURIComponent(f.url_key)) : SITE_URL;
   const app    = f.app ? '<div style="font-size:12px;color:#D4500F;font-weight:bold;margin:2px 0 6px;">' + _esc(f.app) + '</div>' : '';
   const posterCell = poster
@@ -137,19 +137,20 @@ exports.handler = async function () {
   const { monday, sunday } = _weekRange();
   const label = 'Semana de ' + _fmt(monday) + ' a ' + _fmt(sunday);
 
-  // 1. Filmes com app confirmado e lançamento nesta semana
+  // 1. Filmes com app confirmado e lançamento nesta semana (dados do Ingresso)
   let filmes = [];
   try {
-    filmes = await _supaGet('filmes', 'app_status=eq.confirmado&select=titulo,url_key,app,a11y,tmdb_data&limit=300');
+    filmes = await _supaGet('filmes', 'app_status=eq.confirmado&select=titulo,url_key,app,a11y,ingresso_data&limit=300');
   } catch (e) { console.error('[newsletter] erro filmes: ' + e.message); return { statusCode: 200, body: 'erro filmes' }; }
 
+  const _rd = function (f) { return (f.ingresso_data && f.ingresso_data.premiereDate) || ''; };
   const daSemana = filmes.filter(function (f) {
-    const rd = f.tmdb_data && f.tmdb_data.release_date;
+    const rd = _rd(f);
     if (!rd) return false;
-    const d = new Date(rd + 'T12:00:00Z');
-    return d >= monday && d <= sunday;
+    const d = new Date(rd);
+    return !isNaN(d) && d >= monday && d <= sunday;
   }).sort(function (a, b) {
-    return (a.tmdb_data.release_date || '').localeCompare(b.tmdb_data.release_date || '');
+    return _rd(a).localeCompare(_rd(b));
   });
 
   if (!daSemana.length) {
