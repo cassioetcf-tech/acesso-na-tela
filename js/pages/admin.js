@@ -239,8 +239,9 @@ function renderTable() {
       ? '<span title="Aguardando classificação de acessibilidade" style="display:inline-block;margin-left:4px;font-size:11px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:1px 5px;vertical-align:middle;cursor:default;">Pendente</span>'
       : '';
 
-    var releaseDate = (f.ingresso_data && f.ingresso_data.premiereDate)
-      ? new Date(f.ingresso_data.premiereDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
+    var _rd = (f.ingresso_data && f.ingresso_data.premiereDate) ? new Date(f.ingresso_data.premiereDate) : null;
+    var releaseDate = (_rd && !isNaN(_rd))
+      ? _rd.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
       : '—';
 
     html +=
