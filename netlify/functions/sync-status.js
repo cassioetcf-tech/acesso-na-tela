@@ -116,13 +116,34 @@ async function searchMovie(title) {
   } catch (e) { return []; }
 }
 
-async function getEventId(urlKey) {
+// Retorna o EVENTO completo do Ingresso (id + pôster + ficha + sinopse + trailer).
+async function getIngressoEvent(urlKey) {
   try {
     const url = `${INGRESSO_BASE}/events/url-key/${urlKey}/partnership/${INGRESSO_PART}`;
     const r = await fetch(url, { headers: ING_HEADERS });
     const data = await r.json();
-    return (data && data.id) ? data.id : null;
+    return (data && data.id) ? data : null;
   } catch (e) { return null; }
+}
+
+// Subconjunto cacheado em filmes.ingresso_data (consumido por home/cards/newsletter).
+function ingressoData(e) {
+  if (!e) return null;
+  let poster = '';
+  (e.images || []).forEach(im => { if (!poster && /PosterPortrait/i.test(im.type) && im.url) poster = im.url; });
+  if (!poster) (e.images || []).forEach(im => { if (!poster && /poster/i.test(im.type) && im.url) poster = im.url; });
+  return {
+    title:         e.title || '',
+    originalTitle: e.originalTitle || '',
+    poster:        poster,
+    genres:        e.genres || [],
+    duration:      e.duration || null,
+    contentRating: e.contentRating || '',
+    synopsis:      e.synopsis || '',
+    countryOrigin: e.countryOrigin || '',
+    distributor:   e.distributor || '',
+    premiereDate:  (e.premiereDate != null ? String(e.premiereDate) : ''),
+  };
 }
 
 async function checkHasSessions(eventId) {
@@ -433,7 +454,8 @@ exports.handler = async function () {
     if (!f.url_key) { log.push(`SKIP  ${f.titulo} — sem url_key`); continue; }
 
     try {
-      const eventId = await getEventId(f.url_key);
+      const ev      = await getIngressoEvent(f.url_key);
+      const eventId = ev && ev.id;
 
       if (!eventId) {
         if (status === 'cartaz') {
@@ -445,6 +467,10 @@ exports.handler = async function () {
         }
         continue;
       }
+
+      // Cacheia os dados do Ingresso (pôster/ficha/sinopse) p/ home, cards e newsletter.
+      // Patch separado e resiliente: se a coluna ainda não existir, não quebra o status.
+      try { await supaPatch(f.id, { ingresso_data: ingressoData(ev) }); } catch (eIg) {}
 
       const hasSessions = await checkHasSessions(eventId);
 

@@ -197,19 +197,8 @@ async function loadCatalog() {
       return;
     }
 
-    // Enriquece com TMDb em paralelo
-    var enriched = await Promise.all(filmes.map(async function (filme) {
-      var tmdb = null;
-      try {
-        if (filme.tmdb_data) {
-          tmdb = filme.tmdb_data; // já temos os dados cacheados no Supabase
-        } else if (filme.tmdb_id) {
-          tmdb = await getMovie(filme.tmdb_id);
-        }
-        // Não faz nova busca TMDb aqui — o sync-status cuida disso
-      } catch (e) {}
-      return { filme: filme, tmdb: tmdb };
-    }));
+    // Cards usam ingresso_data (cacheado pelo sync). tmdb fica como fallback no buildCard.
+    var enriched = filmes.map(function (filme) { return { filme: filme, tmdb: null }; });
 
     // Mostra TODOS os filmes em cartaz com app confirmado — INCLUSIVE os sem dados do TMDb.
     // O status CARTAZ já é definido pelo sync (Ingresso): só fica em cartaz quem tem sessão

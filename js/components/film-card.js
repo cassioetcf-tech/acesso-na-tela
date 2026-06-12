@@ -63,13 +63,29 @@ function _buildMeta(tmdb) {
  * filme: registro Supabase { titulo, url_key, a11y, app, app_status, tmdb_data, ... }
  * tmdb:  dados TMDb enriquecidos (pode ser null — usa filme.tmdb_data como fallback)
  */
+function _buildMetaIngresso(ig) {
+  var parts = [];
+  if (ig.genres && ig.genres.length) parts.push(ig.genres[0]);
+  if (ig.contentRating) parts.push(/^(l|livre|0)$/i.test(String(ig.contentRating).trim()) ? 'Livre' : ig.contentRating);
+  if (ig.duration) parts.push(ig.duration >= 60 ? Math.floor(ig.duration / 60) + 'h ' + (ig.duration % 60) + 'min' : ig.duration + 'min');
+  return parts.join(' · ');
+}
+
 function buildCard(filme, tmdb) {
-  var tmdbData  = tmdb || filme.tmdb_data || null;
-  var title     = (tmdbData && tmdbData.title) || filme.titulo || '';
-  var poster    = (tmdbData && tmdbData.poster_path)
-    ? CONFIG.TMDB_IMG + tmdbData.poster_path
-    : '';
-  var meta      = _buildMeta(tmdbData);
+  var ig       = filme.ingresso_data || null;
+  var tmdbData = tmdb || filme.tmdb_data || null;
+  var title, poster, meta;
+  if (ig) {
+    // Fonte principal: Ingresso (pôster é URL completa)
+    title  = ig.title || filme.titulo || '';
+    poster = ig.poster || '';
+    meta   = _buildMetaIngresso(ig);
+  } else {
+    // Fallback: TMDb (transição, enquanto o ingresso_data não foi cacheado)
+    title  = (tmdbData && tmdbData.title) || filme.titulo || '';
+    poster = (tmdbData && tmdbData.poster_path) ? CONFIG.TMDB_IMG + tmdbData.poster_path : '';
+    meta   = _buildMeta(tmdbData);
+  }
   var appStatus = getAppStatus(filme);
   var href      = filme.url_key
     ? 'filme.html?urlKey=' + encodeURIComponent(filme.url_key)
