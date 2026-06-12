@@ -134,6 +134,7 @@ exports.handler = async function (event) {
     subject: 'Bem-vindo(a) ao Acesso na Tela 🎬',
     html:    _emailHtml(nome, email),
     text:    _emailText(nome, email),
+    headers: { 'List-Unsubscribe': '<' + _unsubUrl(email) + '>' },
   };
   if (REPLY_TO) body.reply_to = REPLY_TO;
 

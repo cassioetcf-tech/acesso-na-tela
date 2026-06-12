@@ -184,6 +184,7 @@ exports.handler = async function () {
         to: [s.email],
         subject: subject,
         html: _emailHtml(_firstName(s.nome), s.email, filmsHtml, label),
+        headers: { 'List-Unsubscribe': '<' + _unsubUrl(s.email) + '>' },
       };
       if (REPLY_TO) msg.reply_to = REPLY_TO;
       return msg;
