@@ -14,7 +14,12 @@
 //   WELCOME_REPLY_TO      (opcional) e-mail de resposta
 
 const SUPA_URL         = process.env.SUPA_URL || 'https://gpwmmvaetokgrzekepbk.supabase.co';
-const SUPA_SERVICE_KEY = process.env.SUPA_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+const SUPA_SERVICE_KEY = process.env.SUPA_SERVICE_KEY
+  || process.env.SUPABASE_SERVICE_KEY
+  || process.env.SUPABASE_SERVICE_ROLE_KEY
+  || process.env.SUPA_SERVICE_ROLE_KEY
+  || process.env.SERVICE_ROLE_KEY
+  || '';
 const RESEND_API_KEY   = process.env.RESEND_API_KEY || '';
 const FROM             = process.env.WELCOME_FROM || 'Acesso na Tela <boasvindas@acessonatela.com>';
 const REPLY_TO         = process.env.WELCOME_REPLY_TO || '';
