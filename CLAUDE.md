@@ -175,7 +175,11 @@ updated_at   timestamp
 - **Comentário exige e-mail cadastrado** — checado via RPC `email_cadastrado(p_email)`.
   No envio, faz upsert do nome e vincula o relato (`comentarios.email` +
   `comentarios.subscriber_id`).
-- Verificação real de posse do e-mail (OTP) e envio de e-mail/WhatsApp = fase 2.
+- Verificação real de posse do e-mail (OTP) e envio de WhatsApp = fase 2.
+- **E-mail de boas-vindas:** ativo via `welcome.js` (Resend) + Database Webhook.
+- **Descadastro:** página `descadastro.html?email=` → botão chama `upsert_subscriber`
+  com `p_aceita_email=false` (reaproveita a RPC; reversível). O e-mail de boas-vindas
+  linka para ela e instrui a NÃO responder (endereço de envio não recebe).
 
 ### Outras tabelas
 ```

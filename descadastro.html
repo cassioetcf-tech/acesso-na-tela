@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Descadastro — Acesso na Tela</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    :root { --laranja:#D4500F; --laranja-esc:#A83D0A; --ink:#1A1A1A; --ink2:#444; --ink3:#777; --bg:#F7F6F3; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); font-family:'Inter',Arial,sans-serif; color:var(--ink); }
+    .wrap { max-width:520px; margin:0 auto; padding:48px 20px; }
+    .card { background:#fff; border:1px solid #E8E6E1; border-radius:14px; padding:32px 28px; text-align:center; }
+    .logo { display:block; margin:0 auto 22px; max-width:180px; height:auto; }
+    h1 { font-size:20px; margin:0 0 14px; line-height:1.3; }
+    p { font-size:15px; line-height:1.65; color:var(--ink2); margin:0 0 16px; }
+    .email { font-weight:700; color:var(--ink); }
+    button { font-family:inherit; font-size:15px; font-weight:700; border:none; border-radius:8px; padding:13px 22px; cursor:pointer; }
+    .btn-confirm { background:var(--laranja); color:#fff; }
+    .btn-confirm:hover { background:var(--laranja-esc); }
+    .btn-confirm:disabled { opacity:.6; cursor:default; }
+    .link { display:inline-block; margin-top:18px; color:var(--laranja); font-size:14px; }
+    .msg { font-size:15px; line-height:1.6; }
+    .ok { color:#005C2E; font-weight:600; }
+    .err { color:#A83D0A; font-weight:600; }
+    a { color:var(--laranja); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <a href="/"><img class="logo" src="/assets/logo.png" alt="Acesso na Tela"></a>
+      <div id="content">
+        <h1>Deixar de receber e-mails</h1>
+        <p id="lead"></p>
+        <button class="btn-confirm" id="btn" type="button">Confirmar descadastro</button>
+        <p id="feedback" class="msg" aria-live="polite" style="margin-top:18px;"></p>
+      </div>
+      <a class="link" href="/">← Voltar ao Acesso na Tela</a>
+    </div>
+  </div>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/api/supabase.js"></script>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var email  = (params.get('email') || '').trim().toLowerCase();
+      var lead   = document.getElementById('lead');
+      var btn    = document.getElementById('btn');
+      var fb     = document.getElementById('feedback');
+
+      if (!email) {
+        lead.textContent = '';
+        btn.style.display = 'none';
+        fb.className = 'msg err';
+        fb.textContent = 'Link inválido: não identificamos o e-mail. Use o link enviado no rodapé do e-mail.';
+        return;
+      }
+
+      lead.innerHTML = 'Confirme que deseja parar de receber e-mails em <span class="email">' + email.replace(/</g,'&lt;') + '</span>.';
+
+      btn.addEventListener('click', async function () {
+        btn.disabled = true;
+        btn.textContent = 'Processando...';
+        try {
+          await supabaseRpc('upsert_subscriber', { p_email: email, p_aceita_email: false, p_origem: 'descadastro' });
+          btn.style.display = 'none';
+          fb.className = 'msg ok';
+          fb.textContent = '✓ Pronto! Você não receberá mais e-mails. Sentiremos sua falta — você pode se cadastrar de novo quando quiser.';
+        } catch (e) {
+          btn.disabled = false;
+          btn.textContent = 'Confirmar descadastro';
+          fb.className = 'msg err';
+          fb.textContent = 'Ocorreu um erro. Tente novamente em instantes.';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

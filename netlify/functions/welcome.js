@@ -22,12 +22,20 @@ function _firstName(nome) {
   return String(nome).trim().split(/\s+/)[0];
 }
 
-function _emailHtml(nome) {
+function _unsubUrl(email) {
+  return SITE_URL + '/descadastro.html?email=' + encodeURIComponent(email || '');
+}
+
+function _emailHtml(nome, email) {
   const ola = nome ? `Olá, ${nome}!` : 'Olá!';
+  const unsub = _unsubUrl(email);
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <body style="margin:0;padding:0;background:#F7F6F3;font-family:Arial,Helvetica,sans-serif;color:#1A1A1A;">
   <div style="max-width:560px;margin:0 auto;padding:24px 16px;">
+    <div style="text-align:center;padding:6px 0 18px;">
+      <a href="${SITE_URL}"><img src="${SITE_URL}/assets/logo.png" alt="Acesso na Tela" width="180" style="max-width:62%;height:auto;border:0;display:inline-block;"></a>
+    </div>
     <div style="background:#D4500F;border-radius:14px 14px 0 0;padding:28px 28px 22px;">
       <h1 style="margin:0;color:#ffffff;font-size:22px;line-height:1.25;">Bem-vindo(a) ao Acesso na Tela 🎬</h1>
     </div>
@@ -49,7 +57,8 @@ function _emailHtml(nome) {
       </p>
       <p style="font-size:13px;line-height:1.6;margin:0;color:#777;border-top:1px solid #EDEBE6;padding-top:16px;">
         Você recebeu este e-mail porque se cadastrou no <a href="${SITE_URL}" style="color:#D4500F;">acessonatela.com</a>.
-        Para sair da lista, basta responder este e-mail pedindo o descadastro.
+        Este é um e-mail automático — por favor, <strong>não responda</strong>.
+        Para deixar de receber, <a href="${unsub}" style="color:#D4500F;">descadastre-se aqui</a>.
       </p>
       <p style="font-size:13px;line-height:1.5;margin:14px 0 0;color:#999;font-style:italic;">
         “Nada sobre nós, sem nós.”
@@ -60,7 +69,7 @@ function _emailHtml(nome) {
 </html>`;
 }
 
-function _emailText(nome) {
+function _emailText(nome, email) {
   const ola = nome ? `Olá, ${nome}!` : 'Olá!';
   return ola + '\n\n' +
     'Que bom ter você por aqui! O Acesso na Tela é uma iniciativa sem fins lucrativos que reúne, ' +
@@ -70,7 +79,8 @@ function _emailText(nome) {
     'recursos que você escolheu. Você também pode compartilhar sua experiência nas páginas dos filmes.\n\n' +
     'Ver filmes em cartaz: ' + SITE_URL + '\n\n' +
     'Você recebeu este e-mail porque se cadastrou no acessonatela.com. ' +
-    'Para sair da lista, responda este e-mail pedindo o descadastro.\n\n' +
+    'Este é um e-mail automático — por favor, não responda. ' +
+    'Para deixar de receber, acesse: ' + _unsubUrl(email) + '\n\n' +
     '“Nada sobre nós, sem nós.”';
 }
 
@@ -122,8 +132,8 @@ exports.handler = async function (event) {
     from:    FROM,
     to:      [email],
     subject: 'Bem-vindo(a) ao Acesso na Tela 🎬',
-    html:    _emailHtml(nome),
-    text:    _emailText(nome),
+    html:    _emailHtml(nome, email),
+    text:    _emailText(nome, email),
   };
   if (REPLY_TO) body.reply_to = REPLY_TO;
 
