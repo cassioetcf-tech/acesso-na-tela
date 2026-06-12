@@ -319,7 +319,8 @@ function _renderIngresso(e) {
   if (lr) lr.textContent = 'Página do filme: ' + title;
 
   // Linha de origem: título original · ano · país · distribuidora
-  var year = ((e.premiereDate || '').match(/\d{4}/) || [''])[0];
+  var premiere = String(e.premiereDate || '');
+  var year = (premiere.match(/\d{4}/) || [''])[0];
   var origParts = [];
   if (e.originalTitle && e.originalTitle !== title) origParts.push(e.originalTitle);
   if (year)           origParts.push(year);
@@ -344,7 +345,7 @@ function _renderIngresso(e) {
   var genre   = (e.genres || [])[0];
   var runtime = e.duration ? (e.duration >= 60 ? Math.floor(e.duration / 60) + 'h ' + (e.duration % 60) + 'min' : e.duration + 'min') : '';
   var dateStr = '';
-  if (e.premiereDate) { try { dateStr = new Date(e.premiereDate.slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (x) {} }
+  if (premiere) { try { dateStr = new Date(premiere.slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (x) {} }
   var pills = document.getElementById('fp-meta-pills');
   if (pills) {
     pills.innerHTML = '';
