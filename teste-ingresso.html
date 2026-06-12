@@ -97,11 +97,7 @@
             '<div class="nome">' + titulo + '</div>' +
             '<div class="meta">' + esc(meta(e)) + '</div>' +
             (f.app ? '<div class="app">' + esc(f.app) + '</div>' : '') +
-            '<div class="ficha">' +
-              (e.originalTitle ? '<b>Original:</b> ' + esc(e.originalTitle) + '<br>' : '') +
-              (e.director ? '<b>Direção:</b> ' + esc(e.director) + '<br>' : '') +
-              (e.distributor ? '<b>Distribuidora:</b> ' + esc(e.distributor) : '') +
-            '</div>' +
+            (e.distributor ? '<div class="ficha"><b>Distribuidora:</b> ' + esc(e.distributor) + '</div>' : '') +
           '</div>';
         grid.appendChild(card);
         feitos++;
