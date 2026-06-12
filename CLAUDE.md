@@ -289,6 +289,13 @@ Windows Task Scheduler na máquina do desenvolvedor:
 Complementa a FASE 3 do `sync-status` para apps sem fonte pública conhecida (GRETA, Trio, Conecta).
 Ver prompt técnico completo gerado na sessão de 2026-05.
 
+**`newsletter-weekly.js` — cron segunda 11h UTC (08h BRT)** (`schedule = "0 11 * * 1"`).
+Pega em `filmes` os lançamentos com `release_date` DESTA semana (seg→dom) e
+`app_status=confirmado`, monta a lista (pôster + app + badges AD/LSE/Libras + link)
+e envia via Resend (batch de 100) a todos com `aceita_email=true`. Não envia se a
+semana não tiver lançamentos. Usa **`SUPA_SERVICE_KEY`** (lê os inscritos — PII —
+server-side) + `RESEND_API_KEY` + `WELCOME_FROM`/`WELCOME_REPLY_TO`.
+
 **`welcome.js`** — e-mail de boas-vindas via **Resend**. Acionada por **Database
 Webhook do Supabase** no `INSERT` da tabela `newsletter` (só cadastro novo).
 Respeita `aceita_email`; não envia WhatsApp (fase futura). Env vars no Netlify:

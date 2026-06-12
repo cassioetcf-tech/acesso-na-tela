@@ -48,9 +48,9 @@ function _emailHtml(nome, email) {
         e os aplicativos que oferecem esses recursos.
       </p>
       <p style="font-size:15px;line-height:1.7;margin:0 0 16px;color:#444;">
-        A partir de agora, você vai receber avisos quando um filme acessível estrear, conforme os recursos
-        que você escolheu. Você também pode compartilhar sua experiência nas páginas dos filmes — sua opinião
-        ajuda a melhorar a acessibilidade para toda a comunidade.
+        A partir de agora, <strong>toda segunda-feira</strong> você recebe um e-mail com os lançamentos da semana
+        que têm audiodescrição, legenda descritiva e Libras nos cinemas. Você também pode compartilhar sua
+        experiência nas páginas dos filmes — sua opinião ajuda a melhorar a acessibilidade para toda a comunidade.
       </p>
       <p style="text-align:center;margin:26px 0 22px;">
         <a href="${SITE_URL}" style="background:#1A1A1A;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:13px 26px;border-radius:8px;display:inline-block;">Ver filmes em cartaz</a>
@@ -75,8 +75,8 @@ function _emailText(nome, email) {
     'Que bom ter você por aqui! O Acesso na Tela é uma iniciativa sem fins lucrativos que reúne, ' +
     'num só lugar, os filmes com recursos de acessibilidade nos cinemas — audiodescrição, legenda ' +
     'descritiva e Libras — e os aplicativos que oferecem esses recursos.\n\n' +
-    'A partir de agora, você vai receber avisos quando um filme acessível estrear, conforme os ' +
-    'recursos que você escolheu. Você também pode compartilhar sua experiência nas páginas dos filmes.\n\n' +
+    'A partir de agora, toda segunda-feira você recebe um e-mail com os lançamentos da semana que têm ' +
+    'audiodescrição, legenda descritiva e Libras nos cinemas. Você também pode compartilhar sua experiência nas páginas dos filmes.\n\n' +
     'Ver filmes em cartaz: ' + SITE_URL + '\n\n' +
     'Você recebeu este e-mail porque se cadastrou no acessonatela.com. ' +
     'Este é um e-mail automático — por favor, não responda. ' +
