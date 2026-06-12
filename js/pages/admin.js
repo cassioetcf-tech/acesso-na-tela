@@ -1,7 +1,7 @@
 // ── ADMIN PAGE ────────────────────────────────────────────────────────────────
-// Lógica da página admin.html: autenticação, CRUD de filmes, preview TMDb,
-// importador Ingresso e sincronização automática de status.
-// Depende de: js/api/supabase.js, js/api/tmdb.js, js/api/ingresso.js,
+// Lógica da página admin.html: autenticação, CRUD de filmes, preview Ingresso
+// e sincronização automática de status.
+// Depende de: js/api/supabase.js, js/api/ingresso.js,
 //             js/utils.js (escHtml)
 
 // ── Config local ──────────────────────────────────────────────────────────────
@@ -128,14 +128,6 @@ function updateStats() {
   _set('stat-cartaz',  _filmes.filter(function (f) { return (f.status || '').toLowerCase() === 'cartaz';   }).length);
   _set('stat-breve',   _filmes.filter(function (f) { return (f.status || '').toLowerCase() === 'breve';    }).length);
   _set('stat-catalogo',_filmes.filter(function (f) { return (f.status || '').toLowerCase() === 'catalogo'; }).length);
-
-  // Mostra/oculta aba "Sem TMDb" conforme existência de filmes sem tmdb_id
-  var semTmdb  = _filmes.filter(function (f) { return !f.tmdb_id; }).length;
-  var tabSemTmdb = document.getElementById('tab-semtmdb');
-  if (tabSemTmdb) {
-    tabSemTmdb.style.display = semTmdb > 0 ? '' : 'none';
-    tabSemTmdb.textContent   = '⚠️ Sem TMDb (' + semTmdb + ')';
-  }
 }
 
 function _set(id, val) {
@@ -188,9 +180,7 @@ function renderTable() {
 
   var list = _filmes.filter(function (f) {
     var s = (f.status || '').toLowerCase();
-    var matchFilter = _currentFilter === 'todos'   ? true :
-                      _currentFilter === 'semtmdb' ? !f.tmdb_id :
-                      s === _currentFilter;
+    var matchFilter = _currentFilter === 'todos' ? true : s === _currentFilter;
     var matchSearch = !q || (f.titulo || '').toLowerCase().includes(q);
     return matchFilter && matchSearch;
   });
@@ -214,9 +204,9 @@ function renderTable() {
       vb = ord[(b.status || '').toLowerCase()] !== undefined ? ord[(b.status || '').toLowerCase()] : 3;
       return _sortDir === 'asc' ? va - vb : vb - va;
     }
-    // data lançamento (tmdb_data.release_date), fallback created_at
-    va = (a.tmdb_data && a.tmdb_data.release_date) || a.created_at || '';
-    vb = (b.tmdb_data && b.tmdb_data.release_date) || b.created_at || '';
+    // data lançamento (ingresso_data.premiereDate), fallback created_at
+    va = (a.ingresso_data && a.ingresso_data.premiereDate) || a.created_at || '';
+    vb = (b.ingresso_data && b.ingresso_data.premiereDate) || b.created_at || '';
     return _sortDir === 'desc' ? (va > vb ? -1 : 1) : (va < vb ? -1 : 1);
   });
 
@@ -245,21 +235,18 @@ function renderTable() {
              '<span class="a11y-chip chip-libras">LIBRAS</span>';
     })();
 
-    var semTmdbBadge = !f.tmdb_id
-      ? '<span title="Sem dados do TMDb — edite para corrigir" style="display:inline-block;margin-left:6px;font-size:11px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:4px;padding:1px 5px;vertical-align:middle;cursor:default;">⚠️ TMDb</span>'
-      : '';
     var pendentebadge = _getAppStatusAdmin(f) === 'pendente'
       ? '<span title="Aguardando classificação de acessibilidade" style="display:inline-block;margin-left:4px;font-size:11px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:1px 5px;vertical-align:middle;cursor:default;">Pendente</span>'
       : '';
 
-    var releaseDate = (f.tmdb_data && f.tmdb_data.release_date)
-      ? new Date(f.tmdb_data.release_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    var releaseDate = (f.ingresso_data && f.ingresso_data.premiereDate)
+      ? new Date(f.ingresso_data.premiereDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
       : '—';
 
     html +=
       '<tr>' +
         '<td>' +
-          '<div class="td-title">' + escHtml(f.titulo) + semTmdbBadge + pendentebadge + '</div>' +
+          '<div class="td-title">' + escHtml(f.titulo) + pendentebadge + '</div>' +
           (f.url_key ? '<div class="td-urlkey">' + escHtml(f.url_key) + '</div>' : '') +
         '</td>' +
         '<td>' + (f.app ? '<span class="app-badge">' + escHtml(f.app) + '</span>' : '<span style="color:var(--ink3);font-size:12px">—</span>') + '</td>' +
@@ -303,12 +290,10 @@ function openModal(id) {
     }
 
     setSemA11y(!!(f.a11y && f.a11y.ad === false && f.a11y.lse === false && f.a11y.libras === false));
-    if (f.tmdb_data) {
-      showPreview(f.tmdb_data);
-    } else {
-      // Sem dados do TMDb — mostra alerta, campo de ID manual, e já busca automaticamente
-      _setTmdbAlert(true);
-      setTimeout(fetchPreview, 200); // dispara busca com o título já preenchido
+    if (f.ingresso_data && f.ingresso_data.poster) {
+      showPreview(f.ingresso_data);
+    } else if (f.url_key) {
+      setTimeout(fetchPreview, 200); // busca dados do Ingresso pela url_key
     }
     var svEl = document.getElementById('f-sinopse-video');
     if (svEl) svEl.value = f.sinopse_video_id || '';
@@ -335,40 +320,16 @@ function clearForm() {
   document.getElementById('f-ingresso-url').value     = '';
   document.getElementById('f-status').value           = 'cartaz';
   document.getElementById('urlkey-preview').textContent = '—';
-  document.getElementById('tmdb-preview').innerHTML   = '<div class="preview-loading">Digite o título para buscar dados do filme</div>';
-  var manualEl = document.getElementById('f-tmdb-id-manual');
-  if (manualEl) manualEl.value = '';
+  var prevEl = document.getElementById('ingresso-preview');
+  if (prevEl) prevEl.innerHTML = '<div class="preview-loading">Cole a URL da Ingresso para buscar os dados do filme</div>';
   var tvEl2 = document.getElementById('f-trailer-acessivel');
   if (tvEl2) tvEl2.value = '';
-  _setTmdbAlert(false);
   document.querySelectorAll('.app-option').forEach(function (el) {
     el.classList.remove('selected');
     var r = el.querySelector('input[type=radio]');
     if (r) r.checked = false;
   });
   setSemA11y(false);
-}
-
-function _setTmdbAlert(show) {
-  var alertField  = document.getElementById('tmdb-alert-field');
-  var manualField = document.getElementById('tmdb-id-manual-field');
-  if (alertField)  alertField.style.display  = show ? '' : 'none';
-  if (manualField) manualField.style.display = show ? '' : 'none';
-}
-
-async function onManualTmdbId() {
-  var raw = ((document.getElementById('f-tmdb-id-manual') || {}).value || '').trim();
-  var id  = parseInt(raw, 10);
-  if (!id) return;
-  var preview = document.getElementById('tmdb-preview');
-  if (preview) preview.innerHTML = '<div class="preview-loading">Buscando TMDb ID ' + id + '...</div>';
-  try {
-    var data = await getMovie(id);
-    if (data && data.id) { showPreview(data); _setTmdbAlert(false); }
-    else if (preview) preview.innerHTML = '<div class="preview-loading">ID não encontrado no TMDb</div>';
-  } catch (e) {
-    if (preview) preview.innerHTML = '<div class="preview-loading">Erro ao buscar ID no TMDb</div>';
-  }
 }
 
 function selectApp(name, el) {
@@ -396,105 +357,81 @@ function extractUrlKey() {
   var key   = match ? match[1] : '';
   var el    = document.getElementById('urlkey-preview');
   if (el) el.textContent = key || '—';
+  debouncePreview();
   return key;
 }
 
-// ── TMDb preview ──────────────────────────────────────────────────────────────
+// ── Ingresso preview ────────────────────────────────────────────────────────────
 function debouncePreview() {
   clearTimeout(_previewTimer);
-  _previewTimer = setTimeout(fetchPreview, 800);
+  _previewTimer = setTimeout(fetchPreview, 600);
 }
 
-// Remove "(2026)", "[...]" etc. do título antes de buscar no TMDb.
-// O TMDb retorna 0 resultados se a query tiver o ano entre parênteses.
-function _cleanTitleForSearch(t) {
-  return (t || '').replace(/\([^)]*\)/g, ' ').replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim();
-}
-// Extrai um ano (19xx/20xx) do título, se houver — usado para desambiguar remakes.
-function _extractYear(t) {
-  var m = (t || '').match(/\b(19|20)\d{2}\b/);
-  return m ? m[0] : null;
-}
-
-/**
- * Busca o melhor match no TMDb:
- *  - limpa o título (tira "(2026)") antes de buscar
- *  - casa por título (normT ignora pontuação/ano) e, se houver ano, prioriza a edição daquele ano
- *  - fallbacks: sem subtítulo, depois 1º resultado com poster
- */
-async function searchMovieBest(titulo) {
-  if (!titulo || titulo.length < 2) return null;
-  try {
-    var clean = _cleanTitleForSearch(titulo) || titulo;
-    var year  = _extractYear(titulo);
-
-    var pick = function (results) {
-      if (!results || !results.length) return null;
-      var matches = results.filter(function (r) {
-        return titlesMatch(r.title, clean) || titlesMatch(r.original_title, clean) ||
-               titlesMatch(r.title, titulo) || titlesMatch(r.original_title, titulo);
-      });
-      if (!matches.length) return null;
-      if (year) {
-        var byYear = matches.filter(function (r) { return (r.release_date || '').slice(0, 4) === year; });
-        if (byYear.length) return byYear[0];
-      }
-      return matches[0];
-    };
-
-    // Nível 1: busca pelo título limpo
-    var r1 = await searchMovie(clean);
-    var m1 = pick(r1);
-    if (m1) return m1;
-
-    // Nível 2: busca sem subtítulo (ex: "Título: Subtítulo" → "Título")
-    var base = clean.replace(/\s*[:\-–—]\s*.+$/, '').trim();
-    if (base && base !== clean && base.length >= 3) {
-      var r2 = await searchMovie(base);
-      var m2 = pick(r2);
-      if (m2) return m2;
-      if (r2[0] && r2[0].poster_path) return r2[0];
-    }
-
-    // Nível 3: fallback — 1º resultado com poster
-    if (r1[0] && r1[0].poster_path) return r1[0];
-  } catch (e) {}
-  return null;
+// Monta o subconjunto de dados do Ingresso que é cacheado em filmes.ingresso_data.
+// (Mesma forma usada pelo netlify/functions/sync-status.js)
+function ingressoData(e) {
+  var poster = '';
+  var imgs = e.images || [];
+  for (var i = 0; i < imgs.length; i++) {
+    if (imgs[i] && imgs[i].type === 'PosterPortrait' && imgs[i].url) { poster = imgs[i].url; break; }
+  }
+  if (!poster) { for (var j = 0; j < imgs.length; j++) { if (imgs[j] && imgs[j].url) { poster = imgs[j].url; break; } } }
+  return {
+    title:         e.title || '',
+    originalTitle: e.originalTitle || '',
+    poster:        poster,
+    genres:        e.genres || [],
+    duration:      e.duration || null,
+    contentRating: e.contentRating || '',
+    synopsis:      e.synopsis || '',
+    countryOrigin: e.countryOrigin || '',
+    distributor:   e.distributor || '',
+    premiereDate:  (e.premiereDate && e.premiereDate.localDate) || '',
+  };
 }
 
+// Busca os dados do filme no Ingresso a partir da url_key (campo URL).
 async function fetchPreview() {
-  var title = (document.getElementById('f-titulo') || {}).value || '';
-  title = title.trim();
-  if (title.length < 2) return;
-
-  var preview = document.getElementById('tmdb-preview');
-  if (preview) preview.innerHTML = '<div class="preview-loading">Buscando no TMDb...</div>';
-
+  var urlKey = extractUrlKeyValue();
+  var preview = document.getElementById('ingresso-preview');
+  if (!urlKey) {
+    if (preview) preview.innerHTML = '<div class="preview-loading">Cole a URL da Ingresso para buscar os dados do filme</div>';
+    return;
+  }
+  if (preview) preview.innerHTML = '<div class="preview-loading">Buscando no Ingresso.com...</div>';
   try {
-    var result = await searchMovieBest(title);
-    if (!result) {
-      if (preview) preview.innerHTML = '<div class="preview-loading">Filme não encontrado no TMDb</div>';
+    var ev = await getEventId(urlKey);
+    if (!ev || !ev.id) {
+      if (preview) preview.innerHTML = '<div class="preview-loading">Filme não encontrado no Ingresso</div>';
       return;
     }
-    showPreview(result);
+    showPreview(ingressoData(ev));
   } catch (e) {
-    if (preview) preview.innerHTML = '<div class="preview-loading">Erro ao buscar no TMDb</div>';
+    if (preview) preview.innerHTML = '<div class="preview-loading">Erro ao buscar no Ingresso</div>';
   }
 }
 
-function showPreview(data) {
-  var preview    = document.getElementById('tmdb-preview');
+// Lê a url_key sem reagendar o preview (evita loop com extractUrlKey).
+function extractUrlKeyValue() {
+  var url   = (document.getElementById('f-ingresso-url') || {}).value || '';
+  var match = url.trim().match(/ingresso\.com\/filme\/([^/?]+)/);
+  return match ? match[1] : '';
+}
+
+function showPreview(ig) {
+  var preview = document.getElementById('ingresso-preview');
   if (!preview) return;
-  var posterUrl  = data.poster_path ? 'https://image.tmdb.org/t/p/w92' + data.poster_path : '';
-  var year       = (data.release_date || '').slice(0, 4);
+  var poster = ig.poster || '';
+  var year   = (ig.premiereDate || '').slice(0, 4);
+  var meta   = [year, (ig.genres && ig.genres[0]) || '', ig.contentRating || ''].filter(Boolean).join(' · ');
 
   preview.innerHTML =
     '<div class="preview-film">' +
-      (posterUrl ? '<img class="preview-poster" src="' + posterUrl + '" alt="">' : '') +
+      (poster ? '<img class="preview-poster" src="' + poster + '" alt="">' : '') +
       '<div>' +
-        '<div class="preview-title">' + escHtml(data.title || data.original_title || '') + '</div>' +
-        '<div class="preview-meta">' + (year ? year + ' · ' : '') + (data.vote_average ? '★ ' + data.vote_average.toFixed(1) : '') + '</div>' +
-        '<div class="preview-meta" style="margin-top:4px;font-size:11px;color:#888">TMDb ID: ' + data.id + '</div>' +
+        '<div class="preview-title">' + escHtml(ig.title || ig.originalTitle || '') + '</div>' +
+        '<div class="preview-meta">' + escHtml(meta) + '</div>' +
+        (ig.distributor ? '<div class="preview-meta" style="margin-top:4px;font-size:11px;color:#888">' + escHtml(ig.distributor) + '</div>' : '') +
       '</div>' +
     '</div>';
 }
@@ -520,23 +457,19 @@ async function saveFilme() {
   btn.disabled  = true;
 
   try {
-    var tmdbData = null;
-
-    // 1. ID manual tem prioridade — busca direta pelo ID no TMDb
-    var manualId = parseInt(((document.getElementById('f-tmdb-id-manual') || {}).value || '').trim(), 10);
-    if (manualId) {
-      try { tmdbData = await getMovie(manualId); } catch (e) {}
+    // Busca os dados do filme no Ingresso pela url_key (poster, ficha, sinopse).
+    var igData = null;
+    if (urlKey) {
+      try {
+        var ev = await getEventId(urlKey);
+        if (ev && ev.id) igData = ingressoData(ev);
+      } catch (e) {}
     }
 
-    // 2. Busca por título se não veio ID manual (3 níveis via searchMovieBest)
-    if (!tmdbData) {
-      tmdbData = await searchMovieBest(titulo);
-    }
-
-    // 3. Edição: preserva tmdb_id já existente se nenhuma das buscas acima encontrou
+    // Edição: preserva os dados do Ingresso já existentes se a busca acima falhou.
     var existingFilme = _editId ? _filmes.find(function (x) { return x.id === _editId; }) : null;
-    if (!tmdbData && existingFilme && existingFilme.tmdb_id) {
-      tmdbData = existingFilme.tmdb_data || { id: existingFilme.tmdb_id };
+    if (!igData && existingFilme && existingFilme.ingresso_data) {
+      igData = existingFilme.ingresso_data;
     }
 
     var a11yVal = _semA11yActive
@@ -556,8 +489,7 @@ async function saveFilme() {
       app_status:   appStatus,
       status:       status,
       a11y:         a11yVal,
-      tmdb_id:      tmdbData ? tmdbData.id : null,
-      tmdb_data:    tmdbData || null,
+      ingresso_data: igData || null,
       updated_at:   new Date().toISOString(),
     };
     // Campos opcionais: só inclui se preenchidos (colunas podem ainda não existir no schema)
@@ -677,8 +609,8 @@ async function _checkFilmHasSessions(urlKey) {
 
 // ── Sincronização completa ────────────────────────────────────────────────────
 // FASE 1 — Ingresso: descobre filmes novos via Ingresso + verifica sessões.
-// FASE 2 — TMDb: enriquece filmes sem poster/dados com informações do TMDb.
-// FASE 3 — Apps: filmes_scaneados (MovieReading/Conecta/MLOAD/Trio) + PingPlay (API) + GRETA (Paramount).
+// FASE 2 — Apps: filmes_scaneados (MovieReading/Conecta/MLOAD/Trio) + PingPlay (API) + GRETA (Paramount).
+// FASE 3 — Ingresso: enriquece filmes em cartaz com poster, ficha técnica e sinopse.
 
 async function runSync() {
   var btn      = document.getElementById('btn-sync');
@@ -712,7 +644,6 @@ async function runSync() {
   var mIngresso  = 0; // filmes em cartaz no Ingresso.com
   var mSessoes   = 0; // filmes com sessão nesta semana (status CARTAZ)
   var mApps      = 0; // filmes encontrados nos apps
-  var mTmdb      = 0; // filmes encontrados no TMDb
 
   // ── FASE 1: Ingresso — Descoberta + Verificação de sessões ──────────────────
   addLog('ok', '🎟️', '<strong>Fase 1</strong> — Ingresso.com: descoberta + sessões', null, null);
@@ -746,7 +677,7 @@ async function runSync() {
             ingresso_url: 'https://www.ingresso.com/filme/' + nf.urlKey,
             status: statusInicial, app_status: 'pendente', app: null,
             a11y: { ad: false, lse: false, libras: false },
-            tmdb_id: null, tmdb_data: null, // enriquecido na Fase 2
+            ingresso_data: null, // enriquecido na Fase 3 (Ingresso)
             created_at: now, updated_at: now,
           }, 'resolution=ignore-duplicates,return=minimal')
           .then(function () {
@@ -803,7 +734,7 @@ async function runSync() {
 
   // ── FASE 2: Apps — Auto-classificação ───────────────────────────────────────
   // Fontes: tabela filmes_scaneados (MovieReading/Conecta/MLOAD/Trio) + PingPlay (API) + GRETA (Paramount/filmeb)
-  // Varre TODOS os filmes com sessão na semana (status CARTAZ). Roda ANTES do TMDb — não depende dele.
+  // Varre TODOS os filmes com sessão na semana (status CARTAZ).
   addLog('ok', '🎯', '<strong>Fase 2</strong> — Auto-classificação: filmes_scaneados + PingPlay + GRETA', null, null);
   setProgress(55, 'Buscando fontes de acessibilidade...');
 
@@ -1006,44 +937,44 @@ async function runSync() {
     addLog('err', '✕', 'Fase 2 erro: ' + e.message, null, null);
   }
 
-  // ── FASE 3: TMDb — Enriquecimento de dados (por último; não bloqueia os apps) ─
-  addLog('ok', '🎬', '<strong>Fase 3</strong> — TMDb: buscando poster e dados dos filmes', null, null);
-  setProgress(80, 'Buscando dados no TMDb...');
+  // ── FASE 3: Ingresso — Enriquecimento de dados (poster, ficha, sinopse) ───────
+  addLog('ok', '🎬', '<strong>Fase 3</strong> — Ingresso: buscando poster e dados dos filmes', null, null);
+  setProgress(80, 'Buscando dados no Ingresso.com...');
 
   try { _filmes = await supabaseGet('filmes', 'order=created_at.desc&limit=500'); } catch (e) {}
 
   var semDados = _filmes.filter(function (f) {
-    return !f.tmdb_data && (f.status || '').toLowerCase() === 'cartaz';
+    return !f.ingresso_data && f.url_key && (f.status || '').toLowerCase() === 'cartaz';
   });
 
   if (!semDados.length) {
-    addLog('ok', '✓', 'Todos os filmes em cartaz já têm dados do TMDb', null, null);
+    addLog('ok', '✓', 'Todos os filmes em cartaz já têm dados do Ingresso', null, null);
   } else {
-    addLog('ok', '🔍', '<strong>' + semDados.length + '</strong> filme(s) sem dados — buscando no TMDb...', null, null);
+    addLog('ok', '🔍', '<strong>' + semDados.length + '</strong> filme(s) sem dados — buscando no Ingresso...', null, null);
     for (var t = 0; t < semDados.length; t++) {
       var sf = semDados[t];
-      setProgress(80 + Math.round((t / semDados.length) * 18), 'TMDb ' + (t + 1) + '/' + semDados.length + ': ' + sf.titulo);
+      setProgress(80 + Math.round((t / semDados.length) * 18), 'Ingresso ' + (t + 1) + '/' + semDados.length + ': ' + sf.titulo);
       try {
-        var tmdbData = await searchMovieBest(sf.titulo);
-
-        if (tmdbData) {
-          await supabasePatch('filmes', 'id=eq.' + sf.id, { tmdb_id: tmdbData.id, tmdb_data: tmdbData, updated_at: now });
+        var ev = await getEventId(sf.url_key);
+        if (ev && ev.id) {
+          var igData = ingressoData(ev);
+          await supabasePatch('filmes', 'id=eq.' + sf.id, { ingresso_data: igData, updated_at: now });
           addLog('ok', '🎬', '<strong>' + escHtml(sf.titulo) + '</strong> — poster e dados atualizados', null, null);
           var sfIdx = _filmes.findIndex(function (x) { return x.id === sf.id; });
-          if (sfIdx > -1) { _filmes[sfIdx].tmdb_id = tmdbData.id; _filmes[sfIdx].tmdb_data = tmdbData; }
+          if (sfIdx > -1) { _filmes[sfIdx].ingresso_data = igData; }
           enriched++;
         } else {
-          addLog('skip', '—', escHtml(sf.titulo) + ' — não encontrado no TMDb', null, null);
+          addLog('skip', '—', escHtml(sf.titulo) + ' — não encontrado no Ingresso', null, null);
         }
       } catch (e) {
-        addLog('err', '✕', escHtml(sf.titulo) + ' — TMDb: ' + e.message, null, null);
+        addLog('err', '✕', escHtml(sf.titulo) + ' — Ingresso: ' + e.message, null, null);
       }
     }
   }
 
   // ── Resumo final (tabela) ────────────────────────────────────────────────────
-  mTmdb = _filmes.filter(function (f) {
-    return (f.status || '').toLowerCase() === 'cartaz' && f.tmdb_data;
+  var mDados = _filmes.filter(function (f) {
+    return (f.status || '').toLowerCase() === 'cartaz' && f.ingresso_data;
   }).length;
 
   var resumoHtml =
@@ -1052,7 +983,7 @@ async function runSync() {
       '<tr><td style="padding:1px 14px 1px 0">🎟️ Em cartaz no Ingresso.com</td><td style="font-weight:700;text-align:right">' + mIngresso + '</td></tr>' +
       '<tr><td style="padding:1px 14px 1px 0">📅 Com sessões nesta semana</td><td style="font-weight:700;text-align:right">' + mSessoes + '</td></tr>' +
       '<tr><td style="padding:1px 14px 1px 0">📱 Encontrados nos apps</td><td style="font-weight:700;text-align:right">' + mApps + '</td></tr>' +
-      '<tr><td style="padding:1px 14px 1px 0">🎬 Encontrados no TMDb</td><td style="font-weight:700;text-align:right">' + mTmdb + '</td></tr>' +
+      '<tr><td style="padding:1px 14px 1px 0">🎬 Com dados do Ingresso</td><td style="font-weight:700;text-align:right">' + mDados + '</td></tr>' +
     '</table>';
   addLog('ok', '📊', resumoHtml, null, null);
 
@@ -1066,7 +997,7 @@ async function runSync() {
   var summaryParts = [];
   if (discovered > 0) summaryParts.push(discovered + ' novo(s)');
   if (changed    > 0) summaryParts.push(changed    + ' status atualizado(s)');
-  if (enriched   > 0) summaryParts.push(enriched   + ' enriquecido(s) no TMDb');
+  if (enriched   > 0) summaryParts.push(enriched   + ' enriquecido(s) no Ingresso');
   if (errors     > 0) summaryParts.push(errors     + ' erro(s)');
   if (!summaryParts.length) summaryParts.push('Tudo em dia — nenhuma alteração necessária');
 

@@ -83,7 +83,7 @@
                 Roda automaticamente todo dia às <strong>6h UTC (3h de Brasília)</strong> — ou acione manualmente.<br>
                 <strong>1.</strong> Ingresso.com: descobre filmes novos + atualiza status (em cartaz / catálogo) &nbsp;·&nbsp;
                 <strong>2.</strong> Apps: auto-classifica via tabela <em>filmes_scaneados</em> (MovieReading, Conecta, MLOAD, Trio), PingPlay (scraping) e GRETA (Paramount) &nbsp;·&nbsp;
-                <strong>3.</strong> TMDb: enriquece dados (poster, data de lançamento, gênero)
+                <strong>3.</strong> Ingresso.com: enriquece dados (poster, ficha técnica, sinopse)
               </div>
             </div>
           </div>
@@ -138,7 +138,6 @@
         <div class="filter-tab" onclick="setFilter('cartaz',this)">Em cartaz</div>
         <div class="filter-tab" onclick="setFilter('breve',this)">Em breve</div>
         <div class="filter-tab" onclick="setFilter('catalogo',this)">Catálogo</div>
-        <div class="filter-tab filter-tab-warn" onclick="setFilter('semtmdb',this)" id="tab-semtmdb" style="display:none;">⚠️ Sem TMDb</div>
       </div>
 
       <!-- TABLE -->
@@ -175,7 +174,7 @@
 
       <div class="field">
         <label>Título do filme *</label>
-        <input type="text" id="f-titulo" placeholder="Ex: O Drama" oninput="debouncePreview()">
+        <input type="text" id="f-titulo" placeholder="Ex: O Drama">
         <div class="field-hint">Nome exato como aparece na Ingresso.com</div>
       </div>
 
@@ -185,29 +184,11 @@
         <div class="field-hint">urlKey extraído: <strong id="urlkey-preview" style="color:var(--laranja)">—</strong></div>
       </div>
 
-      <div class="field" id="tmdb-alert-field" style="display:none;">
-        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;">
-          <span style="font-size:18px;line-height:1.3;">⚠️</span>
-          <div style="font-size:13px;color:#92400e;line-height:1.5;">
-            <strong>Filme sem dados do TMDb.</strong> O título pode ter uma pequena diferença de ortografia entre o Ingresso e o TMDb
-            (ex: vírgula vs. dois pontos). Busque o filme em
-            <a href="https://www.themoviedb.org/search" target="_blank" rel="noopener" style="color:#d97706;font-weight:600;">themoviedb.org</a>
-            e cole o ID abaixo para corrigir.
-          </div>
-        </div>
-      </div>
-
       <div class="field">
-        <label>Preview TMDb</label>
-        <div class="preview-wrap" id="tmdb-preview">
-          <div class="preview-loading">Digite o título para buscar dados do filme</div>
+        <label>Preview Ingresso.com</label>
+        <div class="preview-wrap" id="ingresso-preview">
+          <div class="preview-loading">Cole a URL da Ingresso para buscar os dados do filme</div>
         </div>
-      </div>
-
-      <div class="field" id="tmdb-id-manual-field" style="display:none;">
-        <label>ID do TMDb (manual)</label>
-        <input type="text" id="f-tmdb-id-manual" placeholder="Ex: 12345" oninput="onManualTmdbId()">
-        <div class="field-hint">Cole o ID numérico do TMDb para forçar o vínculo correto</div>
       </div>
 
       <div class="field">
@@ -258,7 +239,7 @@
       <div class="field">
         <label>Trailer acessível (YouTube ID)</label>
         <input type="text" id="f-trailer-acessivel" placeholder="Ex: dQw4w9WgXcQ">
-        <div class="field-hint">Substitui o trailer do TMDb pelo link acessível (AD/Libras). Deixe em branco para manter o original.</div>
+        <div class="field-hint">Substitui o trailer do Ingresso pelo link acessível (AD/Libras). Deixe em branco para manter o original.</div>
       </div>
 
       <div class="field">
@@ -280,8 +261,7 @@
   <script src="/js/config.js"></script>
   <script src="/js/utils.js"></script>
   <script src="/js/api/supabase.js"></script>
-  <script src="/js/api/tmdb.js"></script>
   <script src="/js/api/ingresso.js"></script>
-  <script src="/js/pages/admin.js?v=20260517e"></script>
+  <script src="/js/pages/admin.js?v=20260612"></script>
 </body>
 </html>
