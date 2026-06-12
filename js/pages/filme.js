@@ -544,9 +544,16 @@ async function submitComentario() {
   var autor  = ((document.getElementById('comment-nome')  || {}).value || '').trim();
   var email  = ((document.getElementById('comment-email') || {}).value || '').trim();
   var texto  = ((document.getElementById('comment-texto') || {}).value || '').trim();
+  var optin  = !!((document.getElementById('comment-optin') || {}).checked);
 
-  if (!email) {
-    _commentFeedback('Informe seu e-mail cadastrado para enviar um relato.', true);
+  if (!autor) {
+    _commentFeedback('Informe seu nome.', true);
+    var nEl = document.getElementById('comment-nome');
+    if (nEl) nEl.focus();
+    return;
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    _commentFeedback('Informe um e-mail válido.', true);
     var eEl = document.getElementById('comment-email');
     if (eEl) eEl.focus();
     return;
@@ -559,35 +566,17 @@ async function submitComentario() {
   }
 
   var btn = document.getElementById('btn-comentar');
-  if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
   _commentFeedback('', false);
 
-  // Verifica se o e-mail está cadastrado (RPC; fallback p/ leitura direta)
-  var registrado = false, checou = true;
-  try {
-    registrado = await supabaseRpc('email_cadastrado', { p_email: email });
-  } catch (e1) {
-    try {
-      var cad = await supabaseGet('newsletter', 'email=eq.' + encodeURIComponent(email.toLowerCase()) + '&limit=1');
-      registrado = !!(cad && cad.length);
-    } catch (e2) {
-      checou = false; // erro técnico → não bloqueia o envio
-      console.warn('Verificação de cadastro falhou:', e2.message);
-    }
-  }
-  if (checou && !registrado) {
-    _commentFeedback('E-mail não encontrado. Cadastre-se primeiro no portal para enviar relatos.', true);
-    if (btn) { btn.disabled = false; btn.textContent = 'Enviar relato'; }
-    return;
-  }
-
-  if (btn) btn.textContent = 'Enviando...';
-
-  // Atualiza o nome no cadastro e captura o vínculo (subscriber_id)
+  // Cadastra/atualiza o usuário NA HORA (sem bloquear nem redirecionar) e captura o vínculo.
+  // Opt-in de e-mail é opcional: marcado → aceita_email=true; desmarcado → não altera consentimento.
   var subId = null;
   try {
-    subId = await supabaseRpc('upsert_subscriber', { p_email: email, p_nome: autor || null, p_origem: 'comentario' });
-  } catch (e) { /* RPC indisponível — segue sem vínculo */ }
+    var params = { p_email: email, p_nome: autor, p_origem: 'comentario' };
+    if (optin) params.p_aceita_email = true;
+    subId = await supabaseRpc('upsert_subscriber', params);
+  } catch (e) { /* RPC indisponível — segue; o relato ainda é gravado */ }
 
   try {
     var _base = {

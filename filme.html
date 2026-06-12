@@ -163,25 +163,28 @@
 
             <div class="relatos-form-wrap" id="relatos-form-wrap">
               <h3 class="relatos-form-title">Deixe seu relato</h3>
-              <p class="relatos-form-desc">Somente cadastrados podem comentar. Seu e-mail será verificado.</p>
+              <p class="relatos-form-desc">Compartilhe sua experiência de acessibilidade neste filme. É só informar nome e e-mail — você é cadastrado(a) automaticamente.</p>
 
               <div class="relatos-field">
-                <label for="comment-nome" class="relatos-label">Nome</label>
-                <input type="text" id="comment-nome" class="relatos-input" placeholder="Seu nome" autocomplete="given-name">
+                <label for="comment-nome" class="relatos-label">Nome <span class="relatos-req">*</span></label>
+                <input type="text" id="comment-nome" class="relatos-input" placeholder="Seu nome" autocomplete="name" required>
               </div>
 
               <div class="relatos-field">
-                <label for="comment-email" class="relatos-label">E-mail cadastrado <span class="relatos-req">*</span></label>
+                <label for="comment-email" class="relatos-label">E-mail <span class="relatos-req">*</span></label>
                 <input type="email" id="comment-email" class="relatos-input" placeholder="seu@email.com" autocomplete="email" required>
               </div>
 
               <div class="relatos-field">
-                <label for="comment-texto" class="relatos-label">Relato</label>
+                <label for="comment-texto" class="relatos-label">Relato <span class="relatos-req">*</span></label>
                 <textarea id="comment-texto" class="relatos-ta" placeholder="Como foi sua experiência de acessibilidade neste filme?" rows="4"></textarea>
               </div>
 
+              <label class="relatos-optin" for="comment-optin">
+                <input type="checkbox" id="comment-optin"> Quero receber avisos de filmes acessíveis por e-mail.
+              </label>
+
               <button class="relatos-btn" onclick="submitComentario()" id="btn-comentar">Enviar relato</button>
-              <a href="index.html#newsletter" class="relatos-cadastro-link">Ainda não é cadastrado? Cadastre-se aqui →</a>
               <div id="comment-feedback" role="alert" aria-live="assertive"></div>
             </div>
 
@@ -221,6 +224,6 @@
   <script src="/js/components/header.js"></script>
   <script src="/js/components/footer.js"></script>
   <script src="/js/components/film-card.js"></script>
-  <script src="/js/pages/filme.js?v=20260518b"></script>
+  <script src="/js/pages/filme.js?v=20260519"></script>
 </body>
 </html>
