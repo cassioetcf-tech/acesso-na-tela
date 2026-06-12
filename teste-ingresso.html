@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>TESTE — Dados do Ingresso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    :root { --laranja:#D4500F; --ink:#1A1A1A; --ink2:#444; --ink3:#777; --bg:#F7F6F3; --bdr:rgba(0,0,0,.11);
+      --ad:#005C2E; --lse:#003D8F; --lib:#3D0070; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); font-family:'Inter',sans-serif; color:var(--ink); }
+    .wrap { max-width:1000px; margin:0 auto; padding:32px 20px 60px; }
+    .note { background:#FFF3CD; border:1px solid #E8C97A; border-radius:10px; padding:14px 16px; font-size:14px; color:#7a5b00; margin-bottom:24px; }
+    h1 { font-size:24px; margin:0 0 4px; }
+    .sub { color:var(--ink3); font-size:14px; margin:0 0 24px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:18px; }
+    .card { background:#fff; border:1px solid var(--bdr); border-radius:12px; overflow:hidden; }
+    .poster { position:relative; aspect-ratio:2/3; background:#e9e7e2; }
+    .poster img { width:100%; height:100%; object-fit:cover; display:block; }
+    .ph { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; color:#bbb; }
+    .badges { position:absolute; top:8px; left:8px; display:flex; flex-direction:column; gap:4px; }
+    .b { font-size:10px; font-weight:800; color:#fff; border-radius:4px; padding:2px 6px; }
+    .b-ad{background:var(--ad);} .b-lse{background:var(--lse);} .b-lib{background:var(--lib);}
+    .body { padding:12px; }
+    .nome { font-size:14px; font-weight:700; line-height:1.25; margin:0 0 4px; }
+    .meta { font-size:12px; color:var(--ink3); margin:0 0 8px; }
+    .app { font-size:12px; color:var(--laranja); font-weight:700; }
+    .ficha { font-size:11px; color:var(--ink2); margin-top:8px; border-top:1px solid var(--bdr); padding-top:8px; line-height:1.5; }
+    .ficha b { color:var(--ink); }
+    .loading { color:var(--ink3); font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="note">⚠️ <strong>Página de teste.</strong> Os cards abaixo usam <strong>somente dados do Ingresso.com</strong> (pôster, título, gênero, duração, ficha técnica) — nada do TMDb. Serve para validar a migração antes de aplicar no site.</div>
+    <h1>Filmes em cartaz — fonte: Ingresso.com</h1>
+    <p class="sub" id="sub">Carregando…</p>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/api/supabase.js"></script>
+  <script>
+    function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function poster(e){
+      var imgs = (e && e.images) || [];
+      var p = imgs.find(function(i){ return i.type === 'PosterPortrait' && i.url; })
+           || imgs.find(function(i){ return /poster/i.test(i.type) && i.url; });
+      return p ? p.url : '';
+    }
+    function badges(a){
+      a = a || {}; var h='';
+      if (a.ad     !== false) h += '<span class="b b-ad">AD</span>';
+      if (a.lse    !== false) h += '<span class="b b-lse">LSE</span>';
+      if (a.libras !== false) h += '<span class="b b-lib">LIBRAS</span>';
+      return h;
+    }
+    function meta(e){
+      var parts = [];
+      if (e.genres && e.genres.length) parts.push(e.genres[0]);
+      if (e.contentRating) parts.push(e.contentRating);
+      if (e.duration) parts.push(e.duration + ' min');
+      return parts.join(' · ');
+    }
+
+    (async function(){
+      var grid = document.getElementById('grid');
+      var sub  = document.getElementById('sub');
+      var filmes = [];
+      try {
+        filmes = await supabaseGet('filmes', 'status=ilike.cartaz&app_status=eq.confirmado&select=titulo,url_key,app,a11y&order=created_at.desc&limit=12');
+      } catch (e) { sub.textContent = 'Erro ao buscar filmes: ' + e.message; return; }
+
+      filmes = (filmes || []).filter(function(f){ return f.url_key; });
+      sub.textContent = filmes.length + ' filme(s) — carregando dados do Ingresso…';
+
+      var feitos = 0;
+      await Promise.all(filmes.map(async function(f){
+        var e = {};
+        try {
+          var r = await fetch('/api/ingresso?urlKey=' + encodeURIComponent(f.url_key));
+          e = await r.json();
+        } catch (err) {}
+        var p = poster(e);
+        var titulo = esc(e.title || f.titulo);
+        var card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML =
+          '<div class="poster">' +
+            (p ? '<img src="' + p + '" alt="" loading="lazy">' : '<div class="ph">' + esc((titulo||'?').slice(0,2).toUpperCase()) + '</div>') +
+            '<div class="badges">' + badges(f.a11y) + '</div>' +
+          '</div>' +
+          '<div class="body">' +
+            '<div class="nome">' + titulo + '</div>' +
+            '<div class="meta">' + esc(meta(e)) + '</div>' +
+            (f.app ? '<div class="app">' + esc(f.app) + '</div>' : '') +
+            '<div class="ficha">' +
+              (e.originalTitle ? '<b>Original:</b> ' + esc(e.originalTitle) + '<br>' : '') +
+              (e.director ? '<b>Direção:</b> ' + esc(e.director) + '<br>' : '') +
+              (e.distributor ? '<b>Distribuidora:</b> ' + esc(e.distributor) : '') +
+            '</div>' +
+          '</div>';
+        grid.appendChild(card);
+        feitos++;
+      }));
+      sub.textContent = feitos + ' filme(s) renderizados com dados do Ingresso.';
+    })();
+  </script>
+</body>
+</html>
