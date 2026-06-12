@@ -38,10 +38,8 @@ async function heroFormSubmit(e) {
   var feedback = document.getElementById('cad-feedback');
   var btn      = formEl.querySelector('button[type=submit]');
   var data     = new FormData(formEl);
+  var nome     = (data.get('nome') || '').trim();
   var email    = (data.get('email') || '').trim();
-  var celular  = (data.get('celular') || '').trim();
-  var aEmail   = ((document.getElementById('cad-consent-email') || {}).checked !== false);
-  var aWa      = !!((document.getElementById('cad-consent-wa') || {}).checked);
 
   if (!email) {
     _cadMsg(feedback, 'Informe seu e-mail.', true);
@@ -54,11 +52,11 @@ async function heroFormSubmit(e) {
 
   var saved = false;
 
-  // 1. Supabase (cadastro de usuário via RPC, com merge)
+  // 1. Supabase (cadastro de usuário via RPC, com merge). Só e-mail por enquanto.
   try {
     saved = await _saveSubscriber({
-      email: email, celular: celular,
-      aceita_email: aEmail, aceita_whatsapp: aWa, origem: 'hero',
+      nome: nome, email: email,
+      aceita_email: true, origem: 'hero',
     });
   } catch (e) { console.warn('Supabase hero form:', e.message); }
 
@@ -331,27 +329,21 @@ async function submitNewsletter(event) {
     return;
   }
 
-  var celular = ((document.getElementById('nl-cel') || {}).value || '').trim();
-  var prefs = Array.from(form.querySelectorAll('input[name="pref"]:checked'))
-                   .map(function (el) { return el.value; });
-
-  var aEmail = ((document.getElementById('nl-consent-email') || {}).checked !== false);
-  var aWa    = !!((document.getElementById('nl-consent-wa') || {}).checked);
-
   var btn = form.querySelector('button[type="submit"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
 
   try {
     var ok = await _saveSubscriber({
-      nome: nome.trim(), email: email.trim(), celular: celular,
-      prefs: prefs, aceita_email: aEmail, aceita_whatsapp: aWa, origem: 'newsletter',
+      nome: nome.trim(), email: email.trim(),
+      aceita_email: true, origem: 'newsletter',
     });
     if (!ok) throw new Error('falha ao salvar');
     var wrap    = document.getElementById('nl-form-wrap');
     var success = document.getElementById('nl-success');
     if (wrap)    wrap.style.display = 'none';
     if (success) {
-      success.removeAttribute('hidden');
+      success.hidden = false;
+      success.classList.add('show');   // .newsletter-success fica display:none sem .show
       success.setAttribute('tabindex', '-1');
       success.focus();
     }
