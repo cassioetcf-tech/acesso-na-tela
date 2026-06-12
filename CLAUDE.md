@@ -7,8 +7,9 @@ deficiência visual, auditiva e surdocegueira. Iniciativa da ETC Filmes.
 > fonte de contexto do projeto. **Não inclua segredos aqui** (senha do admin,
 > chaves privadas) — este arquivo é versionado num repositório público.
 >
-> Última revisão: atualizado na sessão pós-commit `61619db` — inclui página Sobre,
-> remoção de Cinemas do nav, fix mobile do hero-cadastro e planejamento da Opção A.
+> Última revisão: jun/2026 — **migração TMDb → Ingresso.com** como fonte de dados
+> dos filmes (poster, ficha técnica, sinopse, trailer), cacheada em
+> `filmes.ingresso_data`. TMDb removido de home, filme, admin e newsletter.
 > Trate números de volume (contagens de filmes) como aproximados,
 > pois mudam diariamente pela sincronização.
 
@@ -79,12 +80,12 @@ Functions/mês. Se o site pausar por limite, reativar no painel.
 |---|---|
 | Frontend | HTML + CSS + JavaScript vanilla |
 | Deploy | Netlify — arquivos estáticos, sem build step, deploy a partir do `main` |
-| API de filmes | TMDb (`https://api.themoviedb.org/3`) |
+| API de filmes | **Ingresso.com** (poster, ficha técnica, sinopse, trailer) via Edge Function proxy — TMDb foi removido (jun/2026) |
 | API de sessões | Ingresso.com via Edge Function proxy |
 | Banco de dados | Supabase REST (chamado direto do browser) |
 | Libras | VLibras — widget oficial do Governo Federal |
 | Fontes | Google Fonts: Inter + Fraunces |
-| Imagens TMDb | `https://image.tmdb.org/t/p/w300{poster_path}` |
+| Imagens dos filmes | CDN do Ingresso (`images[].url` — webp, URL completa) cacheado em `filmes.ingresso_data.poster` |
 
 ---
 
@@ -142,8 +143,11 @@ url_key      text       → slug da Ingresso; usado em filme.html?urlKey={url_ke
 app          text       → 'MovieReading' | 'MLOAD' | 'GRETA' | 'PingPlay' | 'Trio Cinema' | 'Conecta Acessibilidade' | null
 app_status   text       → 'pendente' | 'confirmado'   ← COLUNA REAL, não estava no doc antigo
 status       text       → 'CARTAZ' | 'BREVE' | 'CATALOGO'  (SEMPRE MAIÚSCULAS)
-tmdb_id      int
-tmdb_data    jsonb       → dados cacheados do TMDb (poster, sinopse, etc.)
+ingresso_data jsonb      → dados cacheados do Ingresso.com: {title, originalTitle,
+                          poster (URL completa), genres[], duration (min), contentRating,
+                          synopsis, countryOrigin, distributor, premiereDate (ISO localDate)}
+tmdb_id      int         → LEGADO (TMDb removido jun/2026; coluna pode existir, não é usada)
+tmdb_data    jsonb       → LEGADO (idem — não ler/escrever; usar ingresso_data)
 a11y         jsonb       → {"ad": true, "lse": true, "libras": true}
 created_at   timestamp
 updated_at   timestamp
@@ -220,14 +224,15 @@ film_app_suggestions    → id uuid PK
 
 ## 6. Integrações externas
 
-**TMDb** — base `https://api.themoviedb.org/3`, auth `Authorization: Bearer {TOKEN}`
-(token em `config.js`). Endpoints: `GET /movie/{id}?language=pt-BR&append_to_response=credits,release_dates,videos`,
-`GET /movie/{id}/watch/providers`, `GET /search/movie?query={titulo}&language=pt-BR&region=BR`.
-Importante: **a home e o catálogo renderizam a partir do `tmdb_data` cacheado no
-Supabase**; chamada ao vivo ao TMDb é só fallback. O `sync-status` mantém o cache.
+**TMDb** — ❌ **REMOVIDO (jun/2026).** Os dados do filme vêm do Ingresso. O arquivo
+`js/api/tmdb.js` e a coluna `tmdb_data` ainda existem como legado, mas não são
+usados por home/filme/admin/newsletter. Não reintroduzir.
 
 **Ingresso.com** — partnership `locomotivadigital`. Proxy `/api/ingresso`:
-- `?urlKey={urlKey}` → `eventId` + título
+- `?urlKey={urlKey}` → **objeto completo do evento** (id/eventId, title, originalTitle,
+  duration, genres[], distributor, contentRating, synopsis, countryOrigin, images[]
+  (PosterPortrait/PosterHorizontal `.url`), trailers[], **premiereDate** = objeto
+  `{localDate, year, dayAndMonth}`). É a fonte de poster + ficha técnica + sinopse.
 - `?eventId={id}&city={cityId}&date={YYYY-MM-DD}` → sessões por cinema
 - `?type=nowplaying` → lista/ordem de em-cartaz (usado pela home, cacheado em localStorage)
 Cidades: 1=SP · 2=RJ · 3=BH · 4=BSB · 5=CWB · 6=POA · 7=SSA · 8=REC · 9=FOR · 10=MAO.
@@ -242,14 +247,15 @@ acessibilidade em todas as páginas.
 ## 7. Automações (Netlify)
 
 **`sync-status.js` — cron diário 6h UTC** (`schedule = "0 6 * * *"` no netlify.toml).
-Ordem das fases (TMDb por último, para não bloquear a varredura dos apps):
-1. **FASE 1 — Ingresso:** descobre filmes em cartaz; insere novos como
-   `id: film_{urlKey}`, com `url_key`, `status` CARTAZ/BREVE (via `isComingSoon`)
-   e `app_status: pendente`. Verifica sessões na semana: filme em CARTAZ sem
-   sessão → rebaixado para CATALOGO (sai da home).
+1. **FASE 1 — Ingresso (descoberta + dados):** descobre filmes em cartaz; insere
+   novos como `id: film_{urlKey}`, com `url_key`, `status` CARTAZ/BREVE (via
+   `isComingSoon`) e `app_status: pendente`. Para cada filme com `url_key`, busca
+   o evento no Ingresso (`getIngressoEvent`) e cacheia o subconjunto em
+   `ingresso_data` (poster, ficha, sinopse, premiereDate). Verifica sessões na
+   semana: filme em CARTAZ sem sessão → rebaixado para CATALOGO (sai da home).
 2. **FASE 2 — Apps:** varre **TODOS** os filmes com sessão na semana (status
    CARTAZ, não só pendentes) e cruza com as fontes, promovendo para
-   `app_status: confirmado`. Independe do TMDb. Fontes (prioridade nessa ordem):
+   `app_status: confirmado`. Fontes (prioridade nessa ordem):
    - **Tabela `filmes_scaneados`** (Supabase): MovieReading, Conecta, MLOAD, Trio.
      Lê colunas `titulo` + `app`; `canonApp()` normaliza o valor para o nome
      canônico de `filmes.app`. Tabela populada pela aplicação paralela (Opção A).
@@ -259,9 +265,11 @@ Ordem das fases (TMDb por último, para não bloquear a varredura dos apps):
      de datas ano-1 → ano+1. Filmes da Paramount no filmeb = filmes no GRETA.
    AD/LSE/Libras sempre marcados como `true` ao classificar (exceto PingPlay no
    admin.js, que traz os recursos individuais da API).
-3. **FASE 3 — TMDb:** roda **por último**. Enriquece filmes em cartaz sem
-   `tmdb_data` (pôster, sinopse, gênero, data). Não descarta não encontrados e
-   não impacta a varredura dos apps (Fase 2).
+
+> A Fase 3 (TMDb) foi **removida** (jun/2026). Os dados do filme agora vêm 100%
+> do Ingresso (cacheados em `ingresso_data` na Fase 1). O admin.html tem uma
+> Fase 3 própria (client-side) que só enriquece `ingresso_data` de filmes em
+> cartaz que ainda estejam sem ele.
 
 > Só filmes com algum app seguem na home, e como vieram da Ingresso, todos têm
 > `url_key` e são clicáveis. As fases ENRIQUECEM filmes existentes; não criam
@@ -290,8 +298,9 @@ Complementa a FASE 3 do `sync-status` para apps sem fonte pública conhecida (GR
 Ver prompt técnico completo gerado na sessão de 2026-05.
 
 **`newsletter-weekly.js` — cron segunda 11h UTC (08h BRT)** (`schedule = "0 11 * * 1"`).
-Pega em `filmes` os lançamentos com `release_date` DESTA semana (seg→dom) e
-`app_status=confirmado`, monta a lista (pôster + app + badges AD/LSE/Libras + link)
+Pega em `filmes` os lançamentos com `ingresso_data.premiereDate` DESTA semana
+(seg→dom) e `app_status=confirmado`, monta a lista (pôster do Ingresso + app +
+badges AD/LSE/Libras + link)
 e envia via Resend (batch de 100) a todos com `aceita_email=true`. Não envia se a
 semana não tiver lançamentos. Usa **`SUPA_SERVICE_KEY`** (lê os inscritos — PII —
 server-side) + `RESEND_API_KEY` + `WELCOME_FROM`/`WELCOME_REPLY_TO`.
@@ -315,8 +324,8 @@ da Ingresso (contorna CORS).
 
 ### `index.html` — Home
 `loadCatalog()` → `GET /filmes?status=ilike.cartaz&app_status=eq.confirmado&order=created_at.desc&limit=200`
-→ para cada filme usa `tmdb_data` cacheado (fallback `getMovie`) → filtra por
-`_isThisWeek` → ordena (acessíveis primeiro) → `buildCard()`. A ordem de
+→ cada card é montado de `ingresso_data` (poster/título/meta) em `film-card.js`
+→ filtra por `_isThisWeek` → ordena (acessíveis primeiro) → `buildCard()`. A ordem de
 exibição usa `/api/ingresso?type=nowplaying` (cacheado em localStorage). Grids
 ficam vazios se o Supabase não retornar resultados (intencional, sem fallback
 hardcoded). Newsletter: dois formulários (hero e seção) gravam via RPC
@@ -324,9 +333,11 @@ hardcoded). Newsletter: dois formulários (hero e seção) gravam via RPC
 
 ### `filme.html` — Detalhe (produção)
 Modos de URL: `?urlKey={url_key}` (principal), `?ingresso={eventId}`, `?film={legado}`.
-`loadFilme(urlKey)` → `GET /filmes?url_key=eq.{urlKey}&limit=1` → se tem `tmdb_id`
-usa TMDb/`watch/providers` → `_renderTmdb()`. `loadSessoes()` usa o proxy da
-Ingresso. **Comentários (Relatos da comunidade) estão dinâmicos e funcionando:**
+`loadFilme(urlKey)` → `GET /filmes?url_key=eq.{urlKey}&limit=1` → chama
+`getEventId(urlKey)` (objeto do evento Ingresso) → `_renderIngresso()` preenche
+pôster (PosterPortrait), título original · ano (premiereDate.year) · país ·
+distribuidora, pills (gênero · duração · classificação), sinopse e trailer.
+`loadSessoes()` usa o proxy da Ingresso. **Comentários (Relatos da comunidade) estão dinâmicos e funcionando:**
 `initComentarios()` lê `GET /comentarios?filme_url_key=eq.{urlKey}&order=created_at.desc&limit=50`;
 `submitComentario()` valida o e-mail via RPC `email_cadastrado` (fallback: tabela
 `newsletter`), atualiza o nome do usuário (`upsert_subscriber`) e faz
