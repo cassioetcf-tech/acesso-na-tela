@@ -172,9 +172,15 @@ updated_at   timestamp
   e celular (E.164). O front chama `supabaseRpc('upsert_subscriber', {p_email, p_nome,
   p_celular, p_prefs, p_aceita_email, p_aceita_whatsapp, p_origem})`. Helper
   `_saveSubscriber` em home.js, com fallback para insert direto se a RPC faltar.
-- **Comentário exige e-mail cadastrado** — checado via RPC `email_cadastrado(p_email)`.
-  No envio, faz upsert do nome e vincula o relato (`comentarios.email` +
-  `comentarios.subscriber_id`).
+- **Padrão de consentimento na criação:** o INSERT da RPC usa
+  `coalesce(p_aceita_email,false)` — cadastro novo SEM consentimento explícito fica
+  `aceita_email=false`. Newsletter/hero passam `true` explícito; comentário só passa
+  `true` se a pessoa marcar o opt-in. (Update por conflito nunca rebaixa: `null` mantém.)
+- **Comentário (relatos) cadastra na própria página** — não bloqueia mais quem não é
+  cadastrado nem redireciona. No envio: valida nome+email+texto, faz upsert
+  (`upsert_subscriber`, opt-in de e-mail opcional via checkbox) e grava o relato com
+  `comentarios.email` + `comentarios.subscriber_id`. (RPC `email_cadastrado` continua
+  existindo, mas não é mais usada para bloquear.)
 - Verificação real de posse do e-mail (OTP) e envio de WhatsApp = fase 2.
 - **E-mail de boas-vindas:** ativo via `welcome.js` (Resend) + Database Webhook.
 - **Descadastro:** página `descadastro.html?email=` → botão chama `upsert_subscriber`
