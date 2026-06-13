@@ -104,6 +104,7 @@ acesso-na-tela/
 ├── cinema.html / cinemas.html  ← Páginas de cinema(s) — cinemas.html fora do nav (em pausa)
 ├── acessibilidade.html         ← Página sobre acessibilidade
 ├── sobre.html                  ← Sobre o projeto
+├── contato.html                ← Página de contato (form → função contato.js/Resend)
 ├── faq.html                    ← Perguntas frequentes
 ├── acesso-na-tela-filme.html   ← LEGADO/MORTO: não é referenciado por nada. Não usar.
 ├── netlify.toml                ← Edge Functions + cron + headers
@@ -304,6 +305,14 @@ badges AD/LSE/Libras + link)
 e envia via Resend (batch de 100) a todos com `aceita_email=true`. Não envia se a
 semana não tiver lançamentos. Usa **`SUPA_SERVICE_KEY`** (lê os inscritos — PII —
 server-side) + `RESEND_API_KEY` + `WELCOME_FROM`/`WELCOME_REPLY_TO`.
+
+**`contato.js`** — formulário de contato (`contato.html`). Recebe POST
+`{nome, email, celular, mensagem, bot_field}`, valida + honeypot anti-spam, e
+envia via **Resend** para `CONTACT_TO` (env var; **default
+`cassio@etcfilmes.com.br`** — fase de teste) com `reply_to` = e-mail de quem
+escreveu (a resposta vai direto à pessoa). Reusa `RESEND_API_KEY` e `WELCOME_FROM`.
+⚠️ Entrega: o destino @etcfilmes.com.br pode reter e-mails do domínio remetente
+novo em quarentena — conferir spam/quarentena no teste.
 
 **`welcome.js`** — e-mail de boas-vindas via **Resend**. Acionada por **Database
 Webhook do Supabase** no `INSERT` da tabela `newsletter` (só cadastro novo).
