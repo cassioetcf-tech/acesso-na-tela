@@ -371,7 +371,7 @@ Login client-side (ver §2/§9).
 ## 9. Design system
 
 ```css
---laranja:#D4500F; --laranja-esc:#A83D0A; --laranja-cl:#FDF0EA; --laranja-bdr:#E8845A;
+--laranja:#CC4A0D; --laranja-esc:#A83D0A;  /* laranja escurecido p/ contraste AA (era #D4500F) */ --laranja-cl:#FDF0EA; --laranja-bdr:#E8845A;
 --ink:#1A1A1A; --ink2:#444; --ink3:#777; --bg:#FFF; --bg2:#F7F6F3; --bg3:#EDEBE6;
 --ad:#005C2E;   /* Audiodescrição — verde escuro */
 --lse:#003D8F;  /* Legenda p/ surdos — azul escuro */
