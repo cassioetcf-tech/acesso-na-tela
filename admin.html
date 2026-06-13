@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Acesso na Tela</title>
+  <meta name="robots" content="noindex">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/assets/favicon.ico" sizes="any">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,7 +33,7 @@
       <input type="password" class="login-input" id="login-pass"
              placeholder="Senha" autocomplete="current-password"
              onkeydown="if(event.key==='Enter')doLogin()">
-      <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+      <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Entrar</button>
     </div>
   </div>
 
@@ -50,119 +51,173 @@
       </div>
     </header>
 
+    <!-- TAB NAV -->
+    <div class="admin-tabs" role="tablist" aria-label="Seções do painel">
+      <button class="admin-tab active" id="tabbtn-dashboard" role="tab" aria-selected="true"  aria-controls="tab-dashboard"    onclick="showTab('dashboard')">Dashboard</button>
+      <button class="admin-tab"        id="tabbtn-filmes"    role="tab" aria-selected="false" aria-controls="tab-filmes"       onclick="showTab('filmes')">Filmes</button>
+      <button class="admin-tab"        id="tabbtn-comentarios" role="tab" aria-selected="false" aria-controls="tab-comentarios" onclick="showTab('comentarios')">Comentários</button>
+    </div>
+
     <div class="admin-content">
 
-      <!-- STATS -->
-      <div class="stats-bar">
-        <div class="stat-card">
-          <div class="stat-num" id="stat-total">—</div>
-          <div class="stat-label">Total</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="stat-cartaz" style="color:#166534">—</div>
-          <div class="stat-label">Em cartaz</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="stat-breve" style="color:#854D0E">—</div>
-          <div class="stat-label">Em breve</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="stat-catalogo" style="color:#475569">—</div>
-          <div class="stat-label">Catálogo</div>
-        </div>
-      </div>
+      <!-- ════════ DASHBOARD ════════ -->
+      <section class="tab-panel active" id="tab-dashboard" role="tabpanel" aria-labelledby="tabbtn-dashboard">
 
-      <!-- AUTOMATION -->
-      <div class="auto-panel">
-        <div class="auto-panel-header" id="auto-header">
-          <div class="auto-panel-left">
-            <div class="auto-icon">🔄</div>
-            <div>
-              <div class="auto-title">Sincronização</div>
-              <div class="auto-sub">
-                Roda automaticamente todo dia às <strong>6h UTC (3h de Brasília)</strong> — ou acione manualmente.<br>
-                <strong>1.</strong> Ingresso.com: descobre filmes novos + atualiza status (em cartaz / catálogo) &nbsp;·&nbsp;
-                <strong>2.</strong> Apps: auto-classifica via tabela <em>filmes_scaneados</em> (MovieReading, Conecta, MLOAD, Trio), PingPlay (scraping) e GRETA (Paramount) &nbsp;·&nbsp;
-                <strong>3.</strong> Ingresso.com: enriquece dados (poster, ficha técnica, sinopse)
+        <div class="dash-filter">
+          <label class="dash-filter-field">Período por
+            <select id="dash-date-basis" onchange="renderDashboard()">
+              <option value="premiere">Data de estreia</option>
+              <option value="created">Data de cadastro</option>
+            </select>
+          </label>
+          <label class="dash-filter-field">De
+            <input type="date" id="dash-from" onchange="renderDashboard()">
+          </label>
+          <label class="dash-filter-field">Até
+            <input type="date" id="dash-to" onchange="renderDashboard()">
+          </label>
+          <button class="btn btn-outline" style="font-size:13px;" onclick="clearDashFilter()">Limpar</button>
+          <span class="dash-filter-note" id="dash-filter-note"></span>
+        </div>
+
+        <div class="stats-bar dash-cards" id="dash-cards"></div>
+
+        <div class="dash-grid">
+          <div class="dash-block">
+            <h3 class="dash-block-title">Filmes por aplicativo</h3>
+            <div id="dash-apps" class="dash-bars"></div>
+          </div>
+          <div class="dash-block">
+            <h3 class="dash-block-title">Acessibilidade por distribuidora</h3>
+            <div class="table-wrap dash-distrib-wrap">
+              <table aria-label="Acessibilidade por distribuidora">
+                <thead>
+                  <tr>
+                    <th>Distribuidora</th>
+                    <th style="text-align:right;">Com a11y</th>
+                    <th style="text-align:right;">Sem a11y</th>
+                    <th style="text-align:right;">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-distrib"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ FILMES ════════ -->
+      <section class="tab-panel" id="tab-filmes" role="tabpanel" aria-labelledby="tabbtn-filmes" hidden>
+
+        <!-- SINCRONIZAÇÃO -->
+        <div class="auto-panel">
+          <div class="auto-panel-header" id="auto-header">
+            <div class="auto-panel-left">
+              <div class="auto-icon">🔄</div>
+              <div>
+                <div class="auto-title">Sincronização</div>
+                <div class="auto-sub">
+                  Roda automaticamente todo dia às <strong>6h UTC (3h de Brasília)</strong> — ou acione manualmente.<br>
+                  <strong>1.</strong> Ingresso.com: descobre filmes novos + atualiza status (em cartaz / catálogo) &nbsp;·&nbsp;
+                  <strong>2.</strong> Apps: auto-classifica via tabela <em>filmes_scaneados</em> (MovieReading, Conecta, MLOAD, Trio), PingPlay (scraping) e GRETA (Paramount) &nbsp;·&nbsp;
+                  <strong>3.</strong> Ingresso.com: enriquece dados (poster, ficha técnica, sinopse)
+                </div>
               </div>
             </div>
-          </div>
-          <div class="auto-right">
-            <button class="btn-toggle-log" id="btn-toggle-log" onclick="toggleLog()" style="display:none;">Ver log</button>
-            <button class="btn-auto" id="btn-sync" onclick="runSync()">🔄 Sincronizar</button>
-          </div>
-        </div>
-        <div class="auto-progress" id="auto-progress">
-          <div class="progress-bar-wrap">
-            <div class="progress-bar-fill" id="progress-fill"></div>
-          </div>
-          <div class="progress-label" id="progress-label">Iniciando...</div>
-        </div>
-        <div class="auto-summary" id="auto-summary"></div>
-        <div class="auto-log" id="auto-log">
-          <div class="auto-log-title">Log</div>
-          <div class="log-list" id="log-list"></div>
-        </div>
-      </div>
-
-      <!-- COMENTÁRIOS -->
-      <div class="auto-panel" id="comentarios-panel" style="margin-bottom:16px;">
-        <div class="auto-panel-header" style="margin-bottom:0;">
-          <div class="auto-panel-left">
-            <div class="auto-icon">💬</div>
-            <div>
-              <div class="auto-title">Moderação de comentários</div>
-              <div class="auto-sub">Comentários enviados pelos usuários nas páginas dos filmes</div>
+            <div class="auto-right">
+              <button class="btn-toggle-log" id="btn-toggle-log" onclick="toggleLog()" style="display:none;">Ver log</button>
+              <button class="btn-auto" id="btn-sync" onclick="runSync()">🔄 Sincronizar</button>
             </div>
           </div>
-          <div class="auto-right">
+          <div class="auto-progress" id="auto-progress">
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-label" id="progress-label">Iniciando...</div>
+          </div>
+          <div class="auto-summary" id="auto-summary"></div>
+          <div class="auto-log" id="auto-log">
+            <div class="auto-log-title">Log</div>
+            <div class="log-list" id="log-list"></div>
+          </div>
+        </div>
+
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+          <div class="toolbar-title">Filmes cadastrados <span class="toolbar-count" id="filmes-count"></span></div>
+          <div class="toolbar-right">
+            <input type="text" class="search-input" placeholder="Buscar filme..."
+                   id="search-input" oninput="filterFilmes()">
+            <button class="btn btn-add" onclick="openModal()">+ Adicionar filme</button>
+          </div>
+        </div>
+
+        <!-- FILTER TABS -->
+        <div class="filter-tabs">
+          <div class="filter-tab active" onclick="setFilter('todos',this)">Todos</div>
+          <div class="filter-tab" onclick="setFilter('cartaz',this)">Em cartaz</div>
+          <div class="filter-tab" onclick="setFilter('breve',this)">Em breve</div>
+          <div class="filter-tab" onclick="setFilter('catalogo',this)">Catálogo</div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-wrap">
+          <table aria-label="Filmes cadastrados">
+            <thead>
+              <tr>
+                <th class="th-sort" onclick="setSort('titulo')" id="th-titulo">Filme <span class="sort-arrow" id="arr-titulo"></span></th>
+                <th class="th-sort" onclick="setSort('app')"    id="th-app">App <span class="sort-arrow" id="arr-app"></span></th>
+                <th>Recursos</th>
+                <th class="th-sort" onclick="setSort('status')" id="th-status">Status <span class="sort-arrow" id="arr-status"></span></th>
+                <th class="th-sort" onclick="setSort('data')"   id="th-data">Data <span class="sort-arrow" id="arr-data">↓</span></th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="filmes-tbody">
+              <tr>
+                <td colspan="6">
+                  <div class="empty-state"><div style="font-size:32px">🎬</div><p>Carregando filmes...</p></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="filmes-pagination"></div>
+      </section>
+
+      <!-- ════════ COMENTÁRIOS ════════ -->
+      <section class="tab-panel" id="tab-comentarios" role="tabpanel" aria-labelledby="tabbtn-comentarios" hidden>
+        <div class="toolbar">
+          <div class="toolbar-title">Comentários <span class="toolbar-count" id="cmt-count"></span></div>
+          <div class="toolbar-right">
+            <input type="text" class="search-input" placeholder="Buscar autor, filme ou texto..." id="cmt-search" oninput="renderComentarios()">
+            <select id="cmt-status-filter" class="cmt-select" onchange="renderComentarios()">
+              <option value="todos">Todos os status</option>
+              <option value="pendente">Pendentes</option>
+              <option value="aprovado">Aprovados</option>
+              <option value="rejeitado">Rejeitados</option>
+            </select>
             <button class="btn-auto" id="btn-load-comentarios" onclick="loadComentarios()">↺ Carregar</button>
           </div>
         </div>
-        <div id="comentarios-admin-list" style="margin-top:12px;"></div>
-      </div>
-
-      <!-- TOOLBAR -->
-      <div class="toolbar">
-        <div class="toolbar-title">Filmes cadastrados</div>
-        <div class="toolbar-right">
-          <input type="text" class="search-input" placeholder="Buscar filme..."
-                 id="search-input" oninput="filterFilmes()">
-          <button class="btn btn-add" onclick="openModal()">+ Adicionar filme</button>
+        <div class="table-wrap">
+          <table aria-label="Comentários dos usuários">
+            <thead>
+              <tr>
+                <th>Autor</th>
+                <th>Filme</th>
+                <th>Comentário</th>
+                <th>Status</th>
+                <th class="th-sort" onclick="setCmtSort()" id="th-cmt-data">Data <span class="sort-arrow" id="arr-cmt-data">↓</span></th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="comentarios-tbody">
+              <tr><td colspan="6"><div class="empty-state"><p>Clique em "Carregar" para ver os comentários.</p></div></td></tr>
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      <!-- FILTER TABS -->
-      <div class="filter-tabs">
-        <div class="filter-tab active" onclick="setFilter('todos',this)">Todos</div>
-        <div class="filter-tab" onclick="setFilter('cartaz',this)">Em cartaz</div>
-        <div class="filter-tab" onclick="setFilter('breve',this)">Em breve</div>
-        <div class="filter-tab" onclick="setFilter('catalogo',this)">Catálogo</div>
-      </div>
-
-      <!-- TABLE -->
-      <div class="table-wrap">
-        <table aria-label="Filmes cadastrados">
-          <thead>
-            <tr>
-              <th class="th-sort" onclick="setSort('titulo')" id="th-titulo">Filme <span class="sort-arrow" id="arr-titulo"></span></th>
-              <th class="th-sort" onclick="setSort('app')"    id="th-app">App <span class="sort-arrow" id="arr-app"></span></th>
-              <th>Recursos</th>
-              <th class="th-sort" onclick="setSort('status')" id="th-status">Status <span class="sort-arrow" id="arr-status"></span></th>
-              <th class="th-sort" onclick="setSort('data')"   id="th-data">Data <span class="sort-arrow" id="arr-data">↓</span></th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="filmes-tbody">
-            <tr>
-              <td colspan="5">
-                <div class="empty-state"><div style="font-size:32px">🎬</div><p>Carregando filmes...</p></div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
+      </section>
 
     </div>
   </div>
@@ -262,6 +317,6 @@
   <script src="/js/utils.js"></script>
   <script src="/js/api/supabase.js"></script>
   <script src="/js/api/ingresso.js"></script>
-  <script src="/js/pages/admin.js?v=20260612"></script>
+  <script src="/js/pages/admin.js?v=20260613"></script>
 </body>
 </html>

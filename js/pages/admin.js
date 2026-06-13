@@ -5,7 +5,9 @@
 //             js/utils.js (escHtml)
 
 // ── Config local ──────────────────────────────────────────────────────────────
-var ADMIN_SENHA = 'acesso2025'; // senha local de acesso ao painel
+// A senha NÃO fica mais no código. O login é validado pela Netlify Function
+// /admin-login (senha em variável de ambiente ADMIN_PASSWORD) que devolve um
+// token de sessão assinado. Ver netlify/functions/admin-login.js.
 
 // ── Normalização de títulos para comparação ───────────────────────────────────
 // Nível 1 — normT: remove acentos, pontuação, espaços extras, lowercase
@@ -60,32 +62,97 @@ var _logOpen = false;
 var _sortCol = 'data';   // 'titulo' | 'app' | 'status' | 'data'
 var _sortDir = 'desc';   // 'asc' | 'desc'
 
+// Paginação da aba Filmes
+var _page    = 1;
+var _perPage = 50;
+
+// Aba ativa
+var _activeTab = 'dashboard';
+
+// Comentários (carregados sob demanda na aba Comentários)
+var _comentarios = [];
+var _cmtSortDir  = 'desc';
+
 // ── Autenticação ──────────────────────────────────────────────────────────────
-function doLogin() {
-  var pass = document.getElementById('login-pass').value;
-  if (pass === ADMIN_SENHA) {
-    sessionStorage.setItem('ant_auth', '1');
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-screen').style.display = 'block';
-    loadFilmes();
-  } else {
-    document.getElementById('login-error').style.display = 'block';
-    document.getElementById('login-pass').focus();
+function _hasValidSession() {
+  try {
+    var tok = sessionStorage.getItem('ant_admin_token');
+    var exp = parseInt(sessionStorage.getItem('ant_admin_exp') || '0', 10);
+    return !!tok && exp > Date.now();
+  } catch (e) { return false; }
+}
+
+function _enterAdmin() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-screen').style.display = 'block';
+  loadFilmes();
+}
+
+async function doLogin() {
+  var input = document.getElementById('login-pass');
+  var errEl = document.getElementById('login-error');
+  var btn   = document.getElementById('login-btn');
+  var pass  = (input && input.value) || '';
+  if (!pass) { input && input.focus(); return; }
+
+  if (errEl) errEl.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Entrando...'; }
+
+  try {
+    var r = await fetch('/.netlify/functions/admin-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pass }),
+    });
+    var data = {};
+    try { data = await r.json(); } catch (e) {}
+
+    if (r.ok && data.ok && data.token) {
+      sessionStorage.setItem('ant_admin_token', data.token);
+      sessionStorage.setItem('ant_admin_exp', String(data.exp || (Date.now() + 8 * 3600 * 1000)));
+      if (input) input.value = '';
+      _enterAdmin();
+    } else {
+      if (errEl) {
+        errEl.textContent = (data && data.error) || 'Senha incorreta. Tente novamente.';
+        errEl.style.display = 'block';
+      }
+      if (input) { input.focus(); input.select(); }
+    }
+  } catch (e) {
+    if (errEl) { errEl.textContent = 'Erro de conexão. Tente novamente.'; errEl.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
   }
 }
 
 function doLogout() {
-  sessionStorage.removeItem('ant_auth');
+  try {
+    sessionStorage.removeItem('ant_admin_token');
+    sessionStorage.removeItem('ant_admin_exp');
+  } catch (e) {}
   location.reload();
 }
 
+// ── Abas (Dashboard / Filmes / Comentários) ─────────────────────────────────────
+function showTab(name) {
+  _activeTab = name;
+  ['dashboard', 'filmes', 'comentarios'].forEach(function (t) {
+    var panel = document.getElementById('tab-' + t);
+    var btn   = document.getElementById('tabbtn-' + t);
+    var on    = t === name;
+    if (panel) panel.hidden = !on;
+    if (panel) panel.classList.toggle('active', on);
+    if (btn) { btn.classList.toggle('active', on); btn.setAttribute('aria-selected', on ? 'true' : 'false'); }
+  });
+  if (name === 'dashboard') renderDashboard();
+  // Comentários: carrega na primeira visita à aba
+  if (name === 'comentarios' && !_comentarios.length) loadComentarios();
+}
+
 window.addEventListener('load', function () {
-  if (sessionStorage.getItem('ant_auth') === '1') {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-screen').style.display = 'block';
-    loadFilmes();
-  }
-  // Enter no campo senha
+  if (_hasValidSession()) _enterAdmin();
+
   var passEl = document.getElementById('login-pass');
   if (passEl) passEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
 
@@ -98,10 +165,11 @@ window.addEventListener('load', function () {
 // ── CRUD: carregar ────────────────────────────────────────────────────────────
 async function loadFilmes() {
   var tbody = document.getElementById('filmes-tbody');
-  tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>Carregando...</p></div></td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>Carregando...</p></div></td></tr>';
 
   try {
-    var data = await supabaseGet('filmes', 'order=created_at.desc&limit=500');
+    // Acumulamos TODOS os filmes (sempre os mais novos primeiro).
+    var data = await supabaseGet('filmes', 'order=created_at.desc&limit=2000');
     _filmes = Array.isArray(data) ? data : [];
   } catch (e) {
     console.error('Supabase load error:', e);
@@ -109,8 +177,10 @@ async function loadFilmes() {
     showToast('Erro ao carregar filmes', 'error');
   }
 
+  _page = 1;
   renderTable();
   updateStats();
+  renderDashboard();
 }
 
 // ── Helpers de status ─────────────────────────────────────────────────────────
@@ -138,12 +208,13 @@ function _set(id, val) {
 // ── Filtro / tabela ───────────────────────────────────────────────────────────
 function setFilter(filter, el) {
   _currentFilter = filter;
+  _page = 1;
   document.querySelectorAll('.filter-tab').forEach(function (t) { t.classList.remove('active'); });
   if (el) el.classList.add('active');
   renderTable();
 }
 
-function filterFilmes() { renderTable(); }
+function filterFilmes() { _page = 1; renderTable(); }
 
 function setSort(col) {
   if (_sortCol === col) {
@@ -152,6 +223,7 @@ function setSort(col) {
     _sortCol = col;
     _sortDir = col === 'data' ? 'desc' : 'asc';
   }
+  _page = 1;
   _updateSortHeaders();
   renderTable();
 }
@@ -210,17 +282,28 @@ function renderTable() {
     return _sortDir === 'desc' ? (va > vb ? -1 : 1) : (va < vb ? -1 : 1);
   });
 
+  var countEl = document.getElementById('filmes-count');
+  if (countEl) countEl.textContent = '(' + list.length + ')';
+
   if (!list.length) {
     tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>' +
       (_filmes.length === 0
         ? 'Nenhum filme cadastrado ainda. Clique em "+ Adicionar filme" para começar.'
         : 'Nenhum filme encontrado com esses filtros.') +
       '</p></div></td></tr>';
+    _renderPagination(0, 0);
     return;
   }
 
+  // Paginação — 50 por página
+  var totalPages = Math.max(1, Math.ceil(list.length / _perPage));
+  if (_page > totalPages) _page = totalPages;
+  if (_page < 1) _page = 1;
+  var startIdx  = (_page - 1) * _perPage;
+  var pageItems = list.slice(startIdx, startIdx + _perPage);
+
   var html = '';
-  list.forEach(function (f) {
+  pageItems.forEach(function (f) {
     var s         = (f.status || '').toLowerCase();
     var statusCls = { cartaz: 'status-cartaz', breve: 'status-breve', catalogo: 'status-catalogo' }[s] || '';
     var statusTxt = { cartaz: 'Em cartaz',     breve: 'Em breve',     catalogo: 'Catálogo'        }[s] || f.status;
@@ -267,6 +350,155 @@ function renderTable() {
   });
 
   tbody.innerHTML = html;
+  _renderPagination(list.length, totalPages);
+}
+
+// Controles de paginação da tabela de filmes.
+function _renderPagination(total, totalPages) {
+  var el = document.getElementById('filmes-pagination');
+  if (!el) return;
+  if (!total || totalPages <= 1) { el.innerHTML = ''; return; }
+
+  var from = (_page - 1) * _perPage + 1;
+  var to   = Math.min(_page * _perPage, total);
+
+  el.innerHTML =
+    '<button class="page-btn" ' + (_page <= 1 ? 'disabled' : '') + ' onclick="gotoPage(' + (_page - 1) + ')" aria-label="Página anterior">←</button>' +
+    '<span class="page-info">' + from + '–' + to + ' de ' + total + ' · pág. ' + _page + '/' + totalPages + '</span>' +
+    '<button class="page-btn" ' + (_page >= totalPages ? 'disabled' : '') + ' onclick="gotoPage(' + (_page + 1) + ')" aria-label="Próxima página">→</button>';
+}
+
+function gotoPage(p) {
+  _page = p;
+  renderTable();
+  // Rola para o topo da tabela ao trocar de página.
+  var t = document.querySelector('#tab-filmes .table-wrap');
+  if (t && t.scrollIntoView) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Dashboard ───────────────────────────────────────────────────────────────────
+// Classifica o filme: 'confirmado' = com acessibilidade; 'sem_acessibilidade';
+// 'pendente' = a verificar. (reaproveita _getAppStatusAdmin)
+function _filmeComA11y(f)  { return _getAppStatusAdmin(f) === 'confirmado'; }
+function _filmeSemA11y(f)  { return _getAppStatusAdmin(f) === 'sem_acessibilidade'; }
+
+// Retorna a data (Date) do filme conforme a base escolhida, ou null.
+function _filmeData(f, basis) {
+  var s = basis === 'created'
+    ? f.created_at
+    : (f.ingresso_data && f.ingresso_data.premiereDate);
+  if (!s) return null;
+  var d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
+function clearDashFilter() {
+  var from = document.getElementById('dash-from');
+  var to   = document.getElementById('dash-to');
+  if (from) from.value = '';
+  if (to)   to.value = '';
+  renderDashboard();
+}
+
+function renderDashboard() {
+  if (!_filmes) return;
+  var basis = (document.getElementById('dash-date-basis') || {}).value || 'premiere';
+  var fromV = (document.getElementById('dash-from') || {}).value || '';
+  var toV   = (document.getElementById('dash-to')   || {}).value || '';
+  var hasRange = !!(fromV || toV);
+  var from = fromV ? new Date(fromV + 'T00:00:00Z') : null;
+  var to   = toV   ? new Date(toV   + 'T23:59:59Z') : null;
+
+  var semData = 0;
+  var list = _filmes.filter(function (f) {
+    if (!hasRange) return true;
+    var d = _filmeData(f, basis);
+    if (!d) { semData++; return false; }
+    if (from && d < from) return false;
+    if (to   && d > to)   return false;
+    return true;
+  });
+
+  // ── Cards ──
+  var n = function (pred) { return list.filter(pred).length; };
+  var byStatus = function (st) { return n(function (f) { return (f.status || '').toLowerCase() === st; }); };
+  var cards = [
+    { label: 'Total',              value: list.length,                       color: 'var(--laranja)' },
+    { label: 'Em cartaz',          value: byStatus('cartaz'),                color: '#166534' },
+    { label: 'Em breve',           value: byStatus('breve'),                 color: '#854D0E' },
+    { label: 'Catálogo',           value: byStatus('catalogo'),              color: '#475569' },
+    { label: 'Com acessibilidade', value: n(_filmeComA11y),                  color: '#166534' },
+    { label: 'Sem acessibilidade', value: n(_filmeSemA11y),                  color: '#991B1B' },
+  ];
+  var cardsEl = document.getElementById('dash-cards');
+  if (cardsEl) {
+    cardsEl.innerHTML = cards.map(function (c) {
+      return '<div class="stat-card"><div class="stat-num" style="color:' + c.color + '">' + c.value + '</div>' +
+             '<div class="stat-label">' + c.label + '</div></div>';
+    }).join('');
+  }
+
+  // ── Filmes por aplicativo ──
+  var apps = {};
+  list.forEach(function (f) {
+    if (_filmeComA11y(f) && f.app) apps[f.app] = (apps[f.app] || 0) + 1;
+  });
+  var appRows = Object.keys(apps).map(function (k) { return { app: k, n: apps[k] }; })
+    .sort(function (a, b) { return b.n - a.n; });
+  var appsEl = document.getElementById('dash-apps');
+  if (appsEl) {
+    if (!appRows.length) {
+      appsEl.innerHTML = '<p class="dash-empty">Nenhum filme com aplicativo no período.</p>';
+    } else {
+      var maxApp = appRows[0].n || 1;
+      appsEl.innerHTML = appRows.map(function (r) {
+        var pct = Math.round((r.n / maxApp) * 100);
+        return '<div class="dash-bar-row">' +
+            '<span class="dash-bar-label">' + escHtml(r.app) + '</span>' +
+            '<span class="dash-bar-track"><span class="dash-bar-fill" style="width:' + pct + '%"></span></span>' +
+            '<span class="dash-bar-val">' + r.n + '</span>' +
+          '</div>';
+      }).join('');
+    }
+  }
+
+  // ── Acessibilidade por distribuidora ──
+  var dist = {};
+  list.forEach(function (f) {
+    var d = (f.ingresso_data && f.ingresso_data.distributor) || '— Sem distribuidora';
+    if (!dist[d]) dist[d] = { com: 0, sem: 0, total: 0 };
+    dist[d].total++;
+    if (_filmeComA11y(f)) dist[d].com++; else dist[d].sem++;
+  });
+  var distRows = Object.keys(dist).map(function (k) { return { nome: k, v: dist[k] }; })
+    .sort(function (a, b) { return b.v.total - a.v.total || a.nome.localeCompare(b.nome, 'pt-BR'); });
+  var distEl = document.getElementById('dash-distrib');
+  if (distEl) {
+    if (!distRows.length) {
+      distEl.innerHTML = '<tr><td colspan="4"><div class="empty-state"><p>Nenhum filme no período.</p></div></td></tr>';
+    } else {
+      distEl.innerHTML = distRows.map(function (r) {
+        return '<tr>' +
+            '<td>' + escHtml(r.nome) + '</td>' +
+            '<td style="text-align:right;color:#166534;font-weight:700;">' + r.v.com + '</td>' +
+            '<td style="text-align:right;color:#991B1B;font-weight:700;">' + r.v.sem + '</td>' +
+            '<td style="text-align:right;font-weight:700;">' + r.v.total + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+  }
+
+  // ── Nota do filtro ──
+  var note = document.getElementById('dash-filter-note');
+  if (note) {
+    if (!hasRange) {
+      note.textContent = 'Mostrando todos os ' + _filmes.length + ' filmes.';
+    } else {
+      var basisLbl = basis === 'created' ? 'data de cadastro' : 'data de estreia';
+      note.textContent = list.length + ' filme(s) por ' + basisLbl +
+        (semData ? ' · ' + semData + ' sem data (fora do recorte)' : '');
+    }
+  }
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
@@ -1010,65 +1242,114 @@ async function runSync() {
 
 // ── Moderação de comentários ──────────────────────────────────────────────────
 
+function _cmtStatus(c) {
+  if (c.aprovado === true)  return 'aprovado';
+  if (c.aprovado === false) return 'rejeitado';
+  return 'pendente';
+}
+
+// Título do filme a partir do url_key do comentário (cai para o próprio url_key).
+function _cmtFilme(c) {
+  var key = c.filme_url_key || c.url_key || '';
+  if (!key) return '—';
+  var f = _filmes.find(function (x) { return x.url_key === key; });
+  return f ? f.titulo : key;
+}
+
 async function loadComentarios() {
-  var container = document.getElementById('comentarios-admin-list');
-  if (!container) return;
-  container.innerHTML = '<p style="font-size:13px;color:var(--ink3)">Carregando...</p>';
-
+  var tbody = document.getElementById('comentarios-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>Carregando...</p></div></td></tr>';
   try {
-    var rows = await supabaseGet(
-      'comentarios',
-      'order=created_at.desc&limit=100'
-    );
-    if (!rows || !rows.length) {
-      container.innerHTML = '<p style="font-size:13px;color:var(--ink3);padding:12px 0;">Nenhum comentário cadastrado.</p>';
-      return;
-    }
-    container.innerHTML = rows.map(function (c) {
-      var aprovadoTag = c.aprovado === true
-        ? '<span style="background:#dcfce7;color:#166534;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">Aprovado</span>'
-        : c.aprovado === false
-        ? '<span style="background:#fee2e2;color:#991b1b;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">Rejeitado</span>'
-        : '<span style="background:#fef9c3;color:#854d0e;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;">Pendente</span>';
-
-      return '<div class="comentario-admin-item" id="cmt-' + escHtml(c.id) + '" style="border:1px solid var(--bdr);border-radius:8px;padding:12px 14px;margin-bottom:8px;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">' +
-          '<div>' +
-            '<span style="font-weight:600;font-size:13px;">' + escHtml(c.autor || 'Anônimo') + '</span>' +
-            ' <span style="font-size:11px;color:var(--ink3);">· ' + escHtml(c.url_key || '') + '</span>' +
-            ' · ' + aprovadoTag +
-          '</div>' +
-          '<div style="display:flex;gap:6px;">' +
-            (c.aprovado !== true
-              ? '<button class="btn btn-outline" style="font-size:11px;padding:4px 10px;" onclick="aprovarComentario(\'' + escHtml(c.id) + '\')">✓ Aprovar</button>'
-              : '') +
-            '<button class="btn" style="font-size:11px;padding:4px 10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;" onclick="excluirComentario(\'' + escHtml(c.id) + '\')">✕ Excluir</button>' +
-          '</div>' +
-        '</div>' +
-        '<p style="margin:8px 0 0;font-size:13px;color:var(--ink2);line-height:1.5;">' + escHtml(c.texto || '') + '</p>' +
-        '</div>';
-    }).join('');
+    var rows = await supabaseGet('comentarios', 'order=created_at.desc&limit=500');
+    _comentarios = Array.isArray(rows) ? rows : [];
   } catch (err) {
-    container.innerHTML = '<p style="font-size:13px;color:#dc2626;padding:12px 0;">Erro ao carregar comentários: ' + escHtml(err.message) + '</p>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p style="color:#dc2626;">Erro ao carregar: ' + escHtml(err.message) + '</p></div></td></tr>';
+    return;
   }
+  renderComentarios();
 }
 
-async function aprovarComentario(id) {
-  try {
-    await supabasePatch('comentarios', 'id=eq.' + encodeURIComponent(id), { aprovado: true });
-    showToast('Comentário aprovado.', 'success');
-    loadComentarios();
-  } catch (err) {
-    showToast('Erro ao aprovar: ' + err.message, 'error');
-  }
+function setCmtSort() {
+  _cmtSortDir = _cmtSortDir === 'asc' ? 'desc' : 'asc';
+  var arr = document.getElementById('arr-cmt-data');
+  if (arr) arr.textContent = _cmtSortDir === 'asc' ? '↑' : '↓';
+  renderComentarios();
 }
+
+function renderComentarios() {
+  var tbody = document.getElementById('comentarios-tbody');
+  if (!tbody) return;
+  var q      = ((document.getElementById('cmt-search') || {}).value || '').toLowerCase();
+  var status = (document.getElementById('cmt-status-filter') || {}).value || 'todos';
+
+  var list = _comentarios.filter(function (c) {
+    if (status !== 'todos' && _cmtStatus(c) !== status) return false;
+    if (!q) return true;
+    return (c.autor || '').toLowerCase().includes(q) ||
+           (c.texto || '').toLowerCase().includes(q) ||
+           _cmtFilme(c).toLowerCase().includes(q);
+  }).sort(function (a, b) {
+    var va = a.created_at || '', vb = b.created_at || '';
+    return _cmtSortDir === 'desc' ? (va > vb ? -1 : 1) : (va < vb ? -1 : 1);
+  });
+
+  var countEl = document.getElementById('cmt-count');
+  if (countEl) countEl.textContent = '(' + list.length + ')';
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>' +
+      (_comentarios.length ? 'Nenhum comentário com esses filtros.' : 'Nenhum comentário cadastrado.') +
+      '</p></div></td></tr>';
+    return;
+  }
+
+  var tag = {
+    aprovado:  '<span class="cmt-status cmt-aprovado">Aprovado</span>',
+    rejeitado: '<span class="cmt-status cmt-rejeitado">Rejeitado</span>',
+    pendente:  '<span class="cmt-status cmt-pendente">Pendente</span>',
+  };
+
+  tbody.innerHTML = list.map(function (c) {
+    var st   = _cmtStatus(c);
+    var data = c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+    var id   = escHtml(c.id);
+    return '<tr id="cmt-' + id + '">' +
+        '<td>' + escHtml(c.autor || 'Anônimo') + (c.email ? '<div class="td-urlkey">' + escHtml(c.email) + '</div>' : '') + '</td>' +
+        '<td style="font-size:13px;">' + escHtml(_cmtFilme(c)) + '</td>' +
+        '<td class="cmt-text">' + escHtml(c.texto || '') + '</td>' +
+        '<td>' + (tag[st] || '') + '</td>' +
+        '<td style="font-size:12px;color:var(--ink3);white-space:nowrap;">' + data + '</td>' +
+        '<td>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+            (st !== 'aprovado' ? '<button class="btn" style="font-size:11px;padding:4px 10px;background:#dcfce7;color:#166534;border:1px solid #86efac;" onclick="aprovarComentario(\'' + id + '\')">✓ Aprovar</button>' : '') +
+            (st !== 'rejeitado' ? '<button class="btn" style="font-size:11px;padding:4px 10px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;" onclick="rejeitarComentario(\'' + id + '\')">Rejeitar</button>' : '') +
+            '<button class="btn btn-delete" style="font-size:11px;padding:4px 10px;" onclick="excluirComentario(\'' + id + '\')">Excluir</button>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function _setCmtAprovado(id, value, msg) {
+  return supabasePatch('comentarios', 'id=eq.' + encodeURIComponent(id), { aprovado: value })
+    .then(function () {
+      var c = _comentarios.find(function (x) { return String(x.id) === String(id); });
+      if (c) c.aprovado = value;
+      renderComentarios();
+      showToast(msg, 'success');
+    })
+    .catch(function (err) { showToast('Erro: ' + err.message, 'error'); });
+}
+
+async function aprovarComentario(id) { await _setCmtAprovado(id, true,  'Comentário aprovado.'); }
+async function rejeitarComentario(id) { await _setCmtAprovado(id, false, 'Comentário rejeitado.'); }
 
 async function excluirComentario(id) {
   if (!confirm('Excluir este comentário? Esta ação é irreversível.')) return;
   try {
     await supabaseDelete('comentarios', 'id=eq.' + encodeURIComponent(id));
-    var el = document.getElementById('cmt-' + id);
-    if (el) el.remove();
+    _comentarios = _comentarios.filter(function (x) { return String(x.id) !== String(id); });
+    renderComentarios();
     showToast('Comentário excluído.', 'success');
   } catch (err) {
     showToast('Erro ao excluir: ' + err.message, 'error');
