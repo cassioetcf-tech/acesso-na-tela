@@ -82,7 +82,7 @@ function _filmCard(f) {
   const titulo = _esc(ig.title || f.titulo || '');
   const poster = ig.poster || '';
   const href   = f.url_key ? (SITE_URL + '/filme.html?urlKey=' + encodeURIComponent(f.url_key)) : SITE_URL;
-  const app    = f.app ? '<div style="font-size:12px;color:#D4500F;font-weight:bold;margin:2px 0 6px;">' + _esc(f.app) + '</div>' : '';
+  const app    = f.app ? '<div style="font-size:12px;color:#CC4A0D;font-weight:bold;margin:2px 0 6px;">' + _esc(f.app) + '</div>' : '';
   const posterCell = poster
     ? '<td width="78" valign="top" style="padding-right:14px;"><a href="' + href + '"><img src="' + poster + '" width="70" alt="" style="display:block;border-radius:8px;border:0;"></a></td>'
     : '';
@@ -92,7 +92,7 @@ function _filmCard(f) {
       '<a href="' + href + '" style="font-size:16px;font-weight:bold;color:#1A1A1A;text-decoration:none;">' + titulo + '</a>' +
       app +
       '<div style="margin:4px 0 8px;">' + _badges(f.a11y) + '</div>' +
-      '<a href="' + href + '" style="font-size:13px;color:#D4500F;text-decoration:none;font-weight:bold;">Ver detalhes →</a>' +
+      '<a href="' + href + '" style="font-size:13px;color:#CC4A0D;text-decoration:none;font-weight:bold;">Ver detalhes →</a>' +
     '</td>' +
   '</tr></table>';
 }
@@ -103,7 +103,7 @@ function _emailHtml(nome, email, filmsHtml, label) {
   return '<!DOCTYPE html><html lang="pt-BR"><body style="margin:0;padding:0;background:#F7F6F3;font-family:Arial,Helvetica,sans-serif;color:#1A1A1A;">' +
     '<div style="max-width:560px;margin:0 auto;padding:24px 16px;">' +
       '<div style="text-align:center;padding:6px 0 18px;"><a href="' + SITE_URL + '"><img src="' + SITE_URL + '/assets/logo.png" alt="Acesso na Tela" width="180" style="max-width:62%;height:auto;border:0;display:inline-block;"></a></div>' +
-      '<div style="background:#D4500F;border-radius:14px 14px 0 0;padding:26px 28px 20px;">' +
+      '<div style="background:#CC4A0D;border-radius:14px 14px 0 0;padding:26px 28px 20px;">' +
         '<h1 style="margin:0;color:#fff;font-size:21px;line-height:1.25;">Lançamentos acessíveis da semana 🎬</h1>' +
         '<p style="margin:8px 0 0;color:#FFE5B0;font-size:13px;">' + label + '</p>' +
       '</div>' +
@@ -113,8 +113,8 @@ function _emailHtml(nome, email, filmsHtml, label) {
         filmsHtml +
         '<p style="text-align:center;margin:24px 0 6px;"><a href="' + SITE_URL + '" style="background:#1A1A1A;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:13px 26px;border-radius:8px;display:inline-block;">Ver tudo no site</a></p>' +
         '<p style="font-size:13px;line-height:1.6;margin:18px 0 0;color:#777;border-top:1px solid #EDEBE6;padding-top:16px;">' +
-          'Você recebe este e-mail toda segunda-feira porque se cadastrou no <a href="' + SITE_URL + '" style="color:#D4500F;">acessonatela.com</a>. ' +
-          'Este é um e-mail automático — por favor, <strong>não responda</strong>. Para deixar de receber, <a href="' + unsub + '" style="color:#D4500F;">descadastre-se aqui</a>.' +
+          'Você recebe este e-mail toda segunda-feira porque se cadastrou no <a href="' + SITE_URL + '" style="color:#CC4A0D;">acessonatela.com</a>. ' +
+          'Este é um e-mail automático — por favor, <strong>não responda</strong>. Para deixar de receber, <a href="' + unsub + '" style="color:#CC4A0D;">descadastre-se aqui</a>.' +
         '</p>' +
       '</div>' +
     '</div></body></html>';

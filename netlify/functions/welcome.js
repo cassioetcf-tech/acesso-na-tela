@@ -36,7 +36,7 @@ function _emailHtml(nome, email) {
     <div style="text-align:center;padding:6px 0 18px;">
       <a href="${SITE_URL}"><img src="${SITE_URL}/assets/logo.png" alt="Acesso na Tela" width="180" style="max-width:62%;height:auto;border:0;display:inline-block;"></a>
     </div>
-    <div style="background:#D4500F;border-radius:14px 14px 0 0;padding:28px 28px 22px;">
+    <div style="background:#CC4A0D;border-radius:14px 14px 0 0;padding:28px 28px 22px;">
       <h1 style="margin:0;color:#ffffff;font-size:22px;line-height:1.25;">Bem-vindo(a) ao Acesso na Tela 🎬</h1>
     </div>
     <div style="background:#ffffff;border:1px solid #E8E6E1;border-top:none;border-radius:0 0 14px 14px;padding:28px;">
@@ -56,9 +56,9 @@ function _emailHtml(nome, email) {
         <a href="${SITE_URL}" style="background:#1A1A1A;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:13px 26px;border-radius:8px;display:inline-block;">Ver filmes em cartaz</a>
       </p>
       <p style="font-size:13px;line-height:1.6;margin:0;color:#777;border-top:1px solid #EDEBE6;padding-top:16px;">
-        Você recebeu este e-mail porque se cadastrou no <a href="${SITE_URL}" style="color:#D4500F;">acessonatela.com</a>.
+        Você recebeu este e-mail porque se cadastrou no <a href="${SITE_URL}" style="color:#CC4A0D;">acessonatela.com</a>.
         Este é um e-mail automático — por favor, <strong>não responda</strong>.
-        Para deixar de receber, <a href="${unsub}" style="color:#D4500F;">descadastre-se aqui</a>.
+        Para deixar de receber, <a href="${unsub}" style="color:#CC4A0D;">descadastre-se aqui</a>.
       </p>
       <p style="font-size:13px;line-height:1.5;margin:14px 0 0;color:#999;font-style:italic;">
         “Nada sobre nós, sem nós.”
