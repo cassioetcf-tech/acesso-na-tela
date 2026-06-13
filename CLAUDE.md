@@ -65,9 +65,16 @@ Chaves e tokens (Supabase publishable key, TMDb read token, partnership da
 Ingresso) ficam em **`js/config.js`** (objeto `CONFIG`). São de baixo risco
 (publishable / `api_read`) e já públicas no repositório — não duplicar aqui.
 
-**Segurança a melhorar:** o login do admin é client-side e fraco por natureza.
-A senha não é mantida neste arquivo de propósito. Endurecer isso é um item
-futuro; não tratar como confidencial real hoje.
+**Login do admin (jun/2026 — endurecido):** a senha NÃO fica mais no código.
+O login é validado pela Netlify Function `admin-login.js`, que compara a senha
+com a variável de ambiente **`ADMIN_PASSWORD`** e devolve um token de sessão
+assinado (HMAC com **`ADMIN_TOKEN_SECRET`**, expira em 8h). O cliente guarda o
+token em `sessionStorage` e libera o painel enquanto válido.
+⚠️ É obrigatório cadastrar `ADMIN_PASSWORD` (e idealmente `ADMIN_TOKEN_SECRET`)
+no Netlify — sem isso o login retorna erro e ninguém entra.
+Limite conhecido: as gravações no Supabase ainda usam a chave anônima (pública),
+então isto protege o ACESSO ao painel, não 100% os dados — proteção total exige
+RLS + funções autenticadas (item futuro).
 
 Netlify plano gratuito: 100 GB bandwidth/mês · 125.000 execuções de Edge
 Functions/mês. Se o site pausar por limite, reativar no painel.
@@ -359,12 +366,19 @@ distribuidora, pills (gênero · duração · classificação), sinopse e traile
 chips de plataforma dinâmicos. Cards linkam para `catalogo-filme.html?urlKey=...`.
 (Foco atual do time está nos filmes em cinema; catálogo em segundo plano.)
 
-### `admin.html` — Painel
-Cadastro: Título · URL Ingresso (extrai `url_key`) · App · Status · vídeos
-acessíveis (YouTube IDs de trailer e de sinopse). AD/LSE/LIBRAS sempre marcados
-(obrigatório por lei). Moderação de `comentarios`. Botão de **Sincronização
-manual** (espelha as fases do `sync-status`; insere `film_{urlKey}` com `url_key`).
-Login client-side (ver §2/§9).
+### `admin.html` — Painel (3 abas, jun/2026)
+- **Dashboard:** cards (total, em cartaz, em breve, catálogo, com acessibilidade,
+  sem acessibilidade), filmes por aplicativo (barras), acessibilidade por
+  distribuidora (tabela com/sem), e filtro por intervalo de data com seletor de
+  base (data de estreia = `ingresso_data.premiereDate` ou data de cadastro =
+  `created_at`).
+- **Filmes:** todos os filmes acumulados, ordem mais novos primeiro, paginação
+  50/página. Cadastro (Título · URL Ingresso → `url_key` · App · Status · vídeos
+  acessíveis). AD/LSE/LIBRAS sempre marcados. Botão de **Sincronização manual**
+  (espelha as fases do `sync-status`) fica nesta aba.
+- **Comentários:** moderação de `comentarios` em tabela, com filtros (status +
+  busca) e ações aprovar/rejeitar/excluir.
+Login via função serverless (ver §2/§9).
 
 ---
 
