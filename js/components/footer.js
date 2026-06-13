@@ -15,7 +15,7 @@ function renderFooter() {
         '<a href="faq.html">FAQ</a>' +
         '<a href="sobre.html">Sobre</a>' +
       '</nav>' +
-      '<p><strong>Acesso na Tela</strong> — Cinema e streaming acessíveis para todos.<br>' +
+      '<p><strong>Acesso na Tela</strong> — Cinema acessível para todos.<br>' +
       '&copy; ' + year + '</p>' +
     '</footer>';
 }
