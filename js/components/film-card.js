@@ -108,7 +108,7 @@ function buildCard(filme, tmdb) {
   a.setAttribute('aria-label', 'Saiba mais sobre ' + escHtml(title));
 
   a.innerHTML =
-    '<article class="' + cardCls + '" role="listitem" aria-label="' + escHtml(title) + '">' +
+    '<article class="' + cardCls + '">' +
       '<div class="poster" aria-hidden="true">' +
         (poster
           ? '<img class="poster-img" src="' + poster + '" alt="" loading="lazy">'
@@ -145,7 +145,7 @@ function buildBreveCard(filme, tmdb) {
   a.setAttribute('aria-label', 'Saiba mais sobre ' + escHtml(title));
 
   a.innerHTML =
-    '<article class="film-card coming-card card-pending" role="listitem" aria-label="' + escHtml(title) + '">' +
+    '<article class="film-card coming-card card-pending">' +
       '<div class="poster" aria-hidden="true">' +
         (poster ? '<img class="poster-img" src="' + poster + '" alt="" loading="lazy">' : '') +
         '<div class="poster-badges"><span class="pbadge pb-pending">Em breve</span></div>' +

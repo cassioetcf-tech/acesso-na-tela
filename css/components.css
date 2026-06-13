@@ -66,7 +66,7 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
   color: #ccc;
   text-decoration: none;
   font-size: 12px;
-  padding: 4px 8px;
+  padding: 7px 12px;
   border-radius: 4px;
   transition: background .15s, color .15s;
   white-space: nowrap;
@@ -94,9 +94,9 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
 
 .a11y-font-btn {
   background: transparent;
-  border: 1.5px solid #555;
+  border: 1.5px solid #767676;
   color: #fff;
-  padding: 3px 10px;
+  padding: 7px 12px;
   border-radius: 4px;
   font-size: 13px;
   font-weight: 700;
@@ -116,9 +116,9 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
 
 .a11y-contrast-btn {
   background: transparent;
-  border: 1.5px solid #555;
+  border: 1.5px solid #767676;
   color: #fff;
-  padding: 4px 12px;
+  padding: 7px 12px;
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
@@ -162,14 +162,18 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
 .a11y-contrast-menu button:hover,
 .a11y-contrast-menu button:focus-visible {
   background: var(--laranja);
-  outline: none;
+}
+/* Foco visível sobre o item realçado (que já fica laranja): anel branco interno */
+.a11y-contrast-menu button:focus-visible {
+  outline: 2px solid #fff !important;
+  outline-offset: -3px !important;
 }
 
 .a11y-btn {
   background: transparent;
-  border: 1.5px solid #555;
+  border: 1.5px solid #767676;
   color: #fff;
-  padding: 4px 12px;
+  padding: 7px 12px;
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
@@ -191,9 +195,9 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
   color: #aaa;
   font-size: 12px;
   text-decoration: none;
-  padding: 4px 10px;
+  padding: 7px 12px;
   border-radius: 4px;
-  border: 1.5px solid #555;
+  border: 1.5px solid #767676;
   white-space: nowrap;
   transition: border-color .15s, color .15s;
 }

@@ -27,7 +27,7 @@
       <section class="a11y-decl-hero" aria-labelledby="decl-h1">
         <div class="a11y-decl-hero-inner">
           <h1 id="decl-h1">Declaração de <span class="hl">Acessibilidade</span></h1>
-          <p>O Acesso na Tela é um portal sobre cinema e streaming acessíveis. Nosso compromisso com a acessibilidade não se limita ao conteúdo que publicamos — ele se estende à forma como construímos o próprio site.</p>
+          <p>O Acesso na Tela é um portal sobre cinema acessível. Nosso compromisso com a acessibilidade não se limita ao conteúdo que publicamos — ele se estende à forma como construímos o próprio site.</p>
         </div>
       </section>
 
@@ -36,9 +36,9 @@
         <!-- CONFORMIDADE -->
         <section class="decl-section" aria-labelledby="decl-conformidade">
           <h2 id="decl-conformidade">Nível de conformidade</h2>
-          <p>Este site busca conformidade com as <strong>Diretrizes de Acessibilidade para Conteúdo Web (WCAG) 2.1, nível AA</strong>, publicadas pelo World Wide Web Consortium (W3C).</p>
-          <p>Estamos em processo contínuo de melhoria. Algumas seções ainda estão sendo aprimoradas para atingir conformidade completa.</p>
-          <div class="decl-badge-row" aria-label="Nível de conformidade WCAG 2.1 AA">
+          <p>Este site busca conformidade com as <strong>Diretrizes de Acessibilidade para Conteúdo Web (WCAG) 2.2, nível AA</strong>, publicadas pelo World Wide Web Consortium (W3C), e com a norma brasileira <strong>ABNT NBR 17225</strong>.</p>
+          <p>Estamos em processo contínuo de melhoria. Algumas seções ainda estão sendo aprimoradas para atingir conformidade completa — veja as <a href="#decl-limitacoes">limitações conhecidas</a> abaixo.</p>
+          <div class="decl-badge-row" aria-label="Nível de conformidade WCAG 2.2 AA">
             <div class="decl-badge decl-badge-a">A</div>
             <div class="decl-badge decl-badge-aa">AA</div>
             <div class="decl-badge decl-badge-aaa decl-badge-partial">AAA <span class="decl-badge-note">parcial</span></div>
@@ -84,7 +84,7 @@
             <div class="decl-card">
               <div class="decl-card-icon" aria-hidden="true">🌈</div>
               <h3>Contraste de cores</h3>
-              <p>Textos e elementos interativos atendem às proporções mínimas de contraste WCAG 2.1 AA (4,5:1 para texto normal, 3:1 para texto grande).</p>
+              <p>Textos e elementos interativos buscam atender às proporções mínimas de contraste da WCAG 2.2 AA (4,5:1 para texto normal, 3:1 para texto grande e componentes). Oferecemos ainda 4 modos de contraste ajustáveis na barra de acessibilidade.</p>
             </div>
 
             <div class="decl-card">
@@ -99,6 +99,18 @@
               <p>Integração com o <strong>VLibras</strong> (ferramenta do Governo Federal) disponível em todas as páginas, oferecendo tradução automática de conteúdo para Libras.</p>
             </div>
 
+            <div class="decl-card">
+              <div class="decl-card-icon" aria-hidden="true">🎚️</div>
+              <h3>Ajuste de fonte e movimento</h3>
+              <p>O tamanho do texto pode ser aumentado pela barra de acessibilidade, sem quebrar o layout. Animações e transições são reduzidas automaticamente quando o sistema do usuário pede menos movimento (<code>prefers-reduced-motion</code>).</p>
+            </div>
+
+            <div class="decl-card">
+              <div class="decl-card-icon" aria-hidden="true">👆</div>
+              <h3>Alvos de toque</h3>
+              <p>Botões e controles têm área de toque adequada (mínimo de 24×24 px, conforme WCAG 2.2), facilitando o uso em telas sensíveis ao toque e por pessoas com baixa coordenação motora.</p>
+            </div>
+
           </div>
         </section>
 
@@ -107,6 +119,7 @@
           <h2 id="decl-limitacoes">Limitações conhecidas</h2>
           <p>Trabalhamos continuamente para melhorar, mas reconhecemos que algumas áreas ainda estão em aprimoramento:</p>
           <ul class="decl-list">
+            <li>Alguns textos pequenos sobre o fundo laranja da identidade visual podem ficar um pouco abaixo da relação de contraste ideal para texto normal. Estamos ajustando esses pontos; nesse meio tempo, os modos de alto contraste na barra de acessibilidade resolvem a leitura.</li>
             <li>Vídeos de trailers incorporados do YouTube podem não ter legendas em todos os casos — dependem da disponibilidade no próprio YouTube.</li>
             <li>Conteúdo carregado dinamicamente (filmes em cartaz, sessões, relatos) pode ter um pequeno atraso antes de ser anunciado por leitores de tela.</li>
             <li>O widget VLibras é uma ferramenta de terceiros — sua cobertura e precisão dependem do Governo Federal.</li>
@@ -127,15 +140,11 @@
           <p style="margin-top:16px;font-size:13px;color:var(--ink3);">Recomendamos o uso de navegadores e tecnologias assistivas lançados nos últimos 2 anos para melhor experiência.</p>
         </section>
 
-        <!-- FEEDBACK E CONTATO -->
-        <section class="decl-section decl-section-contact" aria-labelledby="decl-contato">
-          <h2 id="decl-contato">Encontrou algum problema?</h2>
-          <p>Se você encontrou uma barreira de acessibilidade no Acesso na Tela ou quer nos ajudar a melhorar, entre em contato. Respondemos em até <strong>2 dias úteis</strong>.</p>
-          <a href="mailto:contato@acessonatela.com" class="decl-contact-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
-            Enviar feedback de acessibilidade
-          </a>
-          <p class="decl-update">Esta declaração foi atualizada em <time datetime="2026-05-16">maio de 2026</time>.</p>
+        <!-- ATUALIZAÇÃO -->
+        <section class="decl-section" aria-labelledby="decl-atualizacao">
+          <h2 id="decl-atualizacao">Fale com a gente</h2>
+          <p>Encontrou uma barreira de acessibilidade ou quer nos ajudar a melhorar? Use a nossa <a href="contato.html">página de Contato</a> — sua mensagem é muito bem-vinda.</p>
+          <p class="decl-update">Esta declaração foi atualizada em <time datetime="2026-06-13">junho de 2026</time>.</p>
         </section>
 
       </div><!-- /.a11y-decl-body -->
