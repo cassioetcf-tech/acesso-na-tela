@@ -14,6 +14,7 @@ function renderFooter() {
         '<a href="aplicativos.html">Aplicativos</a>' +
         '<a href="faq.html">FAQ</a>' +
         '<a href="sobre.html">Sobre</a>' +
+        '<a href="contato.html">Contato</a>' +
       '</nav>' +
       '<p><strong>Acesso na Tela</strong> — Cinema acessível para todos.<br>' +
       '&copy; ' + year + '</p>' +

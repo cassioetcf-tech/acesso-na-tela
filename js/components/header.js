@@ -7,6 +7,7 @@ var _NAV_LINKS = [
   { key: 'aplicativos', href: 'aplicativos.html', label: 'Aplicativos' },
   { key: 'faq',         href: 'faq.html',         label: 'FAQ'         },
   { key: 'sobre',       href: 'sobre.html',       label: 'Sobre'       },
+  { key: 'contato',     href: 'contato.html',     label: 'Contato'     },
 ];
 
 function renderHeader(activePage) {

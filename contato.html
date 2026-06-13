@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contato — Acesso na Tela</title>
+  <meta name="description" content="Entre em contato com o Acesso na Tela. Envie sua mensagem, dúvida ou sugestão sobre filmes acessíveis nos cinemas.">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&display=swap">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/a11y.css">
+  <link rel="stylesheet" href="/css/pages/contato.css">
+</head>
+<body>
+  <div id="a11y-bar-mount"></div>
+  <div aria-live="polite" aria-atomic="true" class="sr-only" id="live-region"></div>
+
+  <div class="shell">
+    <div id="header-mount"></div>
+
+    <main id="main-content" tabindex="-1">
+
+      <!-- HERO -->
+      <section class="contato-hero" aria-labelledby="contato-h1">
+        <div class="contato-hero-inner">
+          <h1 id="contato-h1">Fale com o <span class="hl">Acesso na Tela</span></h1>
+          <p>Dúvidas, sugestões, correções ou parcerias? Escreva pra gente — sua mensagem ajuda a melhorar a acessibilidade nos cinemas.</p>
+        </div>
+      </section>
+
+      <!-- BODY -->
+      <div class="contato-body">
+
+        <div id="contato-form-wrap">
+          <form class="contato-card" id="contato-form" onsubmit="submitContato(event)" novalidate aria-label="Formulário de contato">
+
+            <!-- honeypot anti-spam (oculto) -->
+            <div class="contato-hp" aria-hidden="true">
+              <label for="c-bot">Não preencha este campo</label>
+              <input type="text" id="c-bot" name="bot_field" tabindex="-1" autocomplete="off">
+            </div>
+
+            <div class="contato-field">
+              <label class="contato-label" for="c-nome">Nome</label>
+              <input class="contato-input" type="text" id="c-nome" name="nome" autocomplete="name" required>
+            </div>
+
+            <div class="contato-field">
+              <label class="contato-label" for="c-email">E-mail</label>
+              <input class="contato-input" type="email" id="c-email" name="email" autocomplete="email" required>
+            </div>
+
+            <div class="contato-field">
+              <label class="contato-label" for="c-celular">Celular <span class="opt">(opcional)</span></label>
+              <input class="contato-input" type="tel" id="c-celular" name="celular" autocomplete="tel" placeholder="(11) 90000-0000">
+            </div>
+
+            <div class="contato-field">
+              <label class="contato-label" for="c-mensagem">Mensagem</label>
+              <textarea class="contato-textarea" id="c-mensagem" name="mensagem" required></textarea>
+            </div>
+
+            <div class="contato-actions">
+              <button class="contato-btn" type="submit" id="contato-btn">Enviar mensagem</button>
+              <p class="contato-feedback" id="contato-feedback" aria-live="polite"></p>
+            </div>
+
+            <p class="contato-note">
+              Usamos seus dados apenas para responder a esta mensagem. Não compartilhamos com terceiros.
+            </p>
+          </form>
+        </div>
+
+        <div class="contato-success" id="contato-success" role="alert" aria-live="polite" tabindex="-1" hidden>
+          <div class="cs-icon" aria-hidden="true">📩</div>
+          <div class="cs-title">Mensagem enviada!</div>
+          <p class="cs-text">Obrigado por escrever para o Acesso na Tela.<br>Responderemos no e-mail que você informou assim que possível.</p>
+        </div>
+
+      </div><!-- /.contato-body -->
+
+    </main>
+
+    <div id="footer-mount"></div>
+  </div><!-- /.shell -->
+
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/a11y.js"></script>
+  <script src="/js/components/header.js"></script>
+  <script src="/js/components/footer.js"></script>
+  <script src="/js/pages/contato.js"></script>
+  <script>
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { renderHeader('contato'); renderFooter(); });
+    } else {
+      renderHeader('contato'); renderFooter();
+    }
+  </script>
+</body>
+</html>

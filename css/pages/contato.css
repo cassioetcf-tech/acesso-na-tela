@@ -1,0 +1,132 @@
+/* ═══════════════════════════════════════
+   CONTATO — Acesso na Tela
+═══════════════════════════════════════ */
+
+/* ── HERO ── */
+.contato-hero {
+  background: var(--laranja);
+  padding: 40px 28px 44px;
+}
+.contato-hero-inner { max-width: 680px; }
+.contato-hero h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+.contato-hero h1 .hl { font-style: italic; opacity: 0.92; }
+.contato-hero p {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ── BODY ── */
+.contato-body {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 28px 80px;
+}
+
+/* ── CARD / FORM ── */
+.contato-card {
+  background: #fff;
+  border: 1px solid var(--bg3);
+  border-radius: var(--r);
+  padding: 32px 30px;
+}
+
+.contato-field { margin-bottom: 18px; }
+.contato-field:last-of-type { margin-bottom: 0; }
+
+.contato-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 7px;
+}
+.contato-label .opt { color: var(--ink3); font-weight: 500; }
+
+.contato-input,
+.contato-textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 16px; /* 16px evita zoom automático no iOS */
+  color: var(--ink);
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+}
+.contato-textarea { resize: vertical; min-height: 140px; line-height: 1.6; }
+
+.contato-input:focus,
+.contato-textarea:focus {
+  outline: 3px solid var(--laranja);
+  outline-offset: 1px;
+  border-color: var(--laranja);
+  background: #fff;
+}
+
+/* honeypot — escondido de humanos */
+.contato-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px; height: 1px;
+  overflow: hidden;
+}
+
+.contato-actions { margin-top: 24px; }
+.contato-btn {
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--laranja);
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 14px 28px;
+  cursor: pointer;
+  width: 100%;
+}
+.contato-btn:hover { background: var(--laranja-esc); }
+.contato-btn:disabled { opacity: 0.6; cursor: default; }
+
+.contato-feedback {
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 14px 0 0;
+  min-height: 1px;
+}
+.contato-feedback.err { color: var(--laranja-esc); font-weight: 600; }
+
+.contato-note {
+  font-size: 13px;
+  color: var(--ink3);
+  line-height: 1.6;
+  margin: 16px 0 0;
+}
+
+/* ── SUCESSO ── */
+.contato-success {
+  background: #fff;
+  border: 1px solid var(--bg3);
+  border-radius: var(--r);
+  padding: 40px 30px;
+  text-align: center;
+}
+.contato-success .cs-icon { font-size: 40px; line-height: 1; margin-bottom: 12px; }
+.contato-success .cs-title { font-size: 20px; font-weight: 800; color: var(--ink); margin: 0 0 10px; }
+.contato-success .cs-text  { font-size: 15px; color: var(--ink2); line-height: 1.65; margin: 0; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .contato-hero { padding: 28px 16px 32px; }
+  .contato-body { padding: 32px 16px 60px; }
+  .contato-card { padding: 24px 20px; }
+}
