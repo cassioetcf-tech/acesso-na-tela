@@ -37,10 +37,11 @@ function renderHeader(activePage) {
             '&#9680; Contraste' +
           '</button>' +
           '<div id="contrast-menu" class="a11y-contrast-menu" hidden role="menu" aria-label="Modos de contraste">' +
-            '<button role="menuitem" onclick="setContrast(\'default\')">Original</button>' +
-            '<button role="menuitem" onclick="setContrast(\'high\')">Alto contraste</button>' +
-            '<button role="menuitem" onclick="setContrast(\'inverted\')">Invertido</button>' +
-            '<button role="menuitem" onclick="setContrast(\'grayscale\')">Escala de cinza</button>' +
+            '<div class="a11y-contrast-menu-title" aria-hidden="true">Modo de contraste</div>' +
+            '<button role="menuitemradio" aria-checked="true"  data-contrast="default"   onclick="setContrast(\'default\')"><span class="cm-check" aria-hidden="true">✓</span>Normal</button>' +
+            '<button role="menuitemradio" aria-checked="false" data-contrast="high"      onclick="setContrast(\'high\')"><span class="cm-check" aria-hidden="true">✓</span>Alto contraste</button>' +
+            '<button role="menuitemradio" aria-checked="false" data-contrast="inverted"  onclick="setContrast(\'inverted\')"><span class="cm-check" aria-hidden="true">✓</span>Invertido</button>' +
+            '<button role="menuitemradio" aria-checked="false" data-contrast="grayscale" onclick="setContrast(\'grayscale\')"><span class="cm-check" aria-hidden="true">✓</span>Escala de cinza</button>' +
           '</div>' +
         '</div>' +
         '<a class="a11y-decl-link" href="acessibilidade.html" aria-label="Declaração de acessibilidade">&#9679; Acessibilidade</a>' +

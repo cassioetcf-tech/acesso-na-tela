@@ -131,6 +131,12 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
   border-color: var(--laranja);
   color: var(--laranja);
 }
+/* Sinaliza que há um modo de contraste ativo (diferente do normal) */
+.a11y-contrast-btn.has-mode {
+  border-color: var(--laranja);
+  background: var(--laranja);
+  color: #fff;
+}
 
 .a11y-contrast-menu {
   position: absolute;
@@ -147,7 +153,9 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
 .a11y-contrast-menu[hidden] { display: none; }
 
 .a11y-contrast-menu button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 9px;
   width: 100%;
   background: transparent;
   border: none;
@@ -158,6 +166,25 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
   cursor: pointer;
   font-family: inherit;
   transition: background .15s;
+}
+/* Marcador do modo ativo (✓) — ocupa espaço fixo mesmo quando oculto */
+.a11y-contrast-menu .cm-check {
+  width: 14px;
+  flex: 0 0 14px;
+  color: #FFE5B0;
+  font-weight: 700;
+  visibility: hidden;
+}
+.a11y-contrast-menu button.cm-active { font-weight: 700; }
+.a11y-contrast-menu button.cm-active .cm-check { visibility: visible; }
+/* Cabeçalho do menu de contraste */
+.a11y-contrast-menu-title {
+  padding: 9px 16px 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: #aaa;
 }
 .a11y-contrast-menu button:hover,
 .a11y-contrast-menu button:focus-visible {
