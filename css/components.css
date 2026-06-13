@@ -54,7 +54,9 @@ nav a:focus-visible { outline: 3px solid var(--laranja); outline-offset: 2px; }
   padding: 6px 20px;
   font-size: 13px;
   position: relative;
-  z-index: 50;
+  /* sem z-index aqui: a barra não deve criar um contexto de empilhamento que
+     prenda o menu de contraste atrás do header (sticky, z-index:100). Assim o
+     menu (z-index:200) é pintado acima do header quando aberto. */
 }
 
 .a11y-skip-links {
