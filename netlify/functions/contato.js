@@ -10,7 +10,10 @@
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const FROM           = process.env.WELCOME_FROM || 'Acesso na Tela <boasvindas@acessonatela.com>';
-const TO             = process.env.CONTACT_TO || 'cassio@etcfilmes.com.br';
+// CONTACT_TO aceita múltiplos endereços separados por vírgula.
+// (Teste: incluímos um Gmail para isolar o filtro de quarentena do @etcfilmes.com.br.)
+const TO             = (process.env.CONTACT_TO || 'cassio@etcfilmes.com.br, cassioetcf@gmail.com')
+  .split(',').map(function (s) { return s.trim(); }).filter(Boolean);
 const SITE_URL       = 'https://acessonatela.com';
 
 function _esc(s) {
@@ -84,7 +87,7 @@ exports.handler = async function (event) {
 
   const body = {
     from:     FROM,
-    to:       [TO],
+    to:       TO,
     reply_to: email,
     subject:  'Novo contato pelo site — ' + nome,
     html:     _emailHtml(nome, email, celular, mensagem),
