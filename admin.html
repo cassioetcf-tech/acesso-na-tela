@@ -148,6 +148,18 @@
           <div class="toolbar-right">
             <input type="text" class="search-input" placeholder="Buscar filme..."
                    id="search-input" oninput="filterFilmes()">
+            <select id="app-filter" class="cmt-select" onchange="onAppFilter()" aria-label="Filtrar por aplicativo">
+              <option value="todos">Todos os apps</option>
+              <option value="com">Com app (qualquer)</option>
+              <option value="sem">Sem app</option>
+              <option value="MovieReading">MovieReading</option>
+              <option value="MLOAD">MLOAD</option>
+              <option value="GRETA">GRETA</option>
+              <option value="PingPlay">PingPlay</option>
+              <option value="Trio Cinema">Trio Cinema</option>
+              <option value="Conecta Acessibilidade">Conecta Acessibilidade</option>
+            </select>
+            <button class="btn btn-outline" onclick="exportCSV()" title="Exportar a lista filtrada para CSV (abre no Excel)">⬇ Exportar CSV</button>
             <button class="btn btn-add" onclick="openModal()">+ Adicionar filme</button>
           </div>
         </div>
@@ -165,8 +177,9 @@
           <table aria-label="Filmes cadastrados">
             <thead>
               <tr>
-                <th class="th-sort" onclick="setSort('titulo')" id="th-titulo">Filme <span class="sort-arrow" id="arr-titulo"></span></th>
-                <th class="th-sort" onclick="setSort('app')"    id="th-app">App <span class="sort-arrow" id="arr-app"></span></th>
+                <th class="th-sort" onclick="setSort('titulo')"  id="th-titulo">Filme <span class="sort-arrow" id="arr-titulo"></span></th>
+                <th class="th-sort" onclick="setSort('distrib')" id="th-distrib">Distribuidor <span class="sort-arrow" id="arr-distrib"></span></th>
+                <th class="th-sort" onclick="setSort('app')"     id="th-app">App <span class="sort-arrow" id="arr-app"></span></th>
                 <th>Recursos</th>
                 <th class="th-sort" onclick="setSort('status')" id="th-status">Status <span class="sort-arrow" id="arr-status"></span></th>
                 <th class="th-sort" onclick="setSort('data')"   id="th-data">Data <span class="sort-arrow" id="arr-data">↓</span></th>
@@ -175,7 +188,7 @@
             </thead>
             <tbody id="filmes-tbody">
               <tr>
-                <td colspan="6">
+                <td colspan="7">
                   <div class="empty-state"><div style="font-size:32px">🎬</div><p>Carregando filmes...</p></div>
                 </td>
               </tr>
@@ -317,6 +330,6 @@
   <script src="/js/utils.js"></script>
   <script src="/js/api/supabase.js"></script>
   <script src="/js/api/ingresso.js"></script>
-  <script src="/js/pages/admin.js?v=20260613"></script>
+  <script src="/js/pages/admin.js?v=20260614"></script>
 </body>
 </html>

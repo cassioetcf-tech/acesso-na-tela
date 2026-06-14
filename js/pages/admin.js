@@ -50,6 +50,7 @@ function titlesMatch(a, b) {
 var _filmes        = [];
 var _editId        = null;
 var _currentFilter = 'todos';
+var _appFilter     = 'todos';  // 'todos' | 'com' | 'sem' | <nome do app>
 var _previewTimer  = null;
 var _semA11yActive = false;
 
@@ -165,7 +166,7 @@ window.addEventListener('load', function () {
 // ── CRUD: carregar ────────────────────────────────────────────────────────────
 async function loadFilmes() {
   var tbody = document.getElementById('filmes-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>Carregando...</p></div></td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>Carregando...</p></div></td></tr>';
 
   try {
     // Acumulamos TODOS os filmes (sempre os mais novos primeiro).
@@ -229,7 +230,7 @@ function setSort(col) {
 }
 
 function _updateSortHeaders() {
-  var cols = ['titulo', 'app', 'status', 'data'];
+  var cols = ['titulo', 'distrib', 'app', 'status', 'data'];
   cols.forEach(function (c) {
     var th  = document.getElementById('th-' + c);
     var arr = document.getElementById('arr-' + c);
@@ -246,23 +247,42 @@ function _updateSortHeaders() {
   });
 }
 
-function renderTable() {
-  var q     = ((document.getElementById('search-input') || {}).value || '').toLowerCase();
-  var tbody = document.getElementById('filmes-tbody');
+// Distribuidora do filme (string) — '' se desconhecida.
+function _filmeDistrib(f) {
+  return (f.ingresso_data && f.ingresso_data.distributor) || '';
+}
+
+// Aplica filtros (status + busca + app) e ordenação. Usado pela tabela e pelo export.
+function _getFilteredFilmes() {
+  var q = ((document.getElementById('search-input') || {}).value || '').toLowerCase();
 
   var list = _filmes.filter(function (f) {
     var s = (f.status || '').toLowerCase();
-    var matchFilter = _currentFilter === 'todos' ? true : s === _currentFilter;
-    var matchSearch = !q || (f.titulo || '').toLowerCase().includes(q);
-    return matchFilter && matchSearch;
+    var matchStatus = _currentFilter === 'todos' ? true : s === _currentFilter;
+
+    var matchApp;
+    if (_appFilter === 'todos')      matchApp = true;
+    else if (_appFilter === 'com')   matchApp = !!f.app;
+    else if (_appFilter === 'sem')   matchApp = !f.app;
+    else                             matchApp = f.app === _appFilter;
+
+    var matchSearch = !q ||
+      (f.titulo || '').toLowerCase().includes(q) ||
+      _filmeDistrib(f).toLowerCase().includes(q);
+
+    return matchStatus && matchApp && matchSearch;
   });
 
-  // Ordenação por coluna
-  list = list.slice().sort(function (a, b) {
+  return list.slice().sort(function (a, b) {
     var va, vb;
     if (_sortCol === 'titulo') {
       va = (a.titulo || '').toLowerCase();
       vb = (b.titulo || '').toLowerCase();
+      return _sortDir === 'asc' ? va.localeCompare(vb, 'pt-BR') : vb.localeCompare(va, 'pt-BR');
+    }
+    if (_sortCol === 'distrib') {
+      va = _filmeDistrib(a).toLowerCase();
+      vb = _filmeDistrib(b).toLowerCase();
       return _sortDir === 'asc' ? va.localeCompare(vb, 'pt-BR') : vb.localeCompare(va, 'pt-BR');
     }
     if (_sortCol === 'app') {
@@ -281,12 +301,23 @@ function renderTable() {
     vb = (b.ingresso_data && b.ingresso_data.premiereDate) || b.created_at || '';
     return _sortDir === 'desc' ? (va > vb ? -1 : 1) : (va < vb ? -1 : 1);
   });
+}
+
+function onAppFilter() {
+  _appFilter = (document.getElementById('app-filter') || {}).value || 'todos';
+  _page = 1;
+  renderTable();
+}
+
+function renderTable() {
+  var tbody = document.getElementById('filmes-tbody');
+  var list  = _getFilteredFilmes();
 
   var countEl = document.getElementById('filmes-count');
   if (countEl) countEl.textContent = '(' + list.length + ')';
 
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>' +
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>' +
       (_filmes.length === 0
         ? 'Nenhum filme cadastrado ainda. Clique em "+ Adicionar filme" para começar.'
         : 'Nenhum filme encontrado com esses filtros.') +
@@ -333,6 +364,7 @@ function renderTable() {
           '<div class="td-title">' + escHtml(f.titulo) + pendentebadge + '</div>' +
           (f.url_key ? '<div class="td-urlkey">' + escHtml(f.url_key) + '</div>' : '') +
         '</td>' +
+        '<td style="font-size:13px;color:var(--ink2);">' + (_filmeDistrib(f) ? escHtml(_filmeDistrib(f)) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
         '<td>' + (f.app ? '<span class="app-badge">' + escHtml(f.app) + '</span>' : '<span style="color:var(--ink3);font-size:12px">—</span>') + '</td>' +
         '<td><div class="a11y-chips">' + a11yHtml + '</div></td>' +
         '<td><span class="status-badge ' + statusCls + '">' + escHtml(statusTxt) + '</span></td>' +
@@ -374,6 +406,61 @@ function gotoPage(p) {
   // Rola para o topo da tabela ao trocar de página.
   var t = document.querySelector('#tab-filmes .table-wrap');
   if (t && t.scrollIntoView) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Exportar para CSV (abre no Excel) ────────────────────────────────────────────
+// Exporta a lista atual (respeitando os filtros aplicados). Sem filtro = tudo.
+function exportCSV() {
+  var list = _getFilteredFilmes();
+  if (!list.length) { showToast('Nada para exportar com os filtros atuais.', 'error'); return; }
+
+  var headers = ['Titulo', 'URL key', 'Distribuidora', 'App', 'Situacao app', 'Status',
+    'AD', 'LSE', 'Libras', 'Data estreia', 'Data cadastro', 'Genero', 'Duracao (min)',
+    'Classificacao', 'Pais'];
+
+  var rows = list.map(function (f) {
+    var ig = f.ingresso_data || {};
+    var a  = f.a11y || {};
+    var sim = function (v) { return v === false ? 'Nao' : 'Sim'; };
+    return [
+      f.titulo || '',
+      f.url_key || '',
+      ig.distributor || '',
+      f.app || '',
+      _getAppStatusAdmin(f),
+      (f.status || '').toUpperCase(),
+      sim(a.ad), sim(a.lse), sim(a.libras),
+      ig.premiereDate ? String(ig.premiereDate).slice(0, 10) : '',
+      f.created_at ? String(f.created_at).slice(0, 10) : '',
+      (ig.genres && ig.genres[0]) || '',
+      ig.duration || '',
+      ig.contentRating || '',
+      ig.countryOrigin || '',
+    ];
+  });
+
+  var sep = ';'; // ponto-e-vírgula = melhor compatibilidade com Excel pt-BR
+  var esc = function (v) {
+    v = String(v == null ? '' : v);
+    if (/[";\n\r]/.test(v)) v = '"' + v.replace(/"/g, '""') + '"';
+    return v;
+  };
+  var csv = [headers].concat(rows)
+    .map(function (r) { return r.map(esc).join(sep); })
+    .join('\r\n');
+
+  var d = new Date();
+  var stamp = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM p/ acentos no Excel
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url;
+  a.download = 'acessonatela-filmes-' + stamp + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(list.length + ' filme(s) exportado(s).', 'success');
 }
 
 // ── Dashboard ───────────────────────────────────────────────────────────────────
