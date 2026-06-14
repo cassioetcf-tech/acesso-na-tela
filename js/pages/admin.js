@@ -46,6 +46,36 @@ function titlesMatch(a, b) {
   return fa.length >= 4 && fa === fb;
 }
 
+// ── Correspondência tolerante de títulos (subconjunto de tokens) ───────────────
+// Resolve subtítulos e fragmentos: "Bluey no Cinema" casa com "Bluey no Cinema:
+// Coleção..." e "Eclipse" casa com "A Saga Crepúsculo: Eclipse (Relançamento)".
+var _STOPWORDS = {
+  de: 1, da: 1, do: 1, das: 1, dos: 1, e: 1, em: 1, no: 1, na: 1, nos: 1, nas: 1,
+  um: 1, uma: 1, uns: 1, umas: 1, com: 1, sem: 1, ao: 1, aos: 1, a: 1, o: 1, as: 1, os: 1,
+  the: 1, of: 1, '2d': 1, '3d': 1, dublado: 1, legendado: 1, relancamento: 1, remasterizado: 1
+};
+function sigTokens(t) {
+  return normT(t).split(' ').filter(function (w) { return w.length > 1 && !_STOPWORDS[w]; });
+}
+// Pré-tokeniza um título: { toks: [], set: {} }.
+function tokenize(t) {
+  var toks = sigTokens(t);
+  var set = {};
+  toks.forEach(function (w) { set[w] = 1; });
+  return { toks: toks, set: set };
+}
+// Verifica se TODOS os tokens do menor conjunto estão no maior (com guarda p/
+// token único: precisa ter >= 6 chars, evitando falsos positivos genéricos).
+function tokensSubset(aTok, bTok) {
+  if (!aTok.toks.length || !bTok.toks.length) return false;
+  var small, bigSet;
+  if (aTok.toks.length <= bTok.toks.length) { small = aTok.toks; bigSet = bTok.set; }
+  else                                       { small = bTok.toks; bigSet = aTok.set; }
+  for (var i = 0; i < small.length; i++) { if (!bigSet[small[i]]) return false; }
+  if (small.length === 1) return small[0].length >= 6;
+  return true;
+}
+
 // ── Estado ────────────────────────────────────────────────────────────────────
 var _filmes        = [];
 var _editId        = null;
@@ -1144,6 +1174,7 @@ async function runSync() {
     };
     var scanNorm  = {};
     var scanFuzzy = {};
+    var scanList  = []; // {tok:{toks,set}, app} — p/ correspondência por subconjunto
     try {
       var scaneados = await supabaseGet('filmes_scaneados', 'select=titulo,app&limit=5000');
       (scaneados || []).forEach(function (row) {
@@ -1152,7 +1183,11 @@ async function runSync() {
         var n = normT(row.titulo), f = normFuzzy(row.titulo);
         if (n && !scanNorm[n]) scanNorm[n] = app;
         if (f.length >= 4 && !scanFuzzy[f]) scanFuzzy[f] = app;
+        var tok = tokenize(row.titulo);
+        if (tok.toks.length) scanList.push({ tok: tok, app: app });
       });
+      // Mais específicos (mais tokens) primeiro, p/ preferir o melhor match.
+      scanList.sort(function (a, b) { return b.tok.toks.length - a.tok.toks.length; });
       addLog('ok', '🗂️', 'filmes_scaneados: <strong>' + (scaneados ? scaneados.length : 0) + '</strong> registro(s)', null, null);
     } catch (e) {
       addLog('err', '✕', 'filmes_scaneados: ' + e.message, null, null);
@@ -1170,6 +1205,23 @@ async function runSync() {
     var pingplayFuzzy = new Set((a11yData.pingplay || []).map(normFuzzy));
     var gretaSet      = new Set((a11yData.greta    || []).map(normT));
     var gretaFuzzy    = new Set((a11yData.greta    || []).map(normFuzzy));
+
+    // Listas tokenizadas p/ correspondência por subconjunto (fallback do exato)
+    var _tokList = function (arr) {
+      return (arr || []).map(tokenize).filter(function (t) { return t.toks.length; });
+    };
+    var ppTokList    = _tokList(a11yData.pingplay);
+    var gretaTokList = _tokList(a11yData.greta);
+    // true se algum título da lista casa (subconjunto de tokens) com o do filme.
+    var _looseInList = function (filmTok, list) {
+      for (var i = 0; i < list.length; i++) { if (tokensSubset(filmTok, list[i])) return true; }
+      return false;
+    };
+    // app da tabela filmes_scaneados por subconjunto de tokens (ou null).
+    var _looseScanApp = function (filmTok) {
+      for (var i = 0; i < scanList.length; i++) { if (tokensSubset(filmTok, scanList[i].tok)) return scanList[i].app; }
+      return null;
+    };
 
     // PingPlay: mapa por SLUG do ingressoUrl (match exato, à prova de idioma) + título (fallback)
     var ppDetails  = a11yData.pingplay_details || [];
@@ -1202,6 +1254,7 @@ async function runSync() {
       var pf    = emCartaz[ap];
       var norm  = normT(pf.titulo);
       var fuzzy = normFuzzy(pf.titulo);
+      var fTok  = tokenize(pf.titulo);
       var app   = null;
       var appDet = null;
 
@@ -1213,9 +1266,9 @@ async function runSync() {
       var pfSlug     = pf.url_key || _ingressoSlug(pf.ingresso_url);
       var ppUrlDet   = pfSlug ? ppByUrlKey[pfSlug] : null;
       var ppTitleDet = ppByNorm[norm] || ppByNorm[fuzzy] || null;
-      var scanApp    = scanNorm[norm] || (fuzzy.length >= 4 ? scanFuzzy[fuzzy] : null) || null;
-      var inPPTitle  = pingplaySet.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy));
-      var inGreta    = gretaSet.has(norm) || (fuzzy.length >= 4 && gretaFuzzy.has(fuzzy));
+      var scanApp    = scanNorm[norm] || (fuzzy.length >= 4 ? scanFuzzy[fuzzy] : null) || _looseScanApp(fTok);
+      var inPPTitle  = pingplaySet.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy)) || _looseInList(fTok, ppTokList);
+      var inGreta    = gretaSet.has(norm) || (fuzzy.length >= 4 && gretaFuzzy.has(fuzzy)) || _looseInList(fTok, gretaTokList);
 
       if (ppUrlDet) {
         // 1. PingPlay — match exato por ingresso_url (definitivo)

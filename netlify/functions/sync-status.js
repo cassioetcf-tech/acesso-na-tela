@@ -198,6 +198,33 @@ function titlesMatch(a, b) {
   return fa.length >= 4 && fa === fb;
 }
 
+// ── Correspondência tolerante por subconjunto de tokens ───────────────────────
+// "Bluey no Cinema" casa com "Bluey no Cinema: Coleção..."; "Eclipse" casa com
+// "A Saga Crepúsculo: Eclipse (Relançamento)".
+const _STOPWORDS = {
+  de: 1, da: 1, do: 1, das: 1, dos: 1, e: 1, em: 1, no: 1, na: 1, nos: 1, nas: 1,
+  um: 1, uma: 1, uns: 1, umas: 1, com: 1, sem: 1, ao: 1, aos: 1, a: 1, o: 1, as: 1, os: 1,
+  the: 1, of: 1, '2d': 1, '3d': 1, dublado: 1, legendado: 1, relancamento: 1, remasterizado: 1
+};
+function sigTokens(t) {
+  return normT(t).split(' ').filter(function (w) { return w.length > 1 && !_STOPWORDS[w]; });
+}
+function tokenize(t) {
+  const toks = sigTokens(t);
+  const set = {};
+  toks.forEach(function (w) { set[w] = 1; });
+  return { toks: toks, set: set };
+}
+function tokensSubset(aTok, bTok) {
+  if (!aTok.toks.length || !bTok.toks.length) return false;
+  let small, bigSet;
+  if (aTok.toks.length <= bTok.toks.length) { small = aTok.toks; bigSet = bTok.set; }
+  else                                       { small = bTok.toks; bigSet = aTok.set; }
+  for (let i = 0; i < small.length; i++) { if (!bigSet[small[i]]) return false; }
+  if (small.length === 1) return small[0].length >= 6;
+  return true;
+}
+
 // ── Apps (Fase 3) ───────────────────────────────────────────────────────────
 // Normaliza o valor do campo `app` (tabela filmes_scaneados) para o nome
 // canônico usado em filmes.app (consistente com a página de aplicativos).
@@ -500,6 +527,7 @@ exports.handler = async function () {
   // 3a. Tabela filmes_scaneados — MovieReading, Conecta, MLOAD, Trio
   const scanNorm  = new Map(); // normT(titulo)     → app canônico
   const scanFuzzy = new Map(); // normFuzzy(titulo) → app canônico
+  const scanList  = [];        // {tok, app} — correspondência por subconjunto de tokens
   try {
     const scaneados = await supaGet('filmes_scaneados', 'select=titulo,app&limit=5000');
     for (const row of scaneados) {
@@ -509,7 +537,10 @@ exports.handler = async function () {
       const f   = normFuzzy(row.titulo);
       if (n && !scanNorm.has(n)) scanNorm.set(n, app);
       if (f.length >= 4 && !scanFuzzy.has(f)) scanFuzzy.set(f, app);
+      const tok = tokenize(row.titulo);
+      if (tok.toks.length) scanList.push({ tok: tok, app: app });
     }
+    scanList.sort((a, b) => b.tok.toks.length - a.tok.toks.length); // mais específicos primeiro
     log.push(`[sync] filmes_scaneados: ${scaneados.length} registro(s) (${scanNorm.size} títulos únicos)`);
   } catch (e) {
     log.push(`[sync] ERRO filmes_scaneados: ${e.message}`);
@@ -526,6 +557,15 @@ exports.handler = async function () {
   const pingplayFuzzy  = new Set([...pingplayTitles].map(normFuzzy));
   const gretaFuzzy     = new Set([...gretaTitles].map(normFuzzy));
 
+  // Listas tokenizadas p/ correspondência por subconjunto (fallback do exato).
+  const ppTokList    = [...pingplayTitles].map(tokenize).filter((t) => t.toks.length);
+  const gretaTokList = [...gretaTitles].map(tokenize).filter((t) => t.toks.length);
+  const looseInList  = (filmTok, list) => list.some((t) => tokensSubset(filmTok, t));
+  const looseScanApp = (filmTok) => {
+    for (const e of scanList) { if (tokensSubset(filmTok, e.tok)) return e.app; }
+    return null;
+  };
+
   // 3c. Cruza com TODOS os filmes em cartaz (com sessão na semana). Prioridade: filmes_scaneados → PingPlay → GRETA.
   try {
     const emCartaz = await supaGet('filmes', 'status=ilike.cartaz&select=id,titulo,url_key,ingresso_url,app,app_status&limit=500');
@@ -533,18 +573,20 @@ exports.handler = async function () {
     for (const f of emCartaz) {
       const norm  = normT(f.titulo);
       const fuzzy = normFuzzy(f.titulo);
+      const fTok  = tokenize(f.titulo);
       const slug  = f.url_key || ingressoSlug(f.ingresso_url);
       let   app   = null;
 
       // 1. PingPlay por SLUG do Ingresso (match exato por URL, à prova de tradução)
       if (slug && pingplaySlugs.has(slug)) app = 'PingPlay';
-      // 2. Tabela filmes_scaneados (MovieReading, Conecta, MLOAD, Trio)
-      if (!app && scanNorm.has(norm))                        app = scanNorm.get(norm);
+      // 2. Tabela filmes_scaneados (MovieReading, Conecta, MLOAD, Trio) — exato e, p/ fim, subconjunto de tokens
+      if (!app && scanNorm.has(norm))                            app = scanNorm.get(norm);
       else if (!app && fuzzy.length >= 4 && scanFuzzy.has(fuzzy)) app = scanFuzzy.get(fuzzy);
+      if (!app) { const sa = looseScanApp(fTok); if (sa) app = sa; }
       // 3. PingPlay por título (fallback)
-      if (!app && (pingplayTitles.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy)))) app = 'PingPlay';
+      if (!app && (pingplayTitles.has(norm) || (fuzzy.length >= 4 && pingplayFuzzy.has(fuzzy)) || looseInList(fTok, ppTokList))) app = 'PingPlay';
       // 4. GRETA (Paramount/filmeb)
-      if (!app && (gretaTitles.has(norm)    || (fuzzy.length >= 4 && gretaFuzzy.has(fuzzy))))    app = 'GRETA';
+      if (!app && (gretaTitles.has(norm)    || (fuzzy.length >= 4 && gretaFuzzy.has(fuzzy))    || looseInList(fTok, gretaTokList))) app = 'GRETA';
 
       if (!app) continue;
       mApps++; // encontrado em alguma fonte de app
