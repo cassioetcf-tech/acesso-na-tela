@@ -118,17 +118,19 @@ function _thisWeekSunday() {
   return sun;
 }
 
-// Extrai a data de lançamento do item enriquecido
+// Data de estreia do filme (Ingresso). premiereDate é ISO completo (localDate).
 function _releaseStr(item) {
-  return (item.tmdb && item.tmdb.release_date) ||
-         (item.filme.tmdb_data && item.filme.tmdb_data.release_date) || '';
+  return (item.filme && item.filme.ingresso_data && item.filme.ingresso_data.premiereDate) || '';
 }
 
-// Retorna true se o filme já estreou ou estreia até o domingo desta semana
+// Retorna true se o filme já estreou (estreia até o domingo desta semana).
+// Filmes que estreiam em semanas futuras (ex.: pré-venda) ficam de fora.
 function _isThisWeek(item) {
   var dt = _releaseStr(item);
   if (!dt) return true; // sem data → exibe (não sabemos quando estreia)
-  return new Date(dt + 'T12:00:00') <= _thisWeekSunday();
+  var d = new Date(dt);
+  if (isNaN(d)) return true;
+  return d <= _thisWeekSunday();
 }
 
 // Formata intervalo "Seg 12/05 – Dom 18/05" para exibir na página
