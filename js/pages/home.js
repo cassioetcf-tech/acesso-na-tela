@@ -199,13 +199,14 @@ async function loadCatalog() {
       return;
     }
 
-    // Cards usam ingresso_data (cacheado pelo sync). tmdb fica como fallback no buildCard.
+    // Cards usam ingresso_data (cacheado pelo sync).
     var enriched = filmes.map(function (filme) { return { filme: filme, tmdb: null }; });
 
-    // Mostra TODOS os filmes em cartaz com app confirmado — INCLUSIVE os sem dados do TMDb.
-    // O status CARTAZ já é definido pelo sync (Ingresso): só fica em cartaz quem tem sessão
-    // nesta semana. Por isso NÃO filtramos mais por data de lançamento do TMDb — isso escondia
-    // filmes encontrados nos apps que ainda não foram enriquecidos no TMDb.
+    // Só filmes que JÁ estrearam (estreia até o domingo desta semana), usando a
+    // data de estreia do Ingresso (ingresso_data.premiereDate). Isso exclui
+    // pré-vendas de semanas futuras (ex.: Toy Story 5, estreia 17/06). Filmes sem
+    // data de estreia continuam aparecendo (fallback em _isThisWeek).
+    enriched = enriched.filter(_isThisWeek);
 
     // Ordena: acessíveis primeiro, depois pendentes, depois sem acessibilidade
     // Dentro de cada grupo: data de lançamento mais recente primeiro
