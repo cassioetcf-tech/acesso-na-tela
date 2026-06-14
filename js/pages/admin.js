@@ -261,10 +261,12 @@ function _getFilteredFilmes() {
     var matchStatus = _currentFilter === 'todos' ? true : s === _currentFilter;
 
     var matchApp;
-    if (_appFilter === 'todos')      matchApp = true;
-    else if (_appFilter === 'com')   matchApp = !!f.app;
-    else if (_appFilter === 'sem')   matchApp = !f.app;
-    else                             matchApp = f.app === _appFilter;
+    if (_appFilter === 'todos')          matchApp = true;
+    else if (_appFilter === 'com')       matchApp = !!f.app;
+    else if (_appFilter === 'sem')       matchApp = !f.app;
+    else if (_appFilter === 'a11y-com')  matchApp = _getAppStatusAdmin(f) === 'confirmado';
+    else if (_appFilter === 'a11y-sem')  matchApp = _getAppStatusAdmin(f) === 'sem_acessibilidade';
+    else                                 matchApp = f.app === _appFilter;
 
     var matchSearch = !q ||
       (f.titulo || '').toLowerCase().includes(q) ||
@@ -307,6 +309,27 @@ function onAppFilter() {
   _appFilter = (document.getElementById('app-filter') || {}).value || 'todos';
   _page = 1;
   renderTable();
+}
+
+// Marca a pílula de status correspondente como ativa.
+function _selectStatusPill(status) {
+  var order = ['todos', 'cartaz', 'breve', 'catalogo'];
+  var pills = document.querySelectorAll('#tab-filmes .filter-tabs .filter-tab');
+  Array.prototype.forEach.call(pills, function (p) { p.classList.remove('active'); });
+  var idx = order.indexOf(status);
+  if (idx >= 0 && pills[idx]) pills[idx].classList.add('active');
+}
+
+// Navega para a aba Filmes já filtrada (usado pelos cards/barras do Dashboard).
+function goFilmes(status, app) {
+  _currentFilter = status || 'todos';
+  _appFilter     = app || 'todos';
+  _page = 1;
+  _selectStatusPill(_currentFilter);
+  var sel = document.getElementById('app-filter');
+  if (sel) sel.value = _appFilter;
+  renderTable();
+  showTab('filmes');
 }
 
 function renderTable() {
@@ -510,18 +533,20 @@ function renderDashboard() {
   var n = function (pred) { return list.filter(pred).length; };
   var byStatus = function (st) { return n(function (f) { return (f.status || '').toLowerCase() === st; }); };
   var cards = [
-    { label: 'Total',              value: list.length,                       color: 'var(--laranja)' },
-    { label: 'Em cartaz',          value: byStatus('cartaz'),                color: '#166534' },
-    { label: 'Em breve',           value: byStatus('breve'),                 color: '#854D0E' },
-    { label: 'Catálogo',           value: byStatus('catalogo'),              color: '#475569' },
-    { label: 'Com acessibilidade', value: n(_filmeComA11y),                  color: '#166534' },
-    { label: 'Sem acessibilidade', value: n(_filmeSemA11y),                  color: '#991B1B' },
+    { label: 'Total',              value: list.length,          color: 'var(--laranja)', st: 'todos',    app: 'todos' },
+    { label: 'Em cartaz',          value: byStatus('cartaz'),   color: '#166534',        st: 'cartaz',   app: 'todos' },
+    { label: 'Em breve',           value: byStatus('breve'),    color: '#854D0E',        st: 'breve',    app: 'todos' },
+    { label: 'Catálogo',           value: byStatus('catalogo'), color: '#475569',        st: 'catalogo', app: 'todos' },
+    { label: 'Com acessibilidade', value: n(_filmeComA11y),     color: '#166534',        st: 'todos',    app: 'a11y-com' },
+    { label: 'Sem acessibilidade', value: n(_filmeSemA11y),     color: '#991B1B',        st: 'todos',    app: 'a11y-sem' },
   ];
   var cardsEl = document.getElementById('dash-cards');
   if (cardsEl) {
     cardsEl.innerHTML = cards.map(function (c) {
-      return '<div class="stat-card"><div class="stat-num" style="color:' + c.color + '">' + c.value + '</div>' +
-             '<div class="stat-label">' + c.label + '</div></div>';
+      return '<button type="button" class="stat-card stat-card-btn" title="Ver estes filmes na aba Filmes" ' +
+               'onclick="goFilmes(\'' + c.st + '\',\'' + c.app + '\')">' +
+               '<div class="stat-num" style="color:' + c.color + '">' + c.value + '</div>' +
+               '<div class="stat-label">' + c.label + '</div></button>';
     }).join('');
   }
 
@@ -540,11 +565,13 @@ function renderDashboard() {
       var maxApp = appRows[0].n || 1;
       appsEl.innerHTML = appRows.map(function (r) {
         var pct = Math.round((r.n / maxApp) * 100);
-        return '<div class="dash-bar-row">' +
+        var appArg = String(r.app).replace(/'/g, "\\'");
+        return '<button type="button" class="dash-bar-row dash-bar-btn" title="Ver filmes do ' + escHtml(r.app) + '" ' +
+            'onclick="goFilmes(\'todos\',\'' + appArg + '\')">' +
             '<span class="dash-bar-label">' + escHtml(r.app) + '</span>' +
             '<span class="dash-bar-track"><span class="dash-bar-fill" style="width:' + pct + '%"></span></span>' +
             '<span class="dash-bar-val">' + r.n + '</span>' +
-          '</div>';
+          '</button>';
       }).join('');
     }
   }
