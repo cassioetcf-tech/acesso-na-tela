@@ -74,6 +74,11 @@ var _activeTab = 'dashboard';
 var _comentarios = [];
 var _cmtSortDir  = 'desc';
 
+// Filtros clicáveis do Dashboard (drill-down na própria tela)
+var _dashStatus = '';  // '' | 'cartaz' | 'breve' | 'catalogo'
+var _dashA11y   = '';  // '' | 'com' | 'sem'
+var _dashApp    = '';  // '' | <nome do app>
+
 // ── Autenticação ──────────────────────────────────────────────────────────────
 function _hasValidSession() {
   try {
@@ -265,7 +270,7 @@ function _getFilteredFilmes() {
     else if (_appFilter === 'com')       matchApp = !!f.app;
     else if (_appFilter === 'sem')       matchApp = !f.app;
     else if (_appFilter === 'a11y-com')  matchApp = _getAppStatusAdmin(f) === 'confirmado';
-    else if (_appFilter === 'a11y-sem')  matchApp = _getAppStatusAdmin(f) === 'sem_acessibilidade';
+    else if (_appFilter === 'a11y-sem')  matchApp = _getAppStatusAdmin(f) !== 'confirmado';
     else                                 matchApp = f.app === _appFilter;
 
     var matchSearch = !q ||
@@ -490,7 +495,8 @@ function exportCSV() {
 // Classifica o filme: 'confirmado' = com acessibilidade; 'sem_acessibilidade';
 // 'pendente' = a verificar. (reaproveita _getAppStatusAdmin)
 function _filmeComA11y(f)  { return _getAppStatusAdmin(f) === 'confirmado'; }
-function _filmeSemA11y(f)  { return _getAppStatusAdmin(f) === 'sem_acessibilidade'; }
+// "Sem acessibilidade" = tudo que NÃO é confirmado (binário: tem ou não tem).
+function _filmeSemA11y(f)  { return !_filmeComA11y(f); }
 
 // Retorna a data (Date) do filme conforme a base escolhida, ou null.
 function _filmeData(f, basis) {
@@ -510,6 +516,15 @@ function clearDashFilter() {
   renderDashboard();
 }
 
+// Alterna um filtro do dashboard (clicar de novo no mesmo limpa). Filtra na tela.
+function toggleDash(dim, value) {
+  if (dim === 'status')    _dashStatus = (_dashStatus === value) ? '' : value;
+  else if (dim === 'a11y') _dashA11y   = (_dashA11y   === value) ? '' : value;
+  else if (dim === 'app')  _dashApp    = (_dashApp    === value) ? '' : value;
+  renderDashboard();
+}
+function dashClearCross() { _dashStatus = ''; _dashA11y = ''; _dashApp = ''; renderDashboard(); }
+
 function renderDashboard() {
   if (!_filmes) return;
   var basis = (document.getElementById('dash-date-basis') || {}).value || 'premiere';
@@ -519,8 +534,9 @@ function renderDashboard() {
   var from = fromV ? new Date(fromV + 'T00:00:00Z') : null;
   var to   = toV   ? new Date(toV   + 'T23:59:59Z') : null;
 
+  // 1) Base: recorte por data
   var semData = 0;
-  var list = _filmes.filter(function (f) {
+  var dated = _filmes.filter(function (f) {
     if (!hasRange) return true;
     var d = _filmeData(f, basis);
     if (!d) { semData++; return false; }
@@ -529,30 +545,45 @@ function renderDashboard() {
     return true;
   });
 
-  // ── Cards ──
-  var n = function (pred) { return list.filter(pred).length; };
+  // 2) Filtros clicáveis (drill-down). Os CARDS mostram sempre o panorama da
+  //    base (estáveis, servem de botão); os painéis de aplicativo e distribuidora
+  //    refletem o filtro selecionado.
+  var passStatus = function (f) { return !_dashStatus || (f.status || '').toLowerCase() === _dashStatus; };
+  var passA11y   = function (f) {
+    if (_dashA11y === 'com') return _filmeComA11y(f);
+    if (_dashA11y === 'sem') return !_filmeComA11y(f);
+    return true;
+  };
+  var passApp    = function (f) { return !_dashApp || f.app === _dashApp; };
+
+  var appList = dated.filter(function (f) { return passStatus(f) && passA11y(f); });            // painel de apps (sem filtro de app)
+  var flist   = appList.filter(passApp);                                                          // distribuidora + nota
+
+  // ── Cards (sempre da base 'dated'; destacam o filtro ativo) ──
+  var n = function (pred) { return dated.filter(pred).length; };
   var byStatus = function (st) { return n(function (f) { return (f.status || '').toLowerCase() === st; }); };
+  var noCross = !_dashStatus && !_dashA11y && !_dashApp;
   var cards = [
-    { label: 'Total',              value: list.length,          color: 'var(--laranja)', st: 'todos',    app: 'todos' },
-    { label: 'Em cartaz',          value: byStatus('cartaz'),   color: '#166534',        st: 'cartaz',   app: 'todos' },
-    { label: 'Em breve',           value: byStatus('breve'),    color: '#854D0E',        st: 'breve',    app: 'todos' },
-    { label: 'Catálogo',           value: byStatus('catalogo'), color: '#475569',        st: 'catalogo', app: 'todos' },
-    { label: 'Com acessibilidade', value: n(_filmeComA11y),     color: '#166534',        st: 'todos',    app: 'a11y-com' },
-    { label: 'Sem acessibilidade', value: n(_filmeSemA11y),     color: '#991B1B',        st: 'todos',    app: 'a11y-sem' },
+    { label: 'Total',              value: dated.length,         color: 'var(--laranja)', action: 'dashClearCross()',           active: noCross },
+    { label: 'Em cartaz',          value: byStatus('cartaz'),   color: '#166534',        action: "toggleDash('status','cartaz')",   active: _dashStatus === 'cartaz' },
+    { label: 'Em breve',           value: byStatus('breve'),    color: '#854D0E',        action: "toggleDash('status','breve')",    active: _dashStatus === 'breve' },
+    { label: 'Catálogo',           value: byStatus('catalogo'), color: '#475569',        action: "toggleDash('status','catalogo')", active: _dashStatus === 'catalogo' },
+    { label: 'Com acessibilidade', value: n(_filmeComA11y),     color: '#166534',        action: "toggleDash('a11y','com')",        active: _dashA11y === 'com' },
+    { label: 'Sem acessibilidade', value: n(_filmeSemA11y),     color: '#991B1B',        action: "toggleDash('a11y','sem')",        active: _dashA11y === 'sem' },
   ];
   var cardsEl = document.getElementById('dash-cards');
   if (cardsEl) {
     cardsEl.innerHTML = cards.map(function (c) {
-      return '<button type="button" class="stat-card stat-card-btn" title="Ver estes filmes na aba Filmes" ' +
-               'onclick="goFilmes(\'' + c.st + '\',\'' + c.app + '\')">' +
+      return '<button type="button" class="stat-card stat-card-btn' + (c.active ? ' active' : '') + '" ' +
+               'onclick="' + c.action + '">' +
                '<div class="stat-num" style="color:' + c.color + '">' + c.value + '</div>' +
                '<div class="stat-label">' + c.label + '</div></button>';
     }).join('');
   }
 
-  // ── Filmes por aplicativo ──
+  // ── Filmes por aplicativo (reflete status + acessibilidade) ──
   var apps = {};
-  list.forEach(function (f) {
+  appList.forEach(function (f) {
     if (_filmeComA11y(f) && f.app) apps[f.app] = (apps[f.app] || 0) + 1;
   });
   var appRows = Object.keys(apps).map(function (k) { return { app: k, n: apps[k] }; })
@@ -560,14 +591,15 @@ function renderDashboard() {
   var appsEl = document.getElementById('dash-apps');
   if (appsEl) {
     if (!appRows.length) {
-      appsEl.innerHTML = '<p class="dash-empty">Nenhum filme com aplicativo no período.</p>';
+      appsEl.innerHTML = '<p class="dash-empty">Nenhum filme com aplicativo no recorte.</p>';
     } else {
       var maxApp = appRows[0].n || 1;
       appsEl.innerHTML = appRows.map(function (r) {
         var pct = Math.round((r.n / maxApp) * 100);
         var appArg = String(r.app).replace(/'/g, "\\'");
-        return '<button type="button" class="dash-bar-row dash-bar-btn" title="Ver filmes do ' + escHtml(r.app) + '" ' +
-            'onclick="goFilmes(\'todos\',\'' + appArg + '\')">' +
+        var act = _dashApp === r.app ? ' active' : '';
+        return '<button type="button" class="dash-bar-row dash-bar-btn' + act + '" title="Filtrar por ' + escHtml(r.app) + '" ' +
+            'onclick="toggleDash(\'app\',\'' + appArg + '\')">' +
             '<span class="dash-bar-label">' + escHtml(r.app) + '</span>' +
             '<span class="dash-bar-track"><span class="dash-bar-fill" style="width:' + pct + '%"></span></span>' +
             '<span class="dash-bar-val">' + r.n + '</span>' +
@@ -576,9 +608,9 @@ function renderDashboard() {
     }
   }
 
-  // ── Acessibilidade por distribuidora ──
+  // ── Acessibilidade por distribuidora (reflete todos os filtros) ──
   var dist = {};
-  list.forEach(function (f) {
+  flist.forEach(function (f) {
     var d = (f.ingresso_data && f.ingresso_data.distributor) || '— Sem distribuidora';
     if (!dist[d]) dist[d] = { com: 0, sem: 0, total: 0 };
     dist[d].total++;
@@ -589,7 +621,7 @@ function renderDashboard() {
   var distEl = document.getElementById('dash-distrib');
   if (distEl) {
     if (!distRows.length) {
-      distEl.innerHTML = '<tr><td colspan="4"><div class="empty-state"><p>Nenhum filme no período.</p></div></td></tr>';
+      distEl.innerHTML = '<tr><td colspan="4"><div class="empty-state"><p>Nenhum filme no recorte.</p></div></td></tr>';
     } else {
       distEl.innerHTML = distRows.map(function (r) {
         return '<tr>' +
@@ -602,15 +634,28 @@ function renderDashboard() {
     }
   }
 
-  // ── Nota do filtro ──
+  // ── Nota / filtros ativos ──
   var note = document.getElementById('dash-filter-note');
   if (note) {
-    if (!hasRange) {
-      note.textContent = 'Mostrando todos os ' + _filmes.length + ' filmes.';
-    } else {
+    var parts = [];
+    if (hasRange) {
       var basisLbl = basis === 'created' ? 'data de cadastro' : 'data de estreia';
-      note.textContent = list.length + ' filme(s) por ' + basisLbl +
-        (semData ? ' · ' + semData + ' sem data (fora do recorte)' : '');
+      parts.push(dated.length + ' filme(s) por ' + basisLbl + (semData ? ' (' + semData + ' sem data)' : ''));
+    }
+    var crossLbls = [];
+    if (_dashStatus) crossLbls.push({ cartaz: 'Em cartaz', breve: 'Em breve', catalogo: 'Catálogo' }[_dashStatus] || _dashStatus);
+    if (_dashA11y === 'com') crossLbls.push('Com acessibilidade');
+    if (_dashA11y === 'sem') crossLbls.push('Sem acessibilidade');
+    if (_dashApp) crossLbls.push(_dashApp);
+
+    if (crossLbls.length) {
+      note.innerHTML = (parts.length ? escHtml(parts.join(' · ')) + ' · ' : '') +
+        'Filtrando: <strong>' + escHtml(crossLbls.join(' + ')) + '</strong> (' + flist.length + ') ' +
+        '<button type="button" class="dash-clear-link" onclick="dashClearCross()">limpar ✕</button>';
+    } else if (parts.length) {
+      note.textContent = parts.join(' · ');
+    } else {
+      note.textContent = 'Mostrando todos os ' + _filmes.length + ' filmes. Clique num card ou aplicativo para filtrar.';
     }
   }
 }
