@@ -1,5 +1,5 @@
 // ── newsletter-weekly — Newsletter semanal (Resend) ──────────────────────────
-// Netlify Scheduled Function: roda toda SEGUNDA às 11h UTC (08h de Brasília).
+// Netlify Scheduled Function: roda toda QUINTA às 19h UTC (16h de Brasília).
 // (schedule definido em netlify.toml)
 //
 // Pega na tabela `filmes` os lançamentos com data DESTA semana (seg→dom) que já
@@ -113,7 +113,7 @@ function _emailHtml(nome, email, filmsHtml, label) {
         filmsHtml +
         '<p style="text-align:center;margin:24px 0 6px;"><a href="' + SITE_URL + '" style="background:#1A1A1A;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:13px 26px;border-radius:8px;display:inline-block;">Ver tudo no site</a></p>' +
         '<p style="font-size:13px;line-height:1.6;margin:18px 0 0;color:#777;border-top:1px solid #EDEBE6;padding-top:16px;">' +
-          'Você recebe este e-mail toda segunda-feira porque se cadastrou no <a href="' + SITE_URL + '" style="color:#CC4A0D;">acessonatela.com</a>. ' +
+          'Você recebe este e-mail toda quinta-feira porque se cadastrou no <a href="' + SITE_URL + '" style="color:#CC4A0D;">acessonatela.com</a>. ' +
           'Este é um e-mail automático — por favor, <strong>não responda</strong>. Para deixar de receber, <a href="' + unsub + '" style="color:#CC4A0D;">descadastre-se aqui</a>.' +
         '</p>' +
       '</div>' +

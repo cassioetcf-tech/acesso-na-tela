@@ -305,7 +305,9 @@ Windows Task Scheduler na máquina do desenvolvedor:
 Complementa a FASE 3 do `sync-status` para apps sem fonte pública conhecida (GRETA, Trio, Conecta).
 Ver prompt técnico completo gerado na sessão de 2026-05.
 
-**`newsletter-weekly.js` — cron segunda 11h UTC (08h BRT)** (`schedule = "0 11 * * 1"`).
+**`newsletter-weekly.js` — cron quinta 19h UTC (16h BRT)** (`schedule = "0 19 * * 4"`).
+(Quinta 16h: horário com os filmes já liberados nos apps. A janela de filmes
+continua sendo a semana corrente seg→dom.)
 Pega em `filmes` os lançamentos com `ingresso_data.premiereDate` DESTA semana
 (seg→dom) e `app_status=confirmado`, monta a lista (pôster do Ingresso + app +
 badges AD/LSE/Libras + link)

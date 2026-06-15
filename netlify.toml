@@ -5,9 +5,9 @@
 [functions."sync-status"]
   schedule = "0 6 * * *"
 
-# Newsletter semanal — toda segunda às 11h UTC (08h de Brasília)
+# Newsletter semanal — toda quinta às 19h UTC (16h de Brasília)
 [functions."newsletter-weekly"]
-  schedule = "0 11 * * 1"
+  schedule = "0 19 * * 4"
 
 [[edge_functions]]
   path = "/api/catalog"
