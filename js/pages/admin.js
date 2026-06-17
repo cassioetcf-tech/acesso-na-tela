@@ -575,9 +575,9 @@ function renderDashboard() {
     return true;
   });
 
-  // 2) Filtros clicáveis (drill-down). Os CARDS mostram sempre o panorama da
-  //    base (estáveis, servem de botão); os painéis de aplicativo e distribuidora
-  //    refletem o filtro selecionado.
+  // 2) Filtros clicáveis (facetados). Cada card reflete os DEMAIS filtros ativos,
+  //    menos a sua própria dimensão — assim os status continuam visíveis para
+  //    alternar, e Com/Sem acessibilidade refletem o status/app selecionado.
   var passStatus = function (f) { return !_dashStatus || (f.status || '').toLowerCase() === _dashStatus; };
   var passA11y   = function (f) {
     if (_dashA11y === 'com') return _filmeComA11y(f);
@@ -586,20 +586,23 @@ function renderDashboard() {
   };
   var passApp    = function (f) { return !_dashApp || f.app === _dashApp; };
 
-  var appList = dated.filter(function (f) { return passStatus(f) && passA11y(f); });            // painel de apps (sem filtro de app)
-  var flist   = appList.filter(passApp);                                                          // distribuidora + nota
+  // Bases por dimensão (excluem o próprio filtro daquela dimensão)
+  var statusBase = dated.filter(function (f) { return passA11y(f) && passApp(f); });   // cards de status
+  var a11yBase   = dated.filter(function (f) { return passStatus(f) && passApp(f); });  // cards com/sem
+  var appList    = dated.filter(function (f) { return passStatus(f) && passA11y(f); }); // painel de apps
+  var flist      = appList.filter(passApp);                                              // distribuidora + nota
 
-  // ── Cards (sempre da base 'dated'; destacam o filtro ativo) ──
-  var n = function (pred) { return dated.filter(pred).length; };
-  var byStatus = function (st) { return n(function (f) { return (f.status || '').toLowerCase() === st; }); };
-  var noCross = !_dashStatus && !_dashA11y && !_dashApp;
+  var byStatus = function (st) { return statusBase.filter(function (f) { return (f.status || '').toLowerCase() === st; }).length; };
+  var comCount = a11yBase.filter(_filmeComA11y).length;
+  var semCount = a11yBase.length - comCount;
+  var noCross  = !_dashStatus && !_dashA11y && !_dashApp;
   var cards = [
-    { label: 'Total',              value: dated.length,         color: 'var(--laranja)', action: 'dashClearCross()',           active: noCross },
+    { label: 'Total',              value: dated.length,         color: 'var(--laranja)', action: 'dashClearCross()',                active: noCross },
     { label: 'Em cartaz',          value: byStatus('cartaz'),   color: '#166534',        action: "toggleDash('status','cartaz')",   active: _dashStatus === 'cartaz' },
     { label: 'Em breve',           value: byStatus('breve'),    color: '#854D0E',        action: "toggleDash('status','breve')",    active: _dashStatus === 'breve' },
     { label: 'Catálogo',           value: byStatus('catalogo'), color: '#475569',        action: "toggleDash('status','catalogo')", active: _dashStatus === 'catalogo' },
-    { label: 'Com acessibilidade', value: n(_filmeComA11y),     color: '#166534',        action: "toggleDash('a11y','com')",        active: _dashA11y === 'com' },
-    { label: 'Sem acessibilidade', value: n(_filmeSemA11y),     color: '#991B1B',        action: "toggleDash('a11y','sem')",        active: _dashA11y === 'sem' },
+    { label: 'Com acessibilidade', value: comCount,             color: '#166534',        action: "toggleDash('a11y','com')",        active: _dashA11y === 'com' },
+    { label: 'Sem acessibilidade', value: semCount,             color: '#991B1B',        action: "toggleDash('a11y','sem')",        active: _dashA11y === 'sem' },
   ];
   var cardsEl = document.getElementById('dash-cards');
   if (cardsEl) {
