@@ -254,7 +254,7 @@ acessibilidade em todas as páginas.
 
 ## 7. Automações (Netlify)
 
-**`sync-status.js` — cron diário 6h UTC** (`schedule = "0 6 * * *"` no netlify.toml).
+**`sync-status.js` — cron a cada 4h, 06h–22h BRT** (`schedule = "0 1,5,9,13,17,21 * * *"`, UTC, no netlify.toml).
 1. **FASE 1 — Ingresso (descoberta + dados):** descobre filmes em cartaz; insere
    novos como `id: film_{urlKey}`, com `url_key`, `status` CARTAZ/BREVE (via
    `isComingSoon`) e `app_status: pendente`. Para cada filme com `url_key`, busca
@@ -293,7 +293,7 @@ MovieReading/Conecta/MLOAD/Trio NÃO passam por aqui — vêm da tabela
 `filmes_scaneados`, lida direto pelo admin.js. Não escreve em `filmes`.
 
 > ⚠️ Há DUAS implementações da Fase 3: o cron `sync-status.js` (server-side,
-> roda às 6h UTC) e o botão **"Sincronizar"** do `admin.html` (client-side em
+> roda a cada 4h) e o botão **"Sincronizar"** do `admin.html` (client-side em
 > `js/pages/admin.js`, que chama `a11y-sources.js`). Ao mudar a lógica de
 > classificação, **alterar os dois** — eles não compartilham código.
 

@@ -2,8 +2,9 @@
   path = "/api/ingresso"
   function = "ingresso"
 
+# Sincronização a cada 4h, das 06h às 22h de Brasília (UTC 01,05,09,13,17,21)
 [functions."sync-status"]
-  schedule = "0 6 * * *"
+  schedule = "0 1,5,9,13,17,21 * * *"
 
 # Newsletter semanal — toda quinta às 19h UTC (16h de Brasília)
 [functions."newsletter-weekly"]

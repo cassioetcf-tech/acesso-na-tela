@@ -1,5 +1,5 @@
 // ── sync-status v3 — Discovery + Sync Engine ─────────────────────────────────
-// Netlify Scheduled Function: roda diariamente às 6h UTC (netlify.toml)
+// Netlify Scheduled Function: roda a cada 4h, das 06h às 22h de Brasília (netlify.toml)
 //
 // FASE 1 — Ingresso: descoberta + verificação de sessões
 //   → GET /v0/events/city/1/partnership/locomotivadigital — lista oficial do Ingresso
