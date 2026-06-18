@@ -463,18 +463,30 @@ exports.handler = async function () {
 
   log.push(`[sync] Fase 1a concluída: ${created} filme(s) novo(s)`);
 
-  // 1c. Verifica sessões para filmes já em cartaz/breve
+  // 1c. Verifica sessões para filmes em cartaz/breve + catálogo recente.
+  // Catálogo recente (estreia nos últimos 120 dias) também é re-checado: um filme
+  // rebaixado pode voltar a ter sessões (ex.: cinema publica sessões com atraso) e
+  // precisa ser repromovido para CARTAZ.
+  const cutoffDate = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10);
   let filmesAtivos = [];
   try {
-    filmesAtivos = await supaGet(
+    const ativos = await supaGet(
       'filmes',
       'or=(status.ilike.cartaz,status.ilike.breve)&select=id,titulo,url_key,status&order=titulo&limit=500'
     );
+    let catRecente = [];
+    try {
+      catRecente = await supaGet(
+        'filmes',
+        `status=ilike.catalogo&ingresso_data->>premiereDate=gte.${cutoffDate}&select=id,titulo,url_key,status&order=titulo&limit=500`
+      );
+    } catch (e2) { log.push(`[sync] (catálogo recente não verificado: ${e2.message})`); }
+    filmesAtivos = ativos.concat(catRecente);
   } catch (e) {
     log.push(`[sync] ERRO ao buscar filmes para verificação de sessões: ${e.message}`);
   }
 
-  log.push(`[sync] ${filmesAtivos.length} filme(s) em cartaz/breve para verificar sessões`);
+  log.push(`[sync] ${filmesAtivos.length} filme(s) em cartaz/breve/catálogo-recente para verificar sessões`);
 
   for (const f of filmesAtivos) {
     const status = (f.status || '').toLowerCase();
@@ -505,9 +517,9 @@ exports.handler = async function () {
         await supaPatch(f.id, { status: 'CATALOGO', updated_at: now });
         log.push(`→CAT  ${f.titulo} — sem sessões (7 dias)`);
         updated++;
-      } else if (status === 'breve' && hasSessions) {
+      } else if ((status === 'breve' || status === 'catalogo') && hasSessions) {
         await supaPatch(f.id, { status: 'CARTAZ', updated_at: now });
-        log.push(`→CAR  ${f.titulo} — sessões encontradas`);
+        log.push(`→CAR  ${f.titulo} — sessões encontradas (era ${status})`);
         updated++;
       } else {
         log.push(`OK    ${f.titulo} — status correto (${status})`);

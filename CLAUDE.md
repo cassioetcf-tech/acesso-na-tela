@@ -261,6 +261,9 @@ acessibilidade em todas as páginas.
    o evento no Ingresso (`getIngressoEvent`) e cacheia o subconjunto em
    `ingresso_data` (poster, ficha, sinopse, premiereDate). Verifica sessões na
    semana: filme em CARTAZ sem sessão → rebaixado para CATALOGO (sai da home).
+   **Catálogo com estreia recente (≤120 dias) também é re-checado e volta a CARTAZ
+   se reganhar sessões** — cinemas publicam sessões com atraso; sem isso o filme
+   ficaria preso no catálogo (ex.: "Quinze Dias").
 2. **FASE 2 — Apps:** varre **TODOS** os filmes com sessão na semana (status
    CARTAZ, não só pendentes) e cruza com as fontes, promovendo para
    `app_status: confirmado`. Fontes (prioridade nessa ordem):

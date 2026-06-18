@@ -1121,12 +1121,20 @@ async function runSync() {
     errors++;
   }
 
-  // 1c. Verifica sessões para filmes já cadastrados
-  try { _filmes = await supabaseGet('filmes', 'order=created_at.desc&limit=500'); } catch (e) {}
+  // 1c. Verifica sessões: cartaz/breve + catálogo com estreia recente (120 dias).
+  // Catálogo recente é re-checado p/ repromover filmes que voltaram a ter sessões.
+  try { _filmes = await supabaseGet('filmes', 'order=created_at.desc&limit=2000'); } catch (e) {}
 
+  var _cutoff = Date.now() - 120 * 86400000;
   var toCheck = _filmes.filter(function (f) {
+    if (!f.url_key) return false;
     var s = (f.status || '').toLowerCase();
-    return (s === 'cartaz' || s === 'breve') && f.url_key;
+    if (s === 'cartaz' || s === 'breve') return true;
+    if (s === 'catalogo') {
+      var pd = f.ingresso_data && f.ingresso_data.premiereDate;
+      return pd && new Date(pd).getTime() >= _cutoff;
+    }
+    return false;
   });
 
   if (toCheck.length) {
@@ -1139,10 +1147,10 @@ async function runSync() {
         var hasSessions = await _checkFilmHasSessions(cf.url_key);
         var newStatus   = null;
         if (currentStatus === 'cartaz' && !hasSessions) newStatus = 'CATALOGO';
-        else if (currentStatus === 'breve' && hasSessions) newStatus = 'CARTAZ';
+        else if ((currentStatus === 'breve' || currentStatus === 'catalogo') && hasSessions) newStatus = 'CARTAZ';
         if (newStatus) {
           await supabasePatch('filmes', 'id=eq.' + cf.id, { status: newStatus, updated_at: now });
-          var oldLbl = currentStatus === 'cartaz' ? 'Em cartaz' : 'Em breve';
+          var oldLbl = { cartaz: 'Em cartaz', breve: 'Em breve', catalogo: 'Catálogo' }[currentStatus] || currentStatus;
           var newLbl = newStatus === 'CATALOGO' ? 'Catálogo' : 'Em cartaz';
           addLog('ok', '→', '<strong>' + escHtml(cf.titulo) + '</strong> — ' + oldLbl + ' → ' + newLbl, newLbl, 'tag-' + newStatus.toLowerCase());
           changed++;
