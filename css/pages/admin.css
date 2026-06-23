@@ -239,6 +239,20 @@ body.admin-page {
   border-color: var(--laranja);
 }
 
+/* ── FILTRO DE DATA (aba Filmes) ── */
+.films-datefilter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.films-datefilter-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink2);
+}
+
 /* ── TABLE ── */
 .table-wrap {
   background: #FFFFFF;

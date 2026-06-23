@@ -185,6 +185,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <div class="filter-tab" onclick="setFilter('catalogo',this)">Catálogo</div>
         </div>
 
+        <!-- FILTRO DE DATA DE ESTREIA -->
+        <div class="films-datefilter">
+          <span class="films-datefilter-label">Estreia:</span>
+          <label class="dash-filter-field">De
+            <input type="date" id="film-from" onchange="onFilmDate()">
+          </label>
+          <label class="dash-filter-field">Até
+            <input type="date" id="film-to" onchange="onFilmDate()">
+          </label>
+          <button class="btn btn-outline" style="font-size:13px;" onclick="clearFilmDate()">Limpar</button>
+        </div>
+
         <!-- TABLE -->
         <div class="table-wrap">
           <table aria-label="Filmes cadastrados">
@@ -343,6 +355,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <script src="/js/utils.js"></script>
   <script src="/js/api/supabase.js"></script>
   <script src="/js/api/ingresso.js"></script>
-  <script src="/js/pages/admin.js?v=20260614f"></script>
+  <script src="/js/pages/admin.js?v=20260614g"></script>
 </body>
 </html>

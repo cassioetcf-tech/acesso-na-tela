@@ -81,6 +81,8 @@ var _filmes        = [];
 var _editId        = null;
 var _currentFilter = 'todos';
 var _appFilter     = 'todos';  // 'todos' | 'com' | 'sem' | <nome do app>
+var _filmFrom      = '';        // filtro data de estreia (De) — 'YYYY-MM-DD'
+var _filmTo        = '';        // filtro data de estreia (Até) — 'YYYY-MM-DD'
 var _previewTimer  = null;
 var _semA11yActive = false;
 
@@ -287,9 +289,12 @@ function _filmeDistrib(f) {
   return (f.ingresso_data && f.ingresso_data.distributor) || '';
 }
 
-// Aplica filtros (status + busca + app) e ordenação. Usado pela tabela e pelo export.
+// Aplica filtros (status + busca + app + data de estreia) e ordenação. Usado pela tabela e pelo export.
 function _getFilteredFilmes() {
   var q = ((document.getElementById('search-input') || {}).value || '').toLowerCase();
+  var dFrom = _filmFrom ? new Date(_filmFrom + 'T00:00:00Z') : null;
+  var dTo   = _filmTo   ? new Date(_filmTo   + 'T23:59:59Z') : null;
+  var hasDateFilter = !!(dFrom || dTo);
 
   var list = _filmes.filter(function (f) {
     var s = (f.status || '').toLowerCase();
@@ -307,7 +312,15 @@ function _getFilteredFilmes() {
       (f.titulo || '').toLowerCase().includes(q) ||
       _filmeDistrib(f).toLowerCase().includes(q);
 
-    return matchStatus && matchApp && matchSearch;
+    var matchDate = true;
+    if (hasDateFilter) {
+      var pd = f.ingresso_data && f.ingresso_data.premiereDate;
+      var d  = pd ? new Date(pd) : null;
+      if (!d || isNaN(d)) matchDate = false;
+      else { if (dFrom && d < dFrom) matchDate = false; if (dTo && d > dTo) matchDate = false; }
+    }
+
+    return matchStatus && matchApp && matchSearch && matchDate;
   });
 
   return list.slice().sort(function (a, b) {
@@ -342,6 +355,21 @@ function _getFilteredFilmes() {
 
 function onAppFilter() {
   _appFilter = (document.getElementById('app-filter') || {}).value || 'todos';
+  _page = 1;
+  renderTable();
+}
+
+function onFilmDate() {
+  _filmFrom = (document.getElementById('film-from') || {}).value || '';
+  _filmTo   = (document.getElementById('film-to')   || {}).value || '';
+  _page = 1;
+  renderTable();
+}
+
+function clearFilmDate() {
+  var a = document.getElementById('film-from'); if (a) a.value = '';
+  var b = document.getElementById('film-to');   if (b) b.value = '';
+  _filmFrom = ''; _filmTo = '';
   _page = 1;
   renderTable();
 }
