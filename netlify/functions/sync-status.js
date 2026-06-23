@@ -424,7 +424,7 @@ exports.handler = async function () {
   if (ingressoFilms.length > 0) {
     let existentes = [];
     try {
-      existentes = await supaGet('filmes', 'select=url_key&limit=500');
+      existentes = await supaGet('filmes', 'select=url_key&limit=5000');
     } catch (e) {
       log.push(`[sync] ERRO ao buscar filmes existentes: ${e.message}`);
     }
