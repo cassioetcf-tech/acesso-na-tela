@@ -64,9 +64,10 @@
 
 .relatos-panel {
   background: var(--bg);
-  border: 1.5px solid var(--bdr);
+  border: 2px solid var(--laranja-bdr);
   border-radius: var(--r);
   overflow: hidden;
+  box-shadow: 0 8px 26px rgba(204, 74, 13, 0.12);
 }
 
 .relatos-header {
@@ -75,13 +76,14 @@
   justify-content: space-between;
   gap: 10px;
   padding: 18px 20px 14px;
-  border-bottom: 1.5px solid var(--bdr);
+  background: var(--laranja-cl);
+  border-bottom: 2px solid var(--laranja-bdr);
 }
 
 .relatos-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
-  color: var(--ink);
+  color: var(--laranja-esc);
   letter-spacing: -0.2px;
   margin: 0;
 }
