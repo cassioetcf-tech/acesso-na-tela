@@ -100,12 +100,13 @@
   flex-shrink: 0;
 }
 
-/* Relatos list — fundo creme atrás dos comentários */
+/* Relatos list — fundo creme atrás dos comentários (com leve destaque) */
 #comentarios-list {
   margin: 14px 16px;
-  padding: 4px 14px;
-  background: #FCF6EE;
-  border: 1px solid #F1E6D4;
+  padding: 4px 16px;
+  background: #FBEEDD;
+  border: 1px solid #EAD6BE;
+  border-left: 4px solid var(--laranja-bdr);
   border-radius: var(--r-sm);
 }
 
