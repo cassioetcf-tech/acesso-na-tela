@@ -1498,10 +1498,9 @@ async function runSync() {
 
 // ── Moderação de comentários ──────────────────────────────────────────────────
 
+// Relato nasce ATIVO; admin pode desativar (aprovado=false esconde do site).
 function _cmtStatus(c) {
-  if (c.aprovado === true)  return 'aprovado';
-  if (c.aprovado === false) return 'rejeitado';
-  return 'pendente';
+  return c.aprovado === false ? 'desativado' : 'ativo';
 }
 
 // Título do filme a partir do url_key do comentário (cai para o próprio url_key).
@@ -1560,9 +1559,8 @@ function renderComentarios() {
   }
 
   var tag = {
-    aprovado:  '<span class="cmt-status cmt-aprovado">Aprovado</span>',
-    rejeitado: '<span class="cmt-status cmt-rejeitado">Rejeitado</span>',
-    pendente:  '<span class="cmt-status cmt-pendente">Pendente</span>',
+    ativo:      '<span class="cmt-status cmt-aprovado">Ativo</span>',
+    desativado: '<span class="cmt-status cmt-rejeitado">Desativado</span>',
   };
 
   tbody.innerHTML = list.map(function (c) {
@@ -1577,8 +1575,9 @@ function renderComentarios() {
         '<td style="font-size:12px;color:var(--ink3);white-space:nowrap;">' + data + '</td>' +
         '<td>' +
           '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
-            (st !== 'aprovado' ? '<button class="btn" style="font-size:11px;padding:4px 10px;background:#dcfce7;color:#166534;border:1px solid #86efac;" onclick="aprovarComentario(\'' + id + '\')">✓ Aprovar</button>' : '') +
-            (st !== 'rejeitado' ? '<button class="btn" style="font-size:11px;padding:4px 10px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;" onclick="rejeitarComentario(\'' + id + '\')">Rejeitar</button>' : '') +
+            (st === 'ativo'
+              ? '<button class="btn" style="font-size:11px;padding:4px 10px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;" onclick="desativarComentario(\'' + id + '\')">Desativar</button>'
+              : '<button class="btn" style="font-size:11px;padding:4px 10px;background:#dcfce7;color:#166534;border:1px solid #86efac;" onclick="reativarComentario(\'' + id + '\')">✓ Reativar</button>') +
             '<button class="btn btn-delete" style="font-size:11px;padding:4px 10px;" onclick="excluirComentario(\'' + id + '\')">Excluir</button>' +
           '</div>' +
         '</td>' +
@@ -1597,8 +1596,8 @@ function _setCmtAprovado(id, value, msg) {
     .catch(function (err) { showToast('Erro: ' + err.message, 'error'); });
 }
 
-async function aprovarComentario(id) { await _setCmtAprovado(id, true,  'Comentário aprovado.'); }
-async function rejeitarComentario(id) { await _setCmtAprovado(id, false, 'Comentário rejeitado.'); }
+async function desativarComentario(id) { await _setCmtAprovado(id, false, 'Comentário desativado.'); }
+async function reativarComentario(id)  { await _setCmtAprovado(id, true,  'Comentário reativado.'); }
 
 async function excluirComentario(id) {
   if (!confirm('Excluir este comentário? Esta ação é irreversível.')) return;

@@ -112,11 +112,14 @@
 }
 
 .relato-card {
-  padding: 14px 0;
-  border-bottom: 1px solid var(--bdr);
+  padding: 12px 14px;
+  background: #FCF5F0;            /* tom suave p/ diferenciar das demais infos */
+  border: 1px solid #F3E6DD;
+  border-radius: var(--r-sm);
+  margin-bottom: 10px;
 }
 
-.relato-card:last-child { border-bottom: none; }
+.relato-card:last-child { margin-bottom: 0; }
 
 .relato-meta {
   display: flex;

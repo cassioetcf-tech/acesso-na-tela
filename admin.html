@@ -232,9 +232,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <input type="text" class="search-input" placeholder="Buscar autor, filme ou texto..." id="cmt-search" oninput="renderComentarios()">
             <select id="cmt-status-filter" class="cmt-select" onchange="renderComentarios()">
               <option value="todos">Todos os status</option>
-              <option value="pendente">Pendentes</option>
-              <option value="aprovado">Aprovados</option>
-              <option value="rejeitado">Rejeitados</option>
+              <option value="ativo">Ativos</option>
+              <option value="desativado">Desativados</option>
             </select>
             <button class="btn-auto" id="btn-load-comentarios" onclick="loadComentarios()">↺ Carregar</button>
           </div>
@@ -390,6 +389,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <script src="/js/utils.js"></script>
   <script src="/js/api/supabase.js"></script>
   <script src="/js/api/ingresso.js"></script>
-  <script src="/js/pages/admin.js?v=20260614h"></script>
+  <script src="/js/pages/admin.js?v=20260630"></script>
 </body>
 </html>
