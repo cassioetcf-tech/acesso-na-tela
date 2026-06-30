@@ -321,7 +321,7 @@ server-side) + `RESEND_API_KEY` + `WELCOME_FROM`/`WELCOME_REPLY_TO`.
 **`contato.js`** — formulário de contato (`contato.html`). Recebe POST
 `{nome, email, celular, mensagem, bot_field}`, valida + honeypot anti-spam, e
 envia via **Resend** para `CONTACT_TO` (env var; **default
-`cassio@etcfilmes.com.br`** — fase de teste) com `reply_to` = e-mail de quem
+`acessonatelaetc@gmail.com`**) com `reply_to` = e-mail de quem
 escreveu (a resposta vai direto à pessoa). Reusa `RESEND_API_KEY` e `WELCOME_FROM`.
 ⚠️ Entrega: o destino @etcfilmes.com.br pode reter e-mails do domínio remetente
 novo em quarentena — conferir spam/quarentena no teste.

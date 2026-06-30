@@ -6,13 +6,12 @@
 // Variáveis de ambiente (Netlify → Site settings → Environment variables):
 //   RESEND_API_KEY   (obrigatória) — chave da API do Resend
 //   WELCOME_FROM     remetente verificado, ex: "Acesso na Tela <boasvindas@acessonatela.com>"
-//   CONTACT_TO       (opcional) destino dos contatos — default: cassio@etcfilmes.com.br
+//   CONTACT_TO       (opcional) destino dos contatos — default: acessonatelaetc@gmail.com
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const FROM           = process.env.WELCOME_FROM || 'Acesso na Tela <boasvindas@acessonatela.com>';
-// CONTACT_TO aceita múltiplos endereços separados por vírgula.
-// (Teste: incluímos um Gmail para isolar o filtro de quarentena do @etcfilmes.com.br.)
-const TO             = (process.env.CONTACT_TO || 'cassio@etcfilmes.com.br, cassioetcf@gmail.com')
+// CONTACT_TO aceita múltiplos endereços separados por vírgula (env var opcional).
+const TO             = (process.env.CONTACT_TO || 'acessonatelaetc@gmail.com')
   .split(',').map(function (s) { return s.trim(); }).filter(Boolean);
 const SITE_URL       = 'https://acessonatela.com';
 
