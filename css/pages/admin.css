@@ -876,6 +876,34 @@ tr:hover td { background: #FAFAFA; }
 .cmt-rejeitado { background: #FEE2E2; color: #991B1B; }
 .cmt-pendente  { background: #FEF9C3; color: #854D0E; }
 
+/* Comentários novos (ainda não vistos) */
+.cmt-row-new td { background: #FFFBEB; }
+.cmt-row-new td:first-child { box-shadow: inset 3px 0 0 var(--laranja); }
+.cmt-novo-badge {
+  display: inline-block;
+  background: var(--laranja);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.cmt-novos-pill {
+  display: inline-block;
+  background: var(--laranja);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 1px 10px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
   .admin-tabs    { padding: 0 12px; overflow-x: auto; }

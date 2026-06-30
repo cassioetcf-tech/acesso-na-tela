@@ -110,6 +110,11 @@ var _cmtSortDir  = 'desc';
 var _usuarios   = [];
 var _usrSortDir = 'desc';
 
+// Marca de "comentários vistos" (timestamp ms, guardado no navegador).
+// Comentários criados depois disso são destacados como novos.
+var _cmtLastSeen = 0;
+try { _cmtLastSeen = parseInt(localStorage.getItem('ant_cmt_seen') || '0', 10) || 0; } catch (e) {}
+
 // Filtros clicáveis do Dashboard (drill-down na própria tela)
 var _dashStatus = '';  // '' | 'cartaz' | 'breve' | 'catalogo'
 var _dashA11y   = '';  // '' | 'com' | 'sem'
@@ -1503,6 +1508,24 @@ function _cmtStatus(c) {
   return c.aprovado === false ? 'desativado' : 'ativo';
 }
 
+// Comentário "novo" = criado depois da última vez marcada como vista.
+function _cmtIsNew(c) {
+  var t = c.created_at ? new Date(c.created_at).getTime() : 0;
+  return t > _cmtLastSeen;
+}
+
+function marcarComentariosVistos() {
+  var max = _cmtLastSeen;
+  _comentarios.forEach(function (c) {
+    var t = c.created_at ? new Date(c.created_at).getTime() : 0;
+    if (t > max) max = t;
+  });
+  _cmtLastSeen = Math.max(max, Date.now());
+  try { localStorage.setItem('ant_cmt_seen', String(_cmtLastSeen)); } catch (e) {}
+  renderComentarios();
+  showToast('Comentários marcados como vistos.', 'success');
+}
+
 // Título do filme a partir do url_key do comentário (cai para o próprio url_key).
 function _cmtFilme(c) {
   var key = c.filme_url_key || c.url_key || '';
@@ -1548,8 +1571,14 @@ function renderComentarios() {
     return _cmtSortDir === 'desc' ? (va > vb ? -1 : 1) : (va < vb ? -1 : 1);
   });
 
+  var novosTotal = _comentarios.filter(_cmtIsNew).length;
   var countEl = document.getElementById('cmt-count');
-  if (countEl) countEl.textContent = '(' + list.length + ')';
+  if (countEl) {
+    countEl.innerHTML = '(' + list.length + ')' +
+      (novosTotal ? ' <span class="cmt-novos-pill">' + novosTotal + ' novo' + (novosTotal > 1 ? 's' : '') + '</span>' : '');
+  }
+  var seenBtn = document.getElementById('btn-cmt-seen');
+  if (seenBtn) seenBtn.style.display = novosTotal ? '' : 'none';
 
   if (!list.length) {
     tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>' +
@@ -1565,10 +1594,12 @@ function renderComentarios() {
 
   tbody.innerHTML = list.map(function (c) {
     var st   = _cmtStatus(c);
+    var novo = _cmtIsNew(c);
     var data = c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
     var id   = escHtml(c.id);
-    return '<tr id="cmt-' + id + '">' +
-        '<td>' + escHtml(c.autor || 'Anônimo') + (c.email ? '<div class="td-urlkey">' + escHtml(c.email) + '</div>' : '') + '</td>' +
+    var novoBadge = novo ? '<span class="cmt-novo-badge">Novo</span> ' : '';
+    return '<tr id="cmt-' + id + '"' + (novo ? ' class="cmt-row-new"' : '') + '>' +
+        '<td>' + novoBadge + escHtml(c.autor || 'Anônimo') + (c.email ? '<div class="td-urlkey">' + escHtml(c.email) + '</div>' : '') + '</td>' +
         '<td style="font-size:13px;">' + escHtml(_cmtFilme(c)) + '</td>' +
         '<td class="cmt-text">' + escHtml(c.texto || '') + '</td>' +
         '<td>' + (tag[st] || '') + '</td>' +
