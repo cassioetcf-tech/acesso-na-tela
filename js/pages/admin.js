@@ -106,6 +106,10 @@ var _activeTab = 'dashboard';
 var _comentarios = [];
 var _cmtSortDir  = 'desc';
 
+// Usuários cadastrados (carregados sob demanda na aba Usuários)
+var _usuarios   = [];
+var _usrSortDir = 'desc';
+
 // Filtros clicáveis do Dashboard (drill-down na própria tela)
 var _dashStatus = '';  // '' | 'cartaz' | 'breve' | 'catalogo'
 var _dashA11y   = '';  // '' | 'com' | 'sem'
@@ -175,7 +179,7 @@ function doLogout() {
 // ── Abas (Dashboard / Filmes / Comentários) ─────────────────────────────────────
 function showTab(name) {
   _activeTab = name;
-  ['dashboard', 'filmes', 'comentarios'].forEach(function (t) {
+  ['dashboard', 'filmes', 'comentarios', 'usuarios'].forEach(function (t) {
     var panel = document.getElementById('tab-' + t);
     var btn   = document.getElementById('tabbtn-' + t);
     var on    = t === name;
@@ -184,8 +188,9 @@ function showTab(name) {
     if (btn) { btn.classList.toggle('active', on); btn.setAttribute('aria-selected', on ? 'true' : 'false'); }
   });
   if (name === 'dashboard') renderDashboard();
-  // Comentários: carrega na primeira visita à aba
+  // Carrega na primeira visita à aba
   if (name === 'comentarios' && !_comentarios.length) loadComentarios();
+  if (name === 'usuarios' && !_usuarios.length) loadUsuarios();
 }
 
 window.addEventListener('load', function () {
@@ -1605,6 +1610,111 @@ async function excluirComentario(id) {
   } catch (err) {
     showToast('Erro ao excluir: ' + err.message, 'error');
   }
+}
+
+// ── Usuários cadastrados (tabela newsletter, via função protegida) ───────────────
+async function loadUsuarios() {
+  var tbody = document.getElementById('usuarios-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>Carregando...</p></div></td></tr>';
+  var token = '';
+  try { token = sessionStorage.getItem('ant_admin_token') || ''; } catch (e) {}
+  try {
+    var r = await fetch('/.netlify/functions/admin-users', { headers: { 'x-admin-token': token } });
+    var data = {};
+    try { data = await r.json(); } catch (e) {}
+    if (!r.ok || !data.ok) {
+      var msg = (data && data.error) || ('Erro ' + r.status);
+      if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p style="color:#dc2626;">' + escHtml(msg) + '</p></div></td></tr>';
+      return;
+    }
+    _usuarios = Array.isArray(data.users) ? data.users : [];
+  } catch (e) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p style="color:#dc2626;">Erro de conexão.</p></div></td></tr>';
+    return;
+  }
+  renderUsuarios();
+}
+
+function setUsrSort() {
+  _usrSortDir = _usrSortDir === 'asc' ? 'desc' : 'asc';
+  var arr = document.getElementById('arr-usr-data');
+  if (arr) arr.textContent = _usrSortDir === 'asc' ? '↑' : '↓';
+  renderUsuarios();
+}
+
+function _getFilteredUsuarios() {
+  var q   = ((document.getElementById('usr-search') || {}).value || '').toLowerCase();
+  var aceita = (document.getElementById('usr-email-filter') || {}).value || 'todos';
+  return _usuarios.filter(function (u) {
+    if (aceita === 'sim' && u.aceita_email !== true) return false;
+    if (aceita === 'nao' && u.aceita_email === true) return false;
+    if (!q) return true;
+    return (u.nome || '').toLowerCase().includes(q) ||
+           (u.email || '').toLowerCase().includes(q) ||
+           (u.celular || '').toLowerCase().includes(q);
+  }).sort(function (a, b) {
+    var va = a.created_at || '', vb = b.created_at || '';
+    return _usrSortDir === 'desc' ? (va > vb ? -1 : 1) : (va < vb ? -1 : 1);
+  });
+}
+
+function renderUsuarios() {
+  var tbody = document.getElementById('usuarios-tbody');
+  if (!tbody) return;
+  var list = _getFilteredUsuarios();
+
+  var countEl = document.getElementById('usr-count');
+  if (countEl) countEl.textContent = '(' + list.length + ')';
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>' +
+      (_usuarios.length ? 'Nenhum usuário com esses filtros.' : 'Nenhum usuário cadastrado.') +
+      '</p></div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(function (u) {
+    var data = u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+    var aceita = u.aceita_email === true
+      ? '<span class="cmt-status cmt-aprovado">Sim</span>'
+      : '<span class="cmt-status cmt-rejeitado">Não</span>';
+    return '<tr>' +
+        '<td>' + escHtml(u.nome || '—') + '</td>' +
+        '<td style="font-size:13px;">' + escHtml(u.email || '') + '</td>' +
+        '<td style="font-size:13px;">' + escHtml(u.celular || '—') + '</td>' +
+        '<td>' + aceita + '</td>' +
+        '<td style="font-size:12px;color:var(--ink3);">' + escHtml(u.origem || '—') + '</td>' +
+        '<td style="font-size:12px;color:var(--ink3);white-space:nowrap;">' + data + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function exportUsuariosCSV() {
+  var list = _getFilteredUsuarios();
+  if (!list.length) { showToast('Nada para exportar.', 'error'); return; }
+  var headers = ['Nome', 'E-mail', 'Celular', 'Aceita e-mail', 'Aceita WhatsApp', 'E-mail verificado', 'Origem', 'Cadastro'];
+  var rows = list.map(function (u) {
+    return [
+      u.nome || '', u.email || '', u.celular || '',
+      u.aceita_email === true ? 'Sim' : 'Nao',
+      u.aceita_whatsapp === true ? 'Sim' : 'Nao',
+      u.email_verificado === true ? 'Sim' : 'Nao',
+      u.origem || '',
+      u.created_at ? String(u.created_at).slice(0, 10) : '',
+    ];
+  });
+  var sep = ';';
+  var esc = function (v) { v = String(v == null ? '' : v); if (/[";\n\r]/.test(v)) v = '"' + v.replace(/"/g, '""') + '"'; return v; };
+  var csv = [headers].concat(rows).map(function (r) { return r.map(esc).join(sep); }).join('\r\n');
+  var d = new Date();
+  var stamp = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'acessonatela-usuarios-' + stamp + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(list.length + ' usuário(s) exportado(s).', 'success');
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────

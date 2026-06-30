@@ -383,6 +383,10 @@ chips de plataforma dinâmicos. Cards linkam para `catalogo-filme.html?urlKey=..
   (espelha as fases do `sync-status`) fica nesta aba.
 - **Comentários:** moderação de `comentarios` em tabela, com filtros (status +
   busca) e ações aprovar/rejeitar/excluir.
+- **Usuários:** lista a tabela `newsletter` (PII). Como a `newsletter` tem RLS
+  que bloqueia leitura anônima, a aba lê via função **`admin-users.js`** (server,
+  `SUPA_SERVICE_KEY`) protegida pelo token de admin (header `x-admin-token`,
+  validado com `ADMIN_TOKEN_SECRET`). Tem busca, filtro de consentimento e export CSV.
 Login via função serverless (ver §2/§9).
 
 ---

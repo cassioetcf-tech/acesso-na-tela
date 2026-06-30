@@ -67,6 +67,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <button class="admin-tab active" id="tabbtn-dashboard" role="tab" aria-selected="true"  aria-controls="tab-dashboard"    onclick="showTab('dashboard')">Dashboard</button>
       <button class="admin-tab"        id="tabbtn-filmes"    role="tab" aria-selected="false" aria-controls="tab-filmes"       onclick="showTab('filmes')">Filmes</button>
       <button class="admin-tab"        id="tabbtn-comentarios" role="tab" aria-selected="false" aria-controls="tab-comentarios" onclick="showTab('comentarios')">Comentários</button>
+      <button class="admin-tab"        id="tabbtn-usuarios"    role="tab" aria-selected="false" aria-controls="tab-usuarios"    onclick="showTab('usuarios')">Usuários</button>
     </div>
 
     <div class="admin-content">
@@ -257,6 +258,40 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
       </section>
 
+      <!-- ════════ USUÁRIOS ════════ -->
+      <section class="tab-panel" id="tab-usuarios" role="tabpanel" aria-labelledby="tabbtn-usuarios" hidden>
+        <div class="toolbar">
+          <div class="toolbar-title">Usuários cadastrados <span class="toolbar-count" id="usr-count"></span></div>
+          <div class="toolbar-right">
+            <input type="text" class="search-input" placeholder="Buscar nome, e-mail ou celular..." id="usr-search" oninput="renderUsuarios()">
+            <select id="usr-email-filter" class="cmt-select" onchange="renderUsuarios()">
+              <option value="todos">Todos</option>
+              <option value="sim">Aceita e-mail</option>
+              <option value="nao">Não aceita e-mail</option>
+            </select>
+            <button class="btn btn-outline" onclick="exportUsuariosCSV()" title="Exportar a lista filtrada para CSV">⬇ Exportar CSV</button>
+            <button class="btn-auto" id="btn-load-usuarios" onclick="loadUsuarios()">↺ Carregar</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table aria-label="Usuários cadastrados">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Celular</th>
+                <th>Aceita e-mail</th>
+                <th>Origem</th>
+                <th class="th-sort" onclick="setUsrSort()" id="th-usr-data">Cadastro <span class="sort-arrow" id="arr-usr-data">↓</span></th>
+              </tr>
+            </thead>
+            <tbody id="usuarios-tbody">
+              <tr><td colspan="6"><div class="empty-state"><p>Clique em "Carregar" para ver os usuários.</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </div>
   </div>
 
@@ -355,6 +390,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <script src="/js/utils.js"></script>
   <script src="/js/api/supabase.js"></script>
   <script src="/js/api/ingresso.js"></script>
-  <script src="/js/pages/admin.js?v=20260614g"></script>
+  <script src="/js/pages/admin.js?v=20260614h"></script>
 </body>
 </html>
