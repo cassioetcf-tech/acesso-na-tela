@@ -138,7 +138,7 @@ function _weekRangeLabel() {
   var now  = new Date();
   var day  = now.getDay();
   var mon  = new Date(now); mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-  var sun  = new Date(now); sun.setDate(mon.getDate() + 6);
+  var sun  = new Date(mon); sun.setDate(mon.getDate() + 6); // baseado no mon (rola o mês certo)
   var fmt  = function (d) {
     return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
   };
