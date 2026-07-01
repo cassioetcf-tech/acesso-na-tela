@@ -213,7 +213,7 @@ window.addEventListener('load', function () {
 // ── CRUD: carregar ────────────────────────────────────────────────────────────
 async function loadFilmes() {
   var tbody = document.getElementById('filmes-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>Carregando...</p></div></td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><p>Carregando...</p></div></td></tr>';
 
   try {
     // Acumulamos TODOS os filmes (sempre os mais novos primeiro).
@@ -297,6 +297,13 @@ function _updateSortHeaders() {
 // Distribuidora do filme (string) — '' se desconhecida.
 function _filmeDistrib(f) {
   return (f.ingresso_data && f.ingresso_data.distributor) || '';
+}
+
+// Badge de vídeo acessível (trailer/sinopse): verde ✓ se tem link, vermelho ✕ se não.
+function _vidBadge(icon, label, on) {
+  var lbl = label + ': ' + (on ? 'sim' : 'não');
+  return '<span class="vid-badge ' + (on ? 'vid-on' : 'vid-off') + '" title="' + lbl + '" aria-label="' + lbl + '">' +
+    '<span aria-hidden="true">' + icon + '</span> ' + (on ? '✓' : '✕') + '</span>';
 }
 
 // Aplica filtros (status + busca + app + data de estreia) e ordenação. Usado pela tabela e pelo export.
@@ -413,7 +420,7 @@ function renderTable() {
   if (countEl) countEl.textContent = '(' + list.length + ')';
 
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>' +
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><p>' +
       (_filmes.length === 0
         ? 'Nenhum filme cadastrado ainda. Clique em "+ Adicionar filme" para começar.'
         : 'Nenhum filme encontrado com esses filtros.') +
@@ -454,6 +461,11 @@ function renderTable() {
       ? _rd.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
       : '—';
 
+    var vidCell = '<div class="vid-cell">' +
+      _vidBadge('🎬', 'Trailer acessível', !!f.trailer_acessivel_id) +
+      _vidBadge('📝', 'Sinopse acessível', !!f.sinopse_video_id) +
+      '</div>';
+
     html +=
       '<tr>' +
         '<td>' +
@@ -463,6 +475,7 @@ function renderTable() {
         '<td style="font-size:13px;color:var(--ink2);">' + (_filmeDistrib(f) ? escHtml(_filmeDistrib(f)) : '<span style="color:var(--ink3)">—</span>') + '</td>' +
         '<td>' + (f.app ? '<span class="app-badge">' + escHtml(f.app) + '</span>' : '<span style="color:var(--ink3);font-size:12px">—</span>') + '</td>' +
         '<td><div class="a11y-chips">' + a11yHtml + '</div></td>' +
+        '<td>' + vidCell + '</td>' +
         '<td><span class="status-badge ' + statusCls + '">' + escHtml(statusTxt) + '</span></td>' +
         '<td style="font-size:12px;color:var(--ink3);white-space:nowrap;">' + releaseDate + '</td>' +
         '<td>' +
@@ -511,7 +524,8 @@ function exportCSV() {
   if (!list.length) { showToast('Nada para exportar com os filtros atuais.', 'error'); return; }
 
   var headers = ['Titulo', 'URL key', 'Distribuidora', 'App', 'Situacao app', 'Status',
-    'AD', 'LSE', 'Libras', 'Data estreia', 'Data cadastro', 'Genero', 'Duracao (min)',
+    'AD', 'LSE', 'Libras', 'Trailer acessivel', 'Sinopse acessivel',
+    'Data estreia', 'Data cadastro', 'Genero', 'Duracao (min)',
     'Classificacao', 'Pais'];
 
   var rows = list.map(function (f) {
@@ -526,6 +540,8 @@ function exportCSV() {
       _getAppStatusAdmin(f),
       (f.status || '').toUpperCase(),
       sim(a.ad), sim(a.lse), sim(a.libras),
+      f.trailer_acessivel_id ? 'Sim' : 'Nao',
+      f.sinopse_video_id ? 'Sim' : 'Nao',
       ig.premiereDate ? String(ig.premiereDate).slice(0, 10) : '',
       f.created_at ? String(f.created_at).slice(0, 10) : '',
       (ig.genres && ig.genres[0]) || '',
